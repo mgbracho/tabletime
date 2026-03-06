@@ -24,6 +24,14 @@ export async function POST(request: NextRequest) {
     user = session?.user ?? null;
   }
   if (!user) {
+    const authHeader = request.headers.get("Authorization");
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (token) {
+      const { data: { user: userFromToken } } = await supabase.auth.getUser(token);
+      user = userFromToken ?? null;
+    }
+  }
+  if (!user) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 

@@ -37,9 +37,16 @@ export function useAuth() {
   }, [refresh]);
 
   const ensureHousehold = useCallback(async () => {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch("/api/household/ensure", {
       method: "POST",
       credentials: "include",
+      headers: {
+        ...(session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : {}),
+      },
     });
     if (!res.ok) {
       const text = await res.text();

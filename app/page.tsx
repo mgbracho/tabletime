@@ -13,7 +13,7 @@ type TabId = (typeof TABS)[number]["id"];
 const MEAL_LABELS = ["Desayuno", "Comida", "Cena"] as const;
 const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
-type Recipe = { id: string; title: string; ingredients?: string };
+type Recipe = { id: string; title: string; ingredients?: string; instructions?: string };
 
 const INITIAL_RECIPES: Recipe[] = [
   { id: "1", title: "Pasta con tomate", ingredients: "400g pasta\n1 bote tomate triturado\n2 dientes de ajo\nAceite de oliva\nAlbahaca" },
@@ -58,7 +58,34 @@ type PlanState = Record<string, string>;
 
 const STORAGE_KEY = "tabletime-v1";
 
-type ThemeDays = Record<number, string>;
+type MealType = "Desayuno" | "Comida" | "Cena";
+type ThemeDays = Record<number, Partial<Record<MealType, string>>>;
+
+function migrateThemeDays(raw: unknown): ThemeDays {
+  if (!raw || typeof raw !== "object") return {};
+  const obj = raw as Record<string, unknown>;
+  const result: ThemeDays = {};
+  for (let i = 0; i < 7; i++) {
+    const v = obj[String(i)];
+    if (typeof v === "string" && v.trim()) {
+      result[i] = { Cena: v.trim() };
+    } else if (v && typeof v === "object" && "theme" in v && typeof (v as { theme: string; applyTo?: string }).theme === "string") {
+      const e = v as { theme: string; applyTo?: string };
+      const applyTo: MealType = ["Desayuno", "Comida", "Cena"].includes(e.applyTo ?? "") ? e.applyTo as MealType : "Cena";
+      if (e.theme.trim()) {
+        result[i] = { ...result[i], [applyTo]: e.theme.trim() };
+      }
+    } else if (v && typeof v === "object" && ("Desayuno" in v || "Comida" in v || "Cena" in v)) {
+      const day = v as Partial<Record<MealType, string>>;
+      const themes: Partial<Record<MealType, string>> = {};
+      for (const m of ["Desayuno", "Comida", "Cena"] as const) {
+        if (typeof day[m] === "string" && day[m].trim()) themes[m] = day[m].trim();
+      }
+      if (Object.keys(themes).length > 0) result[i] = themes;
+    }
+  }
+  return result;
+}
 
 function loadStored(): {
   recipes: Recipe[];
@@ -88,10 +115,7 @@ function loadStored(): {
       groceryCheckedIds: Array.isArray(data.groceryCheckedIds)
         ? data.groceryCheckedIds
         : [],
-      themeDays:
-        data.themeDays && typeof data.themeDays === "object"
-          ? data.themeDays
-          : {},
+      themeDays: migrateThemeDays(data.themeDays),
     };
   } catch {
     return null;
@@ -134,31 +158,48 @@ function ThemeConfig({
       {open && (
         <div className="border-t border-amber-100 px-4 py-3">
           <p className="mb-3 text-xs text-amber-800">
-            Asigna un tema a cada día (ej. Pasta Tuesday, Taco Friday). Las recetas que coincidan aparecerán primero al elegir.
+            Asigna temas por día y comida. Puedes tener uno para el desayuno y otro para la cena, por ejemplo. Las recetas que coincidan aparecerán primero al elegir.
           </p>
-          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
-            {DAY_NAMES.map((day, i) => (
-              <div key={i}>
-                <label className="mb-1 block text-xs font-medium text-amber-800">
-                  {day}
-                </label>
-                <input
-                  type="text"
-                  value={themeDays[i] ?? ""}
-                  onChange={(e) => {
-                    const val = e.target.value.trim();
-                    setThemeDays((prev) => {
-                      const next = { ...prev };
-                      if (val) next[i] = val;
-                      else delete next[i];
-                      return next;
-                    });
-                  }}
-                  placeholder="Ej. Pasta"
-                  className="w-full rounded-lg border border-amber-200 px-2 py-1.5 text-sm focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
-                />
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[500px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-amber-200">
+                  <th className="pb-2 pr-2 font-medium text-amber-800">Día</th>
+                  <th className="pb-2 px-2 font-medium text-amber-800">Desayuno</th>
+                  <th className="pb-2 px-2 font-medium text-amber-800">Comida</th>
+                  <th className="pb-2 px-2 font-medium text-amber-800">Cena</th>
+                </tr>
+              </thead>
+              <tbody>
+                {DAY_NAMES.map((day, i) => (
+                  <tr key={i} className="border-b border-amber-100">
+                    <td className="py-2 pr-2 font-medium text-amber-900">{day}</td>
+                    {(["Desayuno", "Comida", "Cena"] as const).map((meal) => (
+                      <td key={meal} className="px-2 py-2">
+                        <input
+                          type="text"
+                          value={themeDays[i]?.[meal] ?? ""}
+                          onChange={(e) => {
+                            const val = e.target.value.trim();
+                            setThemeDays((prev) => {
+                              const next = { ...prev };
+                              const dayThemes = { ...next[i] };
+                              if (val) dayThemes[meal] = val;
+                              else delete dayThemes[meal];
+                              if (Object.keys(dayThemes).length > 0) next[i] = dayThemes;
+                              else delete next[i];
+                              return next;
+                            });
+                          }}
+                          placeholder="Ej. Pasta"
+                          className="w-full rounded border border-amber-200 px-2 py-1.5 text-xs focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -233,11 +274,6 @@ function CalendarWeekView({
                 {d.dayLabel}
               </span>
               <span className="text-xs text-zinc-500">{d.dateLabel}</span>
-              {themeDays[i] && (
-                <span className="mt-1 block text-[10px] font-medium text-amber-600">
-                  {themeDays[i]}
-                </span>
-              )}
             </div>
           ))}
         </div>
@@ -249,7 +285,7 @@ function CalendarWeekView({
             <div className="flex items-center border-r border-emerald-50 bg-emerald-50/50 px-3 py-2 text-xs font-medium text-emerald-800">
               {meal}
             </div>
-            {weekDays.map((d) => {
+            {weekDays.map((d, dayIndex) => {
               const key = slotKey(d.date, meal);
               const recipeId = plan[key];
               return (
@@ -272,13 +308,20 @@ function CalendarWeekView({
                       </button>
                     </div>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => setOpenSlot({ date: d.date, meal })}
-                      className="rounded-lg border border-dashed border-emerald-200 bg-emerald-50/30 px-2 py-1.5 text-xs text-emerald-600 transition hover:border-emerald-300 hover:bg-emerald-50"
-                    >
-                      Añadir
-                    </button>
+                    <div className="flex flex-col items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setOpenSlot({ date: d.date, meal })}
+                        className="rounded-lg border border-dashed border-emerald-200 bg-emerald-50/30 px-2 py-1.5 text-xs text-emerald-600 transition hover:border-emerald-300 hover:bg-emerald-50"
+                      >
+                        Añadir
+                      </button>
+                      {themeDays[dayIndex]?.[meal] && (
+                        <span className="text-[10px] font-medium text-amber-600">
+                          {themeDays[dayIndex][meal]}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               );
@@ -289,7 +332,7 @@ function CalendarWeekView({
 
       {openSlot && (() => {
         const weekdayIndex = (openSlot.date.getDay() + 6) % 7;
-        const slotTheme = themeDays[weekdayIndex] ?? "";
+        const slotTheme = themeDays[weekdayIndex]?.[openSlot.meal] ?? "";
         const themeWords = slotTheme
           .toLowerCase()
           .split(/\s+/)
@@ -381,21 +424,61 @@ function RecipesView({
   onRemoveRecipe,
 }: {
   recipes: Recipe[];
-  onAddRecipe: (title: string, ingredients?: string) => void;
+  onAddRecipe: (title: string, ingredients?: string, instructions?: string) => void;
   onRemoveRecipe: (id: string) => void;
 }) {
   const [showForm, setShowForm] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newIngredients, setNewIngredients] = useState("");
+  const [newInstructions, setNewInstructions] = useState("");
+  const [showImport, setShowImport] = useState(false);
+  const [importUrl, setImportUrl] = useState("");
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const title = newTitle.trim();
     if (!title) return;
-    onAddRecipe(title, newIngredients.trim() || undefined);
+    onAddRecipe(
+      title,
+      newIngredients.trim() || undefined,
+      newInstructions.trim() || undefined
+    );
     setNewTitle("");
     setNewIngredients("");
+    setNewInstructions("");
     setShowForm(false);
+  };
+
+  const handleImportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const url = importUrl.trim();
+    if (!url) return;
+    setImportLoading(true);
+    setImportError(null);
+    try {
+      const res = await fetch("/api/import-recipe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setImportError(data.error ?? "Error al importar");
+        return;
+      }
+      setNewTitle(data.title ?? "");
+      setNewIngredients(data.ingredients ?? "");
+      setNewInstructions(data.instructions ?? "");
+      setShowImport(false);
+      setImportUrl("");
+      setShowForm(true);
+    } catch {
+      setImportError("No se pudo conectar. Verifica la URL.");
+    } finally {
+      setImportLoading(false);
+    }
   };
 
   const isExample = (id: string) => !id.startsWith("u-");
@@ -406,14 +489,71 @@ function RecipesView({
         <p className="text-sm text-zinc-700">
           {recipes.length} receta{recipes.length !== 1 ? "s" : ""} en tu biblioteca
         </p>
-        <button
-          type="button"
-          onClick={() => setShowForm(true)}
-          className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
-        >
-          + Añadir receta
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setShowImport(true)}
+            className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-medium text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
+          >
+            Importar desde URL
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
+          >
+            + Añadir receta
+          </button>
+        </div>
       </div>
+
+      {showImport && (
+        <form
+          onSubmit={handleImportSubmit}
+          className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-4"
+        >
+          <label className="mb-2 block text-xs font-medium text-emerald-800">
+            Pegar URL de la receta
+          </label>
+          <p className="mb-3 text-xs text-zinc-600">
+            Funciona con la mayoría de blogs y webs que usen datos estructurados (schema.org).
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={importUrl}
+              onChange={(e) => {
+                setImportUrl(e.target.value);
+                setImportError(null);
+              }}
+              placeholder="https://ejemplo.com/receta-pasta..."
+              className="flex-1 rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              disabled={importLoading}
+            />
+            <button
+              type="submit"
+              disabled={importLoading || !importUrl.trim()}
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {importLoading ? "Importando…" : "Importar"}
+            </button>
+          </div>
+          {importError && (
+            <p className="mt-2 text-sm text-red-600">{importError}</p>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setShowImport(false);
+              setImportUrl("");
+              setImportError(null);
+            }}
+            className="mt-2 text-sm text-zinc-500 hover:text-zinc-700"
+          >
+            Cancelar
+          </button>
+        </form>
+      )}
 
       {showForm && (
         <form
@@ -441,6 +581,16 @@ function RecipesView({
             rows={3}
             className="mb-3 w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
           />
+          <label className="mb-2 block text-xs font-medium text-emerald-800">
+            Pasos (opcional)
+          </label>
+          <textarea
+            value={newInstructions}
+            onChange={(e) => setNewInstructions(e.target.value)}
+            placeholder="1. Sofreír la cebolla..."
+            rows={3}
+            className="mb-3 w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+          />
           <div className="flex gap-2">
             <button
               type="submit"
@@ -454,6 +604,7 @@ function RecipesView({
                 setShowForm(false);
                 setNewTitle("");
                 setNewIngredients("");
+                setNewInstructions("");
               }}
               className="rounded-lg border border-emerald-200 px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50"
             >
@@ -653,7 +804,7 @@ function SectionPlaceholder({
   recipes: Recipe[];
   plan: PlanState;
   setPlan: React.Dispatch<React.SetStateAction<PlanState>>;
-  onAddRecipe: (title: string, ingredients?: string) => void;
+  onAddRecipe: (title: string, ingredients?: string, instructions?: string) => void;
   onRemoveRecipe: (id: string) => void;
   manualGroceryItems: { id: string; label: string }[];
   setManualGroceryItems: React.Dispatch<React.SetStateAction<{ id: string; label: string }[]>>;
@@ -740,9 +891,9 @@ export default function Home() {
     });
   }, [hasHydrated, recipes, plan, manualGroceryItems, groceryCheckedIds, themeDays]);
 
-  const addRecipe = (title: string, ingredients?: string) => {
+  const addRecipe = (title: string, ingredients?: string, instructions?: string) => {
     const id = `u-${Date.now()}`;
-    setRecipes((prev) => [...prev, { id, title, ingredients }]);
+    setRecipes((prev) => [...prev, { id, title, ingredients, instructions }]);
   };
 
   const removeRecipe = (id: string) => {

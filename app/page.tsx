@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useTableTimeData } from "@/lib/sync/use-tabletime-data";
+import { useState } from "react";
 
 const TABS = [
   { id: "calendar", label: "Calendario" },
@@ -17,16 +18,9 @@ type Recipe = { id: string; title: string; ingredients?: string; instructions?: 
 
 const SUGGESTED_TAGS = ["kid-friendly", "rápida", "vegetariana", "alta proteína", "económica", "sin gluten"] as const;
 
-const INITIAL_RECIPES: Recipe[] = [
-  { id: "1", title: "Pasta con tomate", ingredients: "400g pasta\n1 bote tomate triturado\n2 dientes de ajo\nAceite de oliva\nAlbahaca", tags: ["rápida", "vegetariana"] },
-  { id: "2", title: "Tacos de pollo", ingredients: "500g pechuga de pollo\nTortillas de maíz\nLechuga\nTomate\nQueso rallado\nCrema ácida", tags: ["kid-friendly", "alta proteína"] },
-  { id: "3", title: "Sopa de verduras", ingredients: "Zanahoria\nApio\nCebolla\nCalabacín\nCaldo de verduras\nFideos finos", tags: ["vegetariana", "económica"] },
-  { id: "4", title: "Ensalada César", ingredients: "Lechuga romana\nPollo a la plancha\nPan tostado\nParmesano\nSalsa César", tags: ["rápida", "alta proteína"] },
-  { id: "5", title: "Arroz con pollo", ingredients: "300g arroz\n400g pollo\n1 cebolla\nPimiento\nGuisantes\nAzafrán", tags: ["kid-friendly", "económica"] },
-  { id: "6", title: "Huevos revueltos", ingredients: "6 huevos\nMantequilla\nSal y pimienta", tags: ["rápida", "económica"] },
-  { id: "7", title: "Pizza casera", ingredients: "Masa de pizza\nTomate frito\nMozzarella\nAlbahaca\nOregano", tags: ["kid-friendly"] },
-  { id: "8", title: "Pescado al horno", ingredients: "4 filetes de merluza\nLimón\nAjo\nAceite de oliva\nPerejil", tags: ["alta proteína", "sin gluten"] },
-];
+function isExample(id: string) {
+  return /^[1-8]$/.test(id);
+}
 
 function filterRecipes(
   recipes: Recipe[],
@@ -75,86 +69,8 @@ function getWeekStart(): Date {
 
 type PlanState = Record<string, string>;
 
-const STORAGE_KEY = "tabletime-v1";
-
 type MealType = "Desayuno" | "Comida" | "Cena";
 type ThemeDays = Record<number, Partial<Record<MealType, string>>>;
-
-function migrateThemeDays(raw: unknown): ThemeDays {
-  if (!raw || typeof raw !== "object") return {};
-  const obj = raw as Record<string, unknown>;
-  const result: ThemeDays = {};
-  for (let i = 0; i < 7; i++) {
-    const v = obj[String(i)];
-    if (typeof v === "string" && v.trim()) {
-      result[i] = { Cena: v.trim() };
-    } else if (v && typeof v === "object" && "theme" in v && typeof (v as { theme: string; applyTo?: string }).theme === "string") {
-      const e = v as { theme: string; applyTo?: string };
-      const applyTo: MealType = ["Desayuno", "Comida", "Cena"].includes(e.applyTo ?? "") ? e.applyTo as MealType : "Cena";
-      if (e.theme.trim()) {
-        result[i] = { ...result[i], [applyTo]: e.theme.trim() };
-      }
-    } else if (v && typeof v === "object" && ("Desayuno" in v || "Comida" in v || "Cena" in v)) {
-      const day = v as Partial<Record<MealType, string>>;
-      const themes: Partial<Record<MealType, string>> = {};
-      for (const m of ["Desayuno", "Comida", "Cena"] as const) {
-        if (typeof day[m] === "string" && day[m].trim()) themes[m] = day[m].trim();
-      }
-      if (Object.keys(themes).length > 0) result[i] = themes;
-    }
-  }
-  return result;
-}
-
-function loadStored(): {
-  recipes: Recipe[];
-  plan: PlanState;
-  manualGroceryItems: { id: string; label: string }[];
-  groceryCheckedIds: string[];
-  themeDays: ThemeDays;
-} | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw) as {
-      recipes?: Recipe[];
-      plan?: PlanState;
-      manualGroceryItems?: { id: string; label: string }[];
-      groceryCheckedIds?: string[];
-      themeDays?: Record<number, string>;
-    };
-    if (!data || typeof data !== "object") return null;
-    return {
-      recipes: Array.isArray(data.recipes) ? data.recipes : [],
-      plan: data.plan && typeof data.plan === "object" ? data.plan : {},
-      manualGroceryItems: Array.isArray(data.manualGroceryItems)
-        ? data.manualGroceryItems
-        : [],
-      groceryCheckedIds: Array.isArray(data.groceryCheckedIds)
-        ? data.groceryCheckedIds
-        : [],
-      themeDays: migrateThemeDays(data.themeDays),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function saveStored(payload: {
-  recipes: Recipe[];
-  plan: PlanState;
-  manualGroceryItems: { id: string; label: string }[];
-  groceryCheckedIds: string[];
-  themeDays: ThemeDays;
-}) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  } catch {
-    // ignore
-  }
-}
 
 function ThemeConfig({
   themeDays,
@@ -638,8 +554,6 @@ function RecipesView({
     }
   };
 
-  const isExample = (id: string) => !id.startsWith("u-");
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1089,6 +1003,7 @@ function GroceryListView({
   setManualItems,
   checkedIds,
   setCheckedIds,
+  addManualItem,
 }: {
   plan: PlanState;
   recipes: Recipe[];
@@ -1096,6 +1011,7 @@ function GroceryListView({
   setManualItems: React.Dispatch<React.SetStateAction<{ id: string; label: string }[]>>;
   checkedIds: Set<string>;
   setCheckedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  addManualItem?: (label: string) => void;
 }) {
   const [newItem, setNewItem] = useState("");
   const [copyFeedback, setCopyFeedback] = useState(false);
@@ -1120,7 +1036,11 @@ function GroceryListView({
     e.preventDefault();
     const label = newItem.trim();
     if (!label) return;
-    setManualItems((prev) => [...prev, { id: `m-${Date.now()}`, label }]);
+    if (addManualItem) {
+      addManualItem(label);
+    } else {
+      setManualItems((prev) => [...prev, { id: `m-${Date.now()}`, label }]);
+    }
     setNewItem("");
   };
 
@@ -1324,6 +1244,7 @@ function SectionPlaceholder({
   setGroceryCheckedIds,
   themeDays,
   setThemeDays,
+  addManualGroceryItem,
 }: {
   activeTab: TabId;
   recipes: Recipe[];
@@ -1338,6 +1259,7 @@ function SectionPlaceholder({
   setGroceryCheckedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   themeDays: ThemeDays;
   setThemeDays: React.Dispatch<React.SetStateAction<ThemeDays>>;
+  addManualGroceryItem?: (label: string) => void;
 }) {
   if (activeTab === "calendar") {
     return (
@@ -1375,70 +1297,39 @@ function SectionPlaceholder({
       setManualItems={setManualGroceryItems}
       checkedIds={groceryCheckedIds}
       setCheckedIds={setGroceryCheckedIds}
+      addManualItem={addManualGroceryItem}
     />
   );
 }
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("calendar");
-  const [recipes, setRecipes] = useState<Recipe[]>(INITIAL_RECIPES);
-  const [plan, setPlan] = useState<PlanState>({});
-  const [manualGroceryItems, setManualGroceryItems] = useState<
-    { id: string; label: string }[]
-  >([]);
-  const [groceryCheckedIds, setGroceryCheckedIds] = useState<Set<string>>(
-    () => new Set()
-  );
-  const [themeDays, setThemeDays] = useState<ThemeDays>({});
-  const [hasHydrated, setHasHydrated] = useState(false);
+  const {
+    recipes,
+    setRecipes,
+    plan,
+    setPlan,
+    manualGroceryItems,
+    setManualGroceryItems,
+    groceryCheckedIds,
+    setGroceryCheckedIds,
+    themeDays,
+    setThemeDays,
+    addRecipe,
+    addManualGroceryItem,
+    updateRecipe,
+    removeRecipe,
+    hasHydrated,
+    syncLoading,
+  } = useTableTimeData();
 
-  useEffect(() => {
-    const stored = loadStored();
-    if (stored) {
-      if (stored.recipes.length > 0) setRecipes(stored.recipes);
-      if (Object.keys(stored.plan).length > 0) setPlan(stored.plan);
-      if (stored.manualGroceryItems.length > 0)
-        setManualGroceryItems(stored.manualGroceryItems);
-      if (stored.groceryCheckedIds.length > 0)
-        setGroceryCheckedIds(new Set(stored.groceryCheckedIds));
-      if (stored.themeDays && Object.keys(stored.themeDays).length > 0)
-        setThemeDays(stored.themeDays);
-    }
-    setHasHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hasHydrated) return;
-    saveStored({
-      recipes,
-      plan,
-      manualGroceryItems,
-      themeDays,
-      groceryCheckedIds: [...groceryCheckedIds],
-    });
-  }, [hasHydrated, recipes, plan, manualGroceryItems, groceryCheckedIds, themeDays]);
-
-  const addRecipe = (title: string, ingredients?: string, instructions?: string, tags?: string[]) => {
-    const id = `u-${Date.now()}`;
-    setRecipes((prev) => [...prev, { id, title, ingredients, instructions, tags }]);
-  };
-
-  const updateRecipe = (id: string, updates: Partial<Recipe>) => {
-    setRecipes((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, ...updates } : r))
+  if (!hasHydrated || syncLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-emerald-50 via-white to-amber-50">
+        <p className="text-zinc-500">Cargando…</p>
+      </div>
     );
-  };
-
-  const removeRecipe = (id: string) => {
-    setRecipes((prev) => prev.filter((r) => r.id !== id));
-    setPlan((prev) => {
-      const next = { ...prev };
-      for (const k of Object.keys(next)) {
-        if (next[k] === id) delete next[k];
-      }
-      return next;
-    });
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-amber-50 px-4 py-10 font-sans text-zinc-900">
@@ -1498,6 +1389,7 @@ export default function Home() {
             setGroceryCheckedIds={setGroceryCheckedIds}
             themeDays={themeDays}
             setThemeDays={setThemeDays}
+            addManualGroceryItem={addManualGroceryItem}
           />
         </section>
 

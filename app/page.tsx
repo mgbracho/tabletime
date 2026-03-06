@@ -13,18 +13,37 @@ type TabId = (typeof TABS)[number]["id"];
 const MEAL_LABELS = ["Desayuno", "Comida", "Cena"] as const;
 const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
-type Recipe = { id: string; title: string; ingredients?: string; instructions?: string };
+type Recipe = { id: string; title: string; ingredients?: string; instructions?: string; tags?: string[] };
+
+const SUGGESTED_TAGS = ["kid-friendly", "rápida", "vegetariana", "alta proteína", "económica", "sin gluten"] as const;
 
 const INITIAL_RECIPES: Recipe[] = [
-  { id: "1", title: "Pasta con tomate", ingredients: "400g pasta\n1 bote tomate triturado\n2 dientes de ajo\nAceite de oliva\nAlbahaca" },
-  { id: "2", title: "Tacos de pollo", ingredients: "500g pechuga de pollo\nTortillas de maíz\nLechuga\nTomate\nQueso rallado\nCrema ácida" },
-  { id: "3", title: "Sopa de verduras", ingredients: "Zanahoria\nApio\nCebolla\nCalabacín\nCaldo de verduras\nFideos finos" },
-  { id: "4", title: "Ensalada César", ingredients: "Lechuga romana\nPollo a la plancha\nPan tostado\nParmesano\nSalsa César" },
-  { id: "5", title: "Arroz con pollo", ingredients: "300g arroz\n400g pollo\n1 cebolla\nPimiento\nGuisantes\nAzafrán" },
-  { id: "6", title: "Huevos revueltos", ingredients: "6 huevos\nMantequilla\nSal y pimienta" },
-  { id: "7", title: "Pizza casera", ingredients: "Masa de pizza\nTomate frito\nMozzarella\nAlbahaca\nOregano" },
-  { id: "8", title: "Pescado al horno", ingredients: "4 filetes de merluza\nLimón\nAjo\nAceite de oliva\nPerejil" },
+  { id: "1", title: "Pasta con tomate", ingredients: "400g pasta\n1 bote tomate triturado\n2 dientes de ajo\nAceite de oliva\nAlbahaca", tags: ["rápida", "vegetariana"] },
+  { id: "2", title: "Tacos de pollo", ingredients: "500g pechuga de pollo\nTortillas de maíz\nLechuga\nTomate\nQueso rallado\nCrema ácida", tags: ["kid-friendly", "alta proteína"] },
+  { id: "3", title: "Sopa de verduras", ingredients: "Zanahoria\nApio\nCebolla\nCalabacín\nCaldo de verduras\nFideos finos", tags: ["vegetariana", "económica"] },
+  { id: "4", title: "Ensalada César", ingredients: "Lechuga romana\nPollo a la plancha\nPan tostado\nParmesano\nSalsa César", tags: ["rápida", "alta proteína"] },
+  { id: "5", title: "Arroz con pollo", ingredients: "300g arroz\n400g pollo\n1 cebolla\nPimiento\nGuisantes\nAzafrán", tags: ["kid-friendly", "económica"] },
+  { id: "6", title: "Huevos revueltos", ingredients: "6 huevos\nMantequilla\nSal y pimienta", tags: ["rápida", "económica"] },
+  { id: "7", title: "Pizza casera", ingredients: "Masa de pizza\nTomate frito\nMozzarella\nAlbahaca\nOregano", tags: ["kid-friendly"] },
+  { id: "8", title: "Pescado al horno", ingredients: "4 filetes de merluza\nLimón\nAjo\nAceite de oliva\nPerejil", tags: ["alta proteína", "sin gluten"] },
 ];
+
+function filterRecipes(
+  recipes: Recipe[],
+  search: string,
+  activeTag: string | null
+): Recipe[] {
+  const q = search.toLowerCase().trim();
+  return recipes.filter((r) => {
+    const matchTag = !activeTag || r.tags?.some((t) => t.toLowerCase() === activeTag.toLowerCase());
+    if (!matchTag) return false;
+    if (!q) return true;
+    const inTitle = r.title.toLowerCase().includes(q);
+    const inTags = r.tags?.some((t) => t.toLowerCase().includes(q));
+    const inIngredients = r.ingredients?.toLowerCase().includes(q);
+    return inTitle || inTags || inIngredients;
+  });
+}
 
 function slotKey(date: Date, meal: string): string {
   return `${date.toISOString().slice(0, 10)}-${meal}`;
@@ -227,6 +246,8 @@ function CalendarWeekView({
   });
 
   const [openSlot, setOpenSlot] = useState<{ date: Date; meal: string } | null>(null);
+  const [pickerSearch, setPickerSearch] = useState("");
+  const [pickerTag, setPickerTag] = useState<string | null>(null);
 
   const weekDays = getWeekDates(weekStart);
   const weekTitle =
@@ -337,7 +358,9 @@ function CalendarWeekView({
           .toLowerCase()
           .split(/\s+/)
           .filter(Boolean);
-        const sortedRecipes = [...recipes].sort((a, b) => {
+        const filtered = filterRecipes(recipes, pickerSearch, pickerTag);
+        const pickerTags = Array.from(new Set(recipes.flatMap((r) => r.tags ?? []))).sort();
+        const sortedRecipes = [...filtered].sort((a, b) => {
           if (!slotTheme) return 0;
           const aMatch = themeWords.some((w) =>
             a.title.toLowerCase().includes(w)
@@ -352,7 +375,11 @@ function CalendarWeekView({
         return (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setOpenSlot(null)}
+          onClick={() => {
+            setOpenSlot(null);
+            setPickerSearch("");
+            setPickerTag(null);
+          }}
           role="presentation"
         >
           <div
@@ -378,8 +405,46 @@ function CalendarWeekView({
                 </p>
               )}
             </div>
-            <ul className="max-h-[50vh] overflow-y-auto">
-              {sortedRecipes.map((r) => {
+            <div className="border-b border-emerald-100 px-4 py-2">
+              <input
+                type="search"
+                value={pickerSearch}
+                onChange={(e) => setPickerSearch(e.target.value)}
+                placeholder="Buscar..."
+                className="w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              />
+              {pickerTags.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setPickerTag(null)}
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      !pickerTag ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-700"
+                    }`}
+                  >
+                    Todas
+                  </button>
+                  {pickerTags.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setPickerTag(pickerTag === t ? null : t)}
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        pickerTag === t ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-700"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <ul className="max-h-[40vh] overflow-y-auto">
+              {sortedRecipes.length === 0 ? (
+                <li className="px-4 py-6 text-center text-sm text-zinc-500">
+                  Ninguna receta coincide con el filtro.
+                </li>
+              ) : sortedRecipes.map((r) => {
                 const matchesTheme =
                   slotTheme &&
                   themeWords.some((w) => r.title.toLowerCase().includes(w));
@@ -404,7 +469,11 @@ function CalendarWeekView({
             <div className="border-t border-emerald-100 px-4 py-2">
               <button
                 type="button"
-                onClick={() => setOpenSlot(null)}
+                onClick={() => {
+                  setOpenSlot(null);
+                  setPickerSearch("");
+                  setPickerTag(null);
+                }}
                 className="text-sm text-zinc-500 hover:text-zinc-700"
               >
                 Cancelar
@@ -422,15 +491,21 @@ function RecipesView({
   recipes,
   onAddRecipe,
   onRemoveRecipe,
+  onUpdateRecipe,
 }: {
   recipes: Recipe[];
-  onAddRecipe: (title: string, ingredients?: string, instructions?: string) => void;
+  onAddRecipe: (title: string, ingredients?: string, instructions?: string, tags?: string[]) => void;
   onRemoveRecipe: (id: string) => void;
+  onUpdateRecipe: (id: string, updates: Partial<Recipe>) => void;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newIngredients, setNewIngredients] = useState("");
   const [newInstructions, setNewInstructions] = useState("");
+  const [newTags, setNewTags] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [importUrl, setImportUrl] = useState("");
   const [importLoading, setImportLoading] = useState(false);
@@ -440,16 +515,42 @@ function RecipesView({
     e.preventDefault();
     const title = newTitle.trim();
     if (!title) return;
-    onAddRecipe(
-      title,
-      newIngredients.trim() || undefined,
-      newInstructions.trim() || undefined
-    );
+    if (editingId) {
+      onUpdateRecipe(editingId, {
+        title,
+        ingredients: newIngredients.trim() || undefined,
+        instructions: newInstructions.trim() || undefined,
+        tags: newTags.length > 0 ? newTags : undefined,
+      });
+      setEditingId(null);
+    } else {
+      onAddRecipe(
+        title,
+        newIngredients.trim() || undefined,
+        newInstructions.trim() || undefined,
+        newTags.length > 0 ? newTags : undefined
+      );
+    }
     setNewTitle("");
     setNewIngredients("");
     setNewInstructions("");
+    setNewTags([]);
     setShowForm(false);
   };
+
+  const startEdit = (r: Recipe) => {
+    setEditingId(r.id);
+    setNewTitle(r.title);
+    setNewIngredients(r.ingredients ?? "");
+    setNewInstructions(r.instructions ?? "");
+    setNewTags(r.tags ?? []);
+    setShowForm(true);
+  };
+
+  const allTags = Array.from(
+    new Set(recipes.flatMap((r) => r.tags ?? []))
+  ).sort();
+  const filteredRecipes = filterRecipes(recipes, search, activeTag);
 
   const handleImportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -560,6 +661,9 @@ function RecipesView({
           onSubmit={handleSubmit}
           className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-4"
         >
+          <h3 className="mb-3 text-sm font-semibold text-emerald-900">
+            {editingId ? "Editar receta" : "Nueva receta"}
+          </h3>
           <label className="mb-2 block text-xs font-medium text-emerald-800">
             Nombre de la receta
           </label>
@@ -591,6 +695,45 @@ function RecipesView({
             rows={3}
             className="mb-3 w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
           />
+          <label className="mb-2 block text-xs font-medium text-emerald-800">
+            Etiquetas (opcional)
+          </label>
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {SUGGESTED_TAGS.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() =>
+                  setNewTags((prev) =>
+                    prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                  )
+                }
+                className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+                  newTags.includes(tag)
+                    ? "bg-emerald-600 text-white"
+                    : "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+          <input
+            type="text"
+            value={newTags.filter((t) => !(SUGGESTED_TAGS as readonly string[]).includes(t)).join(", ")}
+            onChange={(e) => {
+              const val = e.target.value
+                .split(",")
+                .map((s) => s.trim().toLowerCase())
+                .filter(Boolean);
+              const suggested = newTags.filter((t) =>
+                (SUGGESTED_TAGS as readonly string[]).includes(t)
+              );
+              setNewTags([...suggested, ...val]);
+            }}
+            placeholder="Otras etiquetas (separadas por coma)"
+            className="mb-3 w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+          />
           <div className="flex gap-2">
             <button
               type="submit"
@@ -602,9 +745,11 @@ function RecipesView({
               type="button"
               onClick={() => {
                 setShowForm(false);
+                setEditingId(null);
                 setNewTitle("");
                 setNewIngredients("");
                 setNewInstructions("");
+                setNewTags([]);
               }}
               className="rounded-lg border border-emerald-200 px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50"
             >
@@ -614,33 +759,102 @@ function RecipesView({
         </form>
       )}
 
+      <div className="flex flex-col gap-2">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por nombre, etiqueta o ingrediente..."
+          className="w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+        />
+        {allTags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => setActiveTag(null)}
+              className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+                !activeTag ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+              }`}
+            >
+              Todas
+            </button>
+            {allTags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+                  activeTag === tag ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {filteredRecipes.length === 0 ? (
+        <p className="py-6 text-center text-sm text-zinc-500">
+          {recipes.length === 0 ? "Aún no hay recetas." : "Ninguna receta coincide con el filtro."}
+        </p>
+      ) : (
       <ul className="grid gap-2 sm:grid-cols-2">
-        {recipes.map((r) => (
+        {filteredRecipes.map((r) => (
           <li
             key={r.id}
             className="flex items-center justify-between rounded-lg border border-emerald-100 bg-white px-4 py-3"
           >
-            <div>
-              <span className="font-medium text-emerald-900">{r.title}</span>
+            <div className="min-w-0 flex-1">
+              <button
+                type="button"
+                onClick={() => startEdit(r)}
+                className="text-left"
+              >
+                <span className="font-medium text-emerald-900 hover:underline">{r.title}</span>
+              </button>
+              {r.tags && r.tags.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {r.tags.map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
               {r.ingredients && (
                 <p className="mt-1 text-xs text-zinc-500 line-clamp-2">
                   {r.ingredients}
                 </p>
               )}
             </div>
-            {!isExample(r.id) && (
+            <div className="flex shrink-0 gap-1">
               <button
                 type="button"
-                onClick={() => onRemoveRecipe(r.id)}
-                className="rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-                aria-label="Eliminar receta"
+                onClick={() => startEdit(r)}
+                className="rounded-full p-1.5 text-zinc-400 hover:bg-emerald-50 hover:text-emerald-600"
+                aria-label="Editar receta"
               >
-                ✕
+                ✎
               </button>
-            )}
+              {!isExample(r.id) && (
+                <button
+                  type="button"
+                  onClick={() => onRemoveRecipe(r.id)}
+                  className="rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+                  aria-label="Eliminar receta"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </li>
         ))}
       </ul>
+      )}
     </div>
   );
 }
@@ -793,6 +1007,7 @@ function SectionPlaceholder({
   setPlan,
   onAddRecipe,
   onRemoveRecipe,
+  onUpdateRecipe,
   manualGroceryItems,
   setManualGroceryItems,
   groceryCheckedIds,
@@ -804,8 +1019,9 @@ function SectionPlaceholder({
   recipes: Recipe[];
   plan: PlanState;
   setPlan: React.Dispatch<React.SetStateAction<PlanState>>;
-  onAddRecipe: (title: string, ingredients?: string, instructions?: string) => void;
+  onAddRecipe: (title: string, ingredients?: string, instructions?: string, tags?: string[]) => void;
   onRemoveRecipe: (id: string) => void;
+  onUpdateRecipe: (id: string, updates: Partial<Recipe>) => void;
   manualGroceryItems: { id: string; label: string }[];
   setManualGroceryItems: React.Dispatch<React.SetStateAction<{ id: string; label: string }[]>>;
   groceryCheckedIds: Set<string>;
@@ -836,6 +1052,7 @@ function SectionPlaceholder({
         recipes={recipes}
         onAddRecipe={onAddRecipe}
         onRemoveRecipe={onRemoveRecipe}
+        onUpdateRecipe={onUpdateRecipe}
       />
     );
   }
@@ -891,9 +1108,15 @@ export default function Home() {
     });
   }, [hasHydrated, recipes, plan, manualGroceryItems, groceryCheckedIds, themeDays]);
 
-  const addRecipe = (title: string, ingredients?: string, instructions?: string) => {
+  const addRecipe = (title: string, ingredients?: string, instructions?: string, tags?: string[]) => {
     const id = `u-${Date.now()}`;
-    setRecipes((prev) => [...prev, { id, title, ingredients, instructions }]);
+    setRecipes((prev) => [...prev, { id, title, ingredients, instructions, tags }]);
+  };
+
+  const updateRecipe = (id: string, updates: Partial<Recipe>) => {
+    setRecipes((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, ...updates } : r))
+    );
   };
 
   const removeRecipe = (id: string) => {
@@ -958,6 +1181,7 @@ export default function Home() {
             setPlan={setPlan}
             onAddRecipe={addRecipe}
             onRemoveRecipe={removeRecipe}
+            onUpdateRecipe={updateRecipe}
             manualGroceryItems={manualGroceryItems}
             setManualGroceryItems={setManualGroceryItems}
             groceryCheckedIds={groceryCheckedIds}

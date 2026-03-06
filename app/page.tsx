@@ -237,7 +237,7 @@ function CalendarWeekView({
   setPlan: React.Dispatch<React.SetStateAction<PlanState>>;
   themeDays: ThemeDays;
 }) {
-  const [weekStart] = useState(() => {
+  const [weekStart, setWeekStart] = useState(() => {
     const d = new Date();
     const day = d.getDay();
     const diff = day === 0 ? -6 : 1 - day;
@@ -278,11 +278,66 @@ function CalendarWeekView({
   const getRecipeTitle = (recipeId: string) =>
     recipes.find((r) => r.id === recipeId)?.title ?? recipeId;
 
+  const goToPrevWeek = () => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() - 7);
+    setWeekStart(d);
+  };
+
+  const goToNextWeek = () => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + 7);
+    setWeekStart(d);
+  };
+
+  const copyFromPreviousWeek = () => {
+    const prevStart = new Date(weekStart);
+    prevStart.setDate(prevStart.getDate() - 7);
+    const prevDays = getWeekDates(prevStart);
+    setPlan((prev) => {
+      const next = { ...prev };
+      for (let i = 0; i < 7; i++) {
+        for (const meal of MEAL_LABELS) {
+          const prevKey = slotKey(prevDays[i].date, meal);
+          const currKey = slotKey(weekDays[i].date, meal);
+          const recipeId = prev[prevKey];
+          if (recipeId) next[currKey] = recipeId;
+        }
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="overflow-x-auto">
-      <p className="mb-3 text-sm font-medium text-emerald-800">
-        Semana del {weekTitle}
-      </p>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={goToPrevWeek}
+            className="rounded-lg border border-emerald-200 px-2 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+          >
+            ← Anterior
+          </button>
+          <span className="text-sm font-medium text-emerald-800">
+            Semana del {weekTitle}
+          </span>
+          <button
+            type="button"
+            onClick={goToNextWeek}
+            className="rounded-lg border border-emerald-200 px-2 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+          >
+            Siguiente →
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={copyFromPreviousWeek}
+          className="rounded-lg bg-amber-100 px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-200"
+        >
+          Copiar semana anterior
+        </button>
+      </div>
       <div className="min-w-[600px] rounded-xl border border-emerald-100 bg-white">
         <div className="grid grid-cols-8 border-b border-emerald-100">
           <div className="p-2 text-xs font-semibold text-zinc-500" />
@@ -506,6 +561,7 @@ function RecipesView({
   const [newTags, setNewTags] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [importUrl, setImportUrl] = useState("");
   const [importLoading, setImportLoading] = useState(false);
@@ -808,7 +864,7 @@ function RecipesView({
             <div className="min-w-0 flex-1">
               <button
                 type="button"
-                onClick={() => startEdit(r)}
+                onClick={() => setViewingRecipe(r)}
                 className="text-left"
               >
                 <span className="font-medium text-emerald-900 hover:underline">{r.title}</span>
@@ -855,6 +911,110 @@ function RecipesView({
         ))}
       </ul>
       )}
+
+      {viewingRecipe && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setViewingRecipe(null)}
+          role="presentation"
+        >
+          <div
+            className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label="Ver receta"
+          >
+            <div className="border-b border-emerald-100 px-4 py-4">
+              <div className="flex items-start justify-between gap-4">
+                <h2 className="text-lg font-semibold text-emerald-900">
+                  {viewingRecipe.title}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setViewingRecipe(null)}
+                  className="shrink-0 rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+                  aria-label="Cerrar"
+                >
+                  ✕
+                </button>
+              </div>
+              {viewingRecipe.tags && viewingRecipe.tags.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {viewingRecipe.tags.map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto px-4 py-4">
+              {viewingRecipe.ingredients && (
+                <section className="mb-4">
+                  <h3 className="mb-2 text-sm font-semibold text-emerald-800">
+                    Ingredientes
+                  </h3>
+                  <ul className="space-y-1 text-sm text-zinc-700">
+                    {viewingRecipe.ingredients
+                      .split("\n")
+                      .map((line) => line.trim())
+                      .filter(Boolean)
+                      .map((line, i) => (
+                        <li key={i} className="flex flex-wrap">
+                          <span className="mr-2 text-emerald-500">•</span>
+                          {line}
+                        </li>
+                      ))}
+                  </ul>
+                </section>
+              )}
+              {viewingRecipe.instructions && (
+                <section>
+                  <h3 className="mb-2 text-sm font-semibold text-emerald-800">
+                    Pasos
+                  </h3>
+                  <ol className="list-inside list-decimal space-y-2 text-sm text-zinc-700">
+                    {viewingRecipe.instructions
+                      .split(/\n+/)
+                      .map((step) => step.trim())
+                      .filter(Boolean)
+                      .map((step, i) => (
+                        <li key={i}>{step}</li>
+                      ))}
+                  </ol>
+                </section>
+              )}
+              {!viewingRecipe.ingredients && !viewingRecipe.instructions && (
+                <p className="text-sm text-zinc-500">
+                  Sin ingredientes ni pasos. Haz clic en Editar para añadirlos.
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 border-t border-emerald-100 px-4 py-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setViewingRecipe(null);
+                  startEdit(viewingRecipe);
+                }}
+                className="rounded-lg border border-emerald-200 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewingRecipe(null)}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -900,6 +1060,7 @@ function GroceryListView({
   setCheckedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
 }) {
   const [newItem, setNewItem] = useState("");
+  const [copyFeedback, setCopyFeedback] = useState(false);
   const weekStart = getWeekStart();
   const fromPlan = getGroceryItemsFromPlan(plan, recipes, weekStart);
   const allItems: GroceryItem[] = [
@@ -933,11 +1094,114 @@ function GroceryListView({
     });
   };
 
+  const weekDays = getWeekDates(weekStart);
+  const weekTitle =
+    weekDays[0].date.getDate() +
+    " – " +
+    weekDays[6].date.getDate() +
+    " " +
+    weekDays[0].date.toLocaleDateString("es", { month: "long" });
+
+  const getExportText = () => {
+    const lines = [
+      "Lista de la compra - TableTime",
+      `Semana del ${weekTitle}`,
+      "",
+      ...allItems.map((item) => {
+        const checked = checkedIds.has(item.id);
+        return `${checked ? "☑" : "☐"} ${item.label}`;
+      }),
+      "",
+      "---",
+      "TableTime",
+    ];
+    return lines.join("\n");
+  };
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(getExportText());
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2000);
+    } catch {
+      setCopyFeedback(false);
+    }
+  };
+
+  const downloadTxt = () => {
+    const blob = new Blob([getExportText()], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `lista-compra-${weekDays[0].date.toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrint = () => {
+    const escape = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    const itemsHtml = allItems
+      .map((item) => {
+        const checked = checkedIds.has(item.id);
+        return `<li style="text-decoration: ${checked ? "line-through" : "none"}; margin: 6px 0;">${checked ? "☑" : "☐"} ${escape(item.label)}</li>`;
+      })
+      .join("");
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Lista de la compra</title>
+<style>body{font-family:system-ui,sans-serif;padding:24px;max-width:400px;margin:0 auto;font-size:14px}h1{font-size:1.25rem;margin:0 0 8px}p{color:#555;margin:0 0 16px}ul{list-style:none;padding:0;margin:0}</style>
+</head><body><h1>Lista de la compra - TableTime</h1><p>Semana del ${escape(weekTitle)}</p><ul>${itemsHtml}</ul></body></html>`;
+
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:absolute;width:0;height:0;border:0;visibility:hidden";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument;
+    if (!doc) {
+      document.body.removeChild(iframe);
+      return;
+    }
+    doc.open();
+    doc.write(html);
+    doc.close();
+    iframe.contentWindow?.focus();
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      setTimeout(() => document.body.removeChild(iframe), 500);
+    }, 100);
+  };
+
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-zinc-700">
-        Generada a partir de tu plan de esta semana. Añade lo que falte y marca al comprar.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-zinc-700">
+          Generada a partir de tu plan de esta semana. Añade lo que falte y marca al comprar.
+        </p>
+        {allItems.length > 0 && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={copyToClipboard}
+              className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+            >
+              {copyFeedback ? "¡Copiado!" : "Copiar"}
+            </button>
+            <button
+              type="button"
+              onClick={downloadTxt}
+              className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+            >
+              Descargar .txt
+            </button>
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+            >
+              Imprimir
+            </button>
+          </div>
+        )}
+      </div>
 
       <form onSubmit={addManual} className="flex gap-2">
         <input

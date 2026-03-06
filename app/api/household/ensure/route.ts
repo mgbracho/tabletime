@@ -17,7 +17,12 @@ export async function POST(request: NextRequest) {
       },
     }
   );
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user: userFromGet } } = await supabase.auth.getUser();
+  let user = userFromGet;
+  if (!user) {
+    const { data: { session } } = await supabase.auth.refreshSession();
+    user = session?.user ?? null;
+  }
   if (!user) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }

@@ -157,3 +157,19 @@ Para que el login y el guardado de datos funcionen en la URL de Vercel:
 4. Guarda los cambios.
 
 Así Supabase reconoce tu dominio y las cookies de sesión funcionan en producción.
+
+---
+
+## Variable para Vercel: SUPABASE_SERVICE_ROLE_KEY
+
+Para que la app pueda crear tu hogar y guardar recetas en la nube cuando usas la URL de Vercel, añade una variable más **solo en Vercel** (nunca en el código ni en el cliente):
+
+1. En Supabase: **Settings** → **API** → en **Project API keys** copia la clave **"service_role"** (no la anon).
+2. En Vercel: tu proyecto → **Settings** → **Environment Variables**.
+3. Añade:
+   - **Name:** `SUPABASE_SERVICE_ROLE_KEY`
+   - **Value:** pega la clave service_role.
+   - Marca solo **Production** (o también Preview si quieres).
+4. Guarda y haz **Redeploy** del proyecto.
+
+**Importante:** La clave service_role bypasea RLS; se usa solo en el servidor para crear el hogar del usuario. No la pongas en `NEXT_PUBLIC_` ni la expongas en el front.

@@ -51,19 +51,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Si el cliente envió token, usarlo siempre para la DB (en Vercel las cookies no envían JWT a PostgREST).
-  const authHeader = request.headers.get("Authorization");
-  const tokenFromHeader = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-
-  // Si la sesión vino del header, el cliente con cookies no envía JWT en los INSERT.
-  // Usamos un cliente que envía el token para que RLS vea auth.uid().
-  const db = tokenFromHeader
-    ? createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { global: { headers: { Authorization: `Bearer ${tokenFromHeader}` } } }
-      )
-    : supabase;
+  // Cliente con service role solo para crear hogar + miembro (ya validamos al usuario).
+  // Evita problemas de RLS cuando el JWT no llega a PostgREST en serverless.
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) {
+    return NextResponse.json(
+      { error: "Service role no configurada (SUPABASE_SERVICE_ROLE_KEY)" },
+      { status: 500 }
+    );
+  }
+  const db = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey,
+    { auth: { persistSession: false } }
+  );
 
   const { data: members } = await db
     .from("household_members")

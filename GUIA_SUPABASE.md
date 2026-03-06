@@ -136,3 +136,24 @@ Para probar más rápido sin tener que confirmar el email:
 - **"Invalid API key"**: Revisa que copiaste bien la URL y la clave en `.env.local`, sin espacios extra
 - **"relation does not exist"**: Falta ejecutar alguna migración SQL; vuelve al Paso 5
 - **No me deja registrarme**: Si activaste "Confirm email", revisa la carpeta de spam o desactívalo (Paso 6)
+
+---
+
+## App en Vercel (producción): configurar URLs en Supabase
+
+Para que el login y el guardado de datos funcionen en la URL de Vercel:
+
+1. En Supabase, menú izquierdo → **Authentication** → **URL Configuration** (o **Configuration** → **URL Configuration**).
+2. En **Site URL** pon la URL de tu app en Vercel, por ejemplo:
+   ```
+   https://tabletime-ten.vercel.app
+   ```
+   (sustituye por tu URL real si es distinta).
+3. En **Redirect URLs** añade la misma URL:
+   ```
+   https://tabletime-ten.vercel.app/**
+   ```
+   o solo `https://tabletime-ten.vercel.app` si no permite el `**`.
+4. Guarda los cambios.
+
+Así Supabase reconoce tu dominio y las cookies de sesión funcionan en producción.

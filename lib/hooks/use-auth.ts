@@ -37,10 +37,14 @@ export function useAuth() {
   }, [refresh]);
 
   const ensureHousehold = useCallback(async () => {
-    const res = await fetch("/api/household/ensure", { method: "POST" });
+    const res = await fetch("/api/household/ensure", {
+      method: "POST",
+      credentials: "include",
+    });
     if (!res.ok) return null;
-    const { household_id } = await res.json();
-    setHouseholdId(household_id);
+    const data = await res.json();
+    const household_id = data?.household_id ?? null;
+    if (household_id) setHouseholdId(household_id);
     return household_id;
   }, []);
 

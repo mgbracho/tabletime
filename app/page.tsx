@@ -408,7 +408,7 @@ function CalendarWeekView({
 
       {openSlot && (() => {
         const weekdayIndex = (openSlot.date.getDay() + 6) % 7;
-        const slotTheme = themeDays[weekdayIndex]?.[openSlot.meal] ?? "";
+        const slotTheme = themeDays[weekdayIndex]?.[openSlot.meal as MealType] ?? "";
         const themeWords = slotTheme
           .toLowerCase()
           .split(/\s+/)

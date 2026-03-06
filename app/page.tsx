@@ -1324,6 +1324,7 @@ export default function Home() {
     syncError,
     cloudUnavailable,
     isRemote,
+    ensureError,
   } = useTableTimeData();
 
   if (!hasHydrated || syncLoading) {
@@ -1343,7 +1344,10 @@ export default function Home() {
       )}
       {cloudUnavailable && (
         <div className="mx-auto max-w-5xl rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-800 ring-1 ring-amber-200">
-          No se pudo conectar con la nube. Las recetas se guardan solo en este dispositivo y no aparecerán en Supabase. Abre DevTools → pestaña Network, recarga la página y busca la petición <code className="rounded bg-amber-100 px-1">/api/household/ensure</code> para ver el error (ej. 401).
+          No se pudo conectar con la nube. Las recetas se guardan solo en este dispositivo.
+          {ensureError && (
+            <span className="mt-1 block font-medium">Motivo: {ensureError}</span>
+          )}
         </div>
       )}
       {isRemote && !syncError && (

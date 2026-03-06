@@ -27,12 +27,27 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get("Authorization");
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
     if (token) {
-      const { data: { user: userFromToken } } = await supabase.auth.getUser(token);
+      const { data: { user: userFromToken }, error: tokenError } = await supabase.auth.getUser(token);
       user = userFromToken ?? null;
+      if (!user && tokenError) {
+        return NextResponse.json(
+          { error: "No autenticado", reason: "invalid_token", detail: tokenError.message },
+          { status: 401 }
+        );
+      }
     }
   }
   if (!user) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    const authHeader = request.headers.get("Authorization");
+    const hadToken = authHeader?.startsWith("Bearer ");
+    return NextResponse.json(
+      {
+        error: "No autenticado",
+        reason: hadToken ? "invalid_token" : "no_session",
+        detail: hadToken ? "El token no es válido o ha expirado." : "No se envió sesión (cookies ni Authorization).",
+      },
+      { status: 401 }
+    );
   }
 
   const { data: members } = await supabase

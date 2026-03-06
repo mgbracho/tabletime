@@ -102,7 +102,7 @@ function saveToStorage(payload: {
 }
 
 export function useTableTimeData() {
-  const { user, householdId, loading: authLoading, ensureHousehold } = useAuth();
+  const { user, householdId, loading: authLoading, ensureHousehold, ensureError } = useAuth();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [plan, setPlan] = useState<PlanState>({});
   const [manualGroceryItems, setManualGroceryItems] = useState<{ id: string; label: string }[]>([]);
@@ -531,5 +531,6 @@ export function useTableTimeData() {
     isRemote: !!effectiveHouseholdId.current || !!householdId,
     syncError,
     cloudUnavailable,
+    ensureError,
   };
 }

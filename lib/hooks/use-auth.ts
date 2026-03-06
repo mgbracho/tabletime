@@ -7,6 +7,7 @@ export function useAuth() {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [householdId, setHouseholdId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [ensureError, setEnsureError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const supabase = createClient();
@@ -37,6 +38,7 @@ export function useAuth() {
   }, [refresh]);
 
   const ensureHousehold = useCallback(async () => {
+    setEnsureError(null);
     const supabase = createClient();
     const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch("/api/household/ensure", {
@@ -50,6 +52,14 @@ export function useAuth() {
     });
     if (!res.ok) {
       const text = await res.text();
+      let reason = "unknown";
+      try {
+        const data = JSON.parse(text);
+        reason = data.reason ?? data.detail ?? data.error ?? reason;
+      } catch {
+        reason = text || String(res.status);
+      }
+      setEnsureError(reason);
       console.error("[TableTime] ensureHousehold falló:", res.status, text);
       return null;
     }
@@ -67,5 +77,5 @@ export function useAuth() {
     window.location.href = "/";
   }, []);
 
-  return { user, householdId, loading, ensureHousehold, signOut, refresh };
+  return { user, householdId, loading, ensureHousehold, signOut, refresh, ensureError };
 }

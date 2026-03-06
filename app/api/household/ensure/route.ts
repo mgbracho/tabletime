@@ -1,8 +1,22 @@
-import { createClient } from "@/lib/supabase/server";
-import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST() {
-  const supabase = await createClient();
+export async function POST(request: NextRequest) {
+  const cookieStore = request.cookies;
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {
+          // En Route Handler no escribimos cookies; el middleware lo hace
+        },
+      },
+    }
+  );
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });

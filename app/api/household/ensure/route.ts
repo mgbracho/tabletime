@@ -20,7 +20,6 @@ export async function POST(request: NextRequest) {
   );
   const { data: { user: userFromGet } } = await supabase.auth.getUser();
   let user = userFromGet;
-  let tokenFromHeader: string | null = null;
   if (!user) {
     const { data: { session } } = await supabase.auth.refreshSession();
     user = session?.user ?? null;
@@ -31,7 +30,6 @@ export async function POST(request: NextRequest) {
     if (token) {
       const { data: { user: userFromToken }, error: tokenError } = await supabase.auth.getUser(token);
       user = userFromToken ?? null;
-      if (user) tokenFromHeader = token;
       if (!user && tokenError) {
         return NextResponse.json(
           { error: "No autenticado", reason: "invalid_token", detail: tokenError.message },
@@ -52,6 +50,10 @@ export async function POST(request: NextRequest) {
       { status: 401 }
     );
   }
+
+  // Si el cliente envió token, usarlo siempre para la DB (en Vercel las cookies no envían JWT a PostgREST).
+  const authHeader = request.headers.get("Authorization");
+  const tokenFromHeader = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   // Si la sesión vino del header, el cliente con cookies no envía JWT en los INSERT.
   // Usamos un cliente que envía el token para que RLS vea auth.uid().

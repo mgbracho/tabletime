@@ -58,11 +58,14 @@ type PlanState = Record<string, string>;
 
 const STORAGE_KEY = "tabletime-v1";
 
+type ThemeDays = Record<number, string>;
+
 function loadStored(): {
   recipes: Recipe[];
   plan: PlanState;
   manualGroceryItems: { id: string; label: string }[];
   groceryCheckedIds: string[];
+  themeDays: ThemeDays;
 } | null {
   if (typeof window === "undefined") return null;
   try {
@@ -73,6 +76,7 @@ function loadStored(): {
       plan?: PlanState;
       manualGroceryItems?: { id: string; label: string }[];
       groceryCheckedIds?: string[];
+      themeDays?: Record<number, string>;
     };
     if (!data || typeof data !== "object") return null;
     return {
@@ -84,6 +88,10 @@ function loadStored(): {
       groceryCheckedIds: Array.isArray(data.groceryCheckedIds)
         ? data.groceryCheckedIds
         : [],
+      themeDays:
+        data.themeDays && typeof data.themeDays === "object"
+          ? data.themeDays
+          : {},
     };
   } catch {
     return null;
@@ -95,6 +103,7 @@ function saveStored(payload: {
   plan: PlanState;
   manualGroceryItems: { id: string; label: string }[];
   groceryCheckedIds: string[];
+  themeDays: ThemeDays;
 }) {
   if (typeof window === "undefined") return;
   try {
@@ -104,14 +113,69 @@ function saveStored(payload: {
   }
 }
 
+function ThemeConfig({
+  themeDays,
+  setThemeDays,
+}: {
+  themeDays: ThemeDays;
+  setThemeDays: React.Dispatch<React.SetStateAction<ThemeDays>>;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mb-4 rounded-xl border border-amber-100 bg-amber-50/50">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-amber-900"
+      >
+        <span>Temas de la semana</span>
+        <span className="text-amber-600">{open ? "▼" : "▶"}</span>
+      </button>
+      {open && (
+        <div className="border-t border-amber-100 px-4 py-3">
+          <p className="mb-3 text-xs text-amber-800">
+            Asigna un tema a cada día (ej. Pasta Tuesday, Taco Friday). Las recetas que coincidan aparecerán primero al elegir.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+            {DAY_NAMES.map((day, i) => (
+              <div key={i}>
+                <label className="mb-1 block text-xs font-medium text-amber-800">
+                  {day}
+                </label>
+                <input
+                  type="text"
+                  value={themeDays[i] ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value.trim();
+                    setThemeDays((prev) => {
+                      const next = { ...prev };
+                      if (val) next[i] = val;
+                      else delete next[i];
+                      return next;
+                    });
+                  }}
+                  placeholder="Ej. Pasta"
+                  className="w-full rounded-lg border border-amber-200 px-2 py-1.5 text-sm focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CalendarWeekView({
   recipes,
   plan,
   setPlan,
+  themeDays,
 }: {
   recipes: Recipe[];
   plan: PlanState;
   setPlan: React.Dispatch<React.SetStateAction<PlanState>>;
+  themeDays: ThemeDays;
 }) {
   const [weekStart] = useState(() => {
     const d = new Date();
@@ -160,7 +224,7 @@ function CalendarWeekView({
       <div className="min-w-[600px] rounded-xl border border-emerald-100 bg-white">
         <div className="grid grid-cols-8 border-b border-emerald-100">
           <div className="p-2 text-xs font-semibold text-zinc-500" />
-          {weekDays.map((d) => (
+          {weekDays.map((d, i) => (
             <div
               key={d.date.toISOString()}
               className="border-l border-emerald-50 p-2 text-center"
@@ -169,6 +233,11 @@ function CalendarWeekView({
                 {d.dayLabel}
               </span>
               <span className="text-xs text-zinc-500">{d.dateLabel}</span>
+              {themeDays[i] && (
+                <span className="mt-1 block text-[10px] font-medium text-amber-600">
+                  {themeDays[i]}
+                </span>
+              )}
             </div>
           ))}
         </div>
@@ -218,7 +287,26 @@ function CalendarWeekView({
         ))}
       </div>
 
-      {openSlot && (
+      {openSlot && (() => {
+        const weekdayIndex = (openSlot.date.getDay() + 6) % 7;
+        const slotTheme = themeDays[weekdayIndex] ?? "";
+        const themeWords = slotTheme
+          .toLowerCase()
+          .split(/\s+/)
+          .filter(Boolean);
+        const sortedRecipes = [...recipes].sort((a, b) => {
+          if (!slotTheme) return 0;
+          const aMatch = themeWords.some((w) =>
+            a.title.toLowerCase().includes(w)
+          );
+          const bMatch = themeWords.some((w) =>
+            b.title.toLowerCase().includes(w)
+          );
+          if (aMatch && !bMatch) return -1;
+          if (!aMatch && bMatch) return 1;
+          return 0;
+        });
+        return (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
           onClick={() => setOpenSlot(null)}
@@ -241,19 +329,34 @@ function CalendarWeekView({
                   month: "long",
                 })}
               </p>
+              {slotTheme && (
+                <p className="mt-1 text-xs font-medium text-amber-600">
+                  Tema del día: {slotTheme}
+                </p>
+              )}
             </div>
             <ul className="max-h-[50vh] overflow-y-auto">
-              {recipes.map((r) => (
-                <li key={r.id}>
-                  <button
-                    type="button"
-                    onClick={() => assignRecipe(r.id)}
-                    className="w-full px-4 py-3 text-left text-sm text-zinc-800 transition hover:bg-emerald-50"
-                  >
-                    {r.title}
-                  </button>
-                </li>
-              ))}
+              {sortedRecipes.map((r) => {
+                const matchesTheme =
+                  slotTheme &&
+                  themeWords.some((w) => r.title.toLowerCase().includes(w));
+                return (
+                  <li key={r.id}>
+                    <button
+                      type="button"
+                      onClick={() => assignRecipe(r.id)}
+                      className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm text-zinc-800 transition hover:bg-emerald-50"
+                    >
+                      <span>{r.title}</span>
+                      {matchesTheme && (
+                        <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                          ✓ tema
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
             <div className="border-t border-emerald-100 px-4 py-2">
               <button
@@ -266,7 +369,8 @@ function CalendarWeekView({
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
@@ -542,6 +646,8 @@ function SectionPlaceholder({
   setManualGroceryItems,
   groceryCheckedIds,
   setGroceryCheckedIds,
+  themeDays,
+  setThemeDays,
 }: {
   activeTab: TabId;
   recipes: Recipe[];
@@ -553,10 +659,23 @@ function SectionPlaceholder({
   setManualGroceryItems: React.Dispatch<React.SetStateAction<{ id: string; label: string }[]>>;
   groceryCheckedIds: Set<string>;
   setGroceryCheckedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  themeDays: ThemeDays;
+  setThemeDays: React.Dispatch<React.SetStateAction<ThemeDays>>;
 }) {
   if (activeTab === "calendar") {
     return (
-      <CalendarWeekView recipes={recipes} plan={plan} setPlan={setPlan} />
+      <div className="flex flex-col gap-4">
+        <ThemeConfig
+          themeDays={themeDays}
+          setThemeDays={setThemeDays}
+        />
+        <CalendarWeekView
+          recipes={recipes}
+          plan={plan}
+          setPlan={setPlan}
+          themeDays={themeDays}
+        />
+      </div>
     );
   }
 
@@ -592,6 +711,7 @@ export default function Home() {
   const [groceryCheckedIds, setGroceryCheckedIds] = useState<Set<string>>(
     () => new Set()
   );
+  const [themeDays, setThemeDays] = useState<ThemeDays>({});
   const [hasHydrated, setHasHydrated] = useState(false);
 
   useEffect(() => {
@@ -603,6 +723,8 @@ export default function Home() {
         setManualGroceryItems(stored.manualGroceryItems);
       if (stored.groceryCheckedIds.length > 0)
         setGroceryCheckedIds(new Set(stored.groceryCheckedIds));
+      if (stored.themeDays && Object.keys(stored.themeDays).length > 0)
+        setThemeDays(stored.themeDays);
     }
     setHasHydrated(true);
   }, []);
@@ -613,9 +735,10 @@ export default function Home() {
       recipes,
       plan,
       manualGroceryItems,
+      themeDays,
       groceryCheckedIds: [...groceryCheckedIds],
     });
-  }, [hasHydrated, recipes, plan, manualGroceryItems, groceryCheckedIds]);
+  }, [hasHydrated, recipes, plan, manualGroceryItems, groceryCheckedIds, themeDays]);
 
   const addRecipe = (title: string, ingredients?: string) => {
     const id = `u-${Date.now()}`;
@@ -688,6 +811,8 @@ export default function Home() {
             setManualGroceryItems={setManualGroceryItems}
             groceryCheckedIds={groceryCheckedIds}
             setGroceryCheckedIds={setGroceryCheckedIds}
+            themeDays={themeDays}
+            setThemeDays={setThemeDays}
           />
         </section>
 

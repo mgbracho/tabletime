@@ -1021,6 +1021,44 @@ function RecipesView({
 
 type GroceryItem = { id: string; label: string; fromPlan: boolean };
 
+function normalizeIngredientForGrouping(label: string): string {
+  let s = label.trim().toLowerCase();
+  s = s.replace(/\s*\(\d+\)\s*$/, "").trim();
+  const match = s.match(
+    /^(\d+([.,]\d+)?\s*(g|kg|ml|l|oz|lb|cups?|tbsp|tsp|dientes?|unidades?|bote|cucharada|cucharadita)?\s*[-–]?\s*)?(.+)$/
+  );
+  return match ? match[4].trim() : s;
+}
+
+function parseCountFromLabel(label: string): { baseLabel: string; count: number } {
+  const m = label.match(/\s*\((\d+)\)\s*$/);
+  if (m) {
+    return { baseLabel: label.replace(/\s*\(\d+\)\s*$/, "").trim(), count: parseInt(m[1], 10) };
+  }
+  return { baseLabel: label, count: 1 };
+}
+
+function mergeGroceryItems(items: GroceryItem[]): GroceryItem[] {
+  const byKey = new Map<string, { label: string; count: number; fromPlan: boolean }>();
+  for (const item of items) {
+    const { baseLabel, count: itemCount } = parseCountFromLabel(item.label);
+    const key = normalizeIngredientForGrouping(baseLabel);
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.count += itemCount;
+      if (baseLabel.length > existing.label.length) existing.label = baseLabel;
+      existing.fromPlan = existing.fromPlan || item.fromPlan;
+    } else {
+      byKey.set(key, { label: baseLabel, count: itemCount, fromPlan: item.fromPlan });
+    }
+  }
+  return Array.from(byKey.entries()).map(([key, { label, count, fromPlan }]) => ({
+    id: `merged-${key.replace(/\s+/g, "-")}`,
+    label: count > 1 ? `${label} (${count})` : label,
+    fromPlan,
+  }));
+}
+
 function getGroceryItemsFromPlan(
   plan: PlanState,
   recipes: Recipe[],
@@ -1036,12 +1074,12 @@ function getGroceryItemsFromPlan(
       const recipe = recipes.find((r) => r.id === recipeId);
       if (!recipe?.ingredients) continue;
       const lines = recipe.ingredients.split(/\n/).map((s) => s.trim()).filter(Boolean);
-      lines.forEach((line, i) => {
-        items.push({ id: `plan-${key}-${i}`, label: line, fromPlan: true });
+      lines.forEach((line) => {
+        items.push({ id: `plan-${key}-${line}`, label: line, fromPlan: true });
       });
     }
   }
-  return items;
+  return mergeGroceryItems(items);
 }
 
 function GroceryListView({
@@ -1063,10 +1101,11 @@ function GroceryListView({
   const [copyFeedback, setCopyFeedback] = useState(false);
   const weekStart = getWeekStart();
   const fromPlan = getGroceryItemsFromPlan(plan, recipes, weekStart);
-  const allItems: GroceryItem[] = [
-    ...fromPlan,
-    ...manualItems.map((m) => ({ ...m, fromPlan: false })),
-  ];
+  const manualAsItems: GroceryItem[] = manualItems.map((m) => ({
+    ...m,
+    fromPlan: false,
+  }));
+  const allItems: GroceryItem[] = mergeGroceryItems([...fromPlan, ...manualAsItems]);
 
   const toggle = (id: string) => {
     setCheckedIds((prev) => {
@@ -1086,7 +1125,14 @@ function GroceryListView({
   };
 
   const removeManual = (id: string) => {
-    setManualItems((prev) => prev.filter((i) => i.id !== id));
+    if (id.startsWith("merged-")) {
+      const key = id.replace("merged-", "").replace(/-/g, " ");
+      setManualItems((prev) =>
+        prev.filter((i) => normalizeIngredientForGrouping(i.label) !== key)
+      );
+    } else {
+      setManualItems((prev) => prev.filter((i) => i.id !== id));
+    }
     setCheckedIds((prev) => {
       const next = new Set(prev);
       next.delete(id);

@@ -110,6 +110,7 @@ export function useTableTimeData() {
   const [themeDays, setThemeDays] = useState<ThemeDays>({});
   const [hasHydrated, setHasHydrated] = useState(false);
   const [syncLoading, setSyncLoading] = useState(true);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const effectiveHouseholdId = useRef<string | null>(null);
   const [realtimeHouseholdId, setRealtimeHouseholdId] = useState<string | null>(null);
 
@@ -197,9 +198,10 @@ export function useTableTimeData() {
     }) => {
       const hid = effectiveHouseholdId.current ?? householdId;
       if (hid) {
+        setSyncError(null);
         const supabase = createClient();
         const recipeIds = new Set(payload.recipes.map((r) => r.id));
-        await supabase.from("recipes").upsert(
+        const { error: recipesError } = await supabase.from("recipes").upsert(
           payload.recipes.map((r) => ({
             id: r.id,
             household_id: hid,
@@ -210,6 +212,11 @@ export function useTableTimeData() {
           })),
           { onConflict: "id" }
         );
+        if (recipesError) {
+          console.error("[TableTime] Error guardando recetas en Supabase:", recipesError);
+          setSyncError(recipesError.message);
+          return;
+        }
         await supabase.from("plan_slots").delete().eq("household_id", hid);
         const validSlots = Object.entries(payload.plan).filter(([, recipe_id]) => recipeIds.has(recipe_id));
         if (validSlots.length > 0) {
@@ -519,5 +526,6 @@ export function useTableTimeData() {
     hasHydrated,
     syncLoading,
     isRemote: !!effectiveHouseholdId.current || !!householdId,
+    syncError,
   };
 }

@@ -1321,6 +1321,7 @@ export default function Home() {
     removeRecipe,
     hasHydrated,
     syncLoading,
+    syncError,
   } = useTableTimeData();
 
   if (!hasHydrated || syncLoading) {
@@ -1333,6 +1334,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-amber-50 px-4 py-10 font-sans text-zinc-900">
+      {syncError && (
+        <div className="mx-auto max-w-5xl rounded-lg bg-red-50 px-4 py-2 text-sm text-red-800 ring-1 ring-red-200">
+          Error al guardar en la nube: {syncError}
+        </div>
+      )}
       <main className="mx-auto flex max-w-5xl flex-col gap-10">
         <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>

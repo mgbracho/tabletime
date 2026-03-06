@@ -41,7 +41,11 @@ export function useAuth() {
       method: "POST",
       credentials: "include",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("[TableTime] ensureHousehold falló:", res.status, text);
+      return null;
+    }
     const data = await res.json();
     const household_id = data?.household_id ?? null;
     if (household_id) setHouseholdId(household_id);

@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -19,6 +20,7 @@ export async function POST(request: NextRequest) {
   );
   const { data: { user: userFromGet } } = await supabase.auth.getUser();
   let user = userFromGet;
+  let tokenFromHeader: string | null = null;
   if (!user) {
     const { data: { session } } = await supabase.auth.refreshSession();
     user = session?.user ?? null;
@@ -29,6 +31,7 @@ export async function POST(request: NextRequest) {
     if (token) {
       const { data: { user: userFromToken }, error: tokenError } = await supabase.auth.getUser(token);
       user = userFromToken ?? null;
+      if (user) tokenFromHeader = token;
       if (!user && tokenError) {
         return NextResponse.json(
           { error: "No autenticado", reason: "invalid_token", detail: tokenError.message },
@@ -50,7 +53,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { data: members } = await supabase
+  // Si la sesión vino del header, el cliente con cookies no envía JWT en los INSERT.
+  // Usamos un cliente que envía el token para que RLS vea auth.uid().
+  const db = tokenFromHeader
+    ? createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { global: { headers: { Authorization: `Bearer ${tokenFromHeader}` } } }
+      )
+    : supabase;
+
+  const { data: members } = await db
     .from("household_members")
     .select("household_id")
     .eq("user_id", user.id)
@@ -60,7 +73,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ household_id: members[0].household_id });
   }
 
-  const { data: household, error: hError } = await supabase
+  const { data: household, error: hError } = await db
     .from("households")
     .insert({ name: "Mi hogar" })
     .select("id")
@@ -73,7 +86,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { error: mError } = await supabase.from("household_members").insert({
+  const { error: mError } = await db.from("household_members").insert({
     household_id: household.id,
     user_id: user.id,
     role: "owner",

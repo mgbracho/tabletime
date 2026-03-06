@@ -1322,6 +1322,8 @@ export default function Home() {
     hasHydrated,
     syncLoading,
     syncError,
+    cloudUnavailable,
+    isRemote,
   } = useTableTimeData();
 
   if (!hasHydrated || syncLoading) {
@@ -1337,6 +1339,16 @@ export default function Home() {
       {syncError && (
         <div className="mx-auto max-w-5xl rounded-lg bg-red-50 px-4 py-2 text-sm text-red-800 ring-1 ring-red-200">
           Error al guardar en la nube: {syncError}
+        </div>
+      )}
+      {cloudUnavailable && (
+        <div className="mx-auto max-w-5xl rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-800 ring-1 ring-amber-200">
+          No se pudo conectar con la nube. Las recetas se guardan solo en este dispositivo y no aparecerán en Supabase. Abre DevTools → pestaña Network, recarga la página y busca la petición <code className="rounded bg-amber-100 px-1">/api/household/ensure</code> para ver el error (ej. 401).
+        </div>
+      )}
+      {isRemote && !syncError && (
+        <div className="mx-auto max-w-5xl text-right text-xs text-emerald-700">
+          Sincronizado con la nube
         </div>
       )}
       <main className="mx-auto flex max-w-5xl flex-col gap-10">

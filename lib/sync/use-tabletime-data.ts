@@ -111,6 +111,7 @@ export function useTableTimeData() {
   const [hasHydrated, setHasHydrated] = useState(false);
   const [syncLoading, setSyncLoading] = useState(true);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [cloudUnavailable, setCloudUnavailable] = useState(false);
   const effectiveHouseholdId = useRef<string | null>(null);
   const [realtimeHouseholdId, setRealtimeHouseholdId] = useState<string | null>(null);
 
@@ -165,11 +166,13 @@ export function useTableTimeData() {
       }
 
       if (hid) {
+        setCloudUnavailable(false);
         effectiveHouseholdId.current = hid;
         setRealtimeHouseholdId(hid);
         await loadFromSupabase(hid);
       } else {
         setRealtimeHouseholdId(null);
+        setCloudUnavailable(!!user);
         const stored = loadFromStorage();
         if (stored && (stored.recipes.length > 0 || Object.keys(stored.plan).length > 0 || stored.manualGroceryItems.length > 0)) {
           setRecipes(stored.recipes);
@@ -527,5 +530,6 @@ export function useTableTimeData() {
     syncLoading,
     isRemote: !!effectiveHouseholdId.current || !!householdId,
     syncError,
+    cloudUnavailable,
   };
 }

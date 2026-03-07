@@ -166,6 +166,14 @@ export function useTableTimeData() {
       if (!themeDays[t.day_index]) themeDays[t.day_index] = {};
       themeDays[t.day_index]![meal] = t.theme;
     }
+    if (Object.keys(themeDays).length === 0 && stored && Object.keys(stored.themeDays).length > 0) {
+      for (const [dayStr, dayThemes] of Object.entries(stored.themeDays)) {
+        const d = parseInt(dayStr, 10);
+        if (!isNaN(d) && d >= 0 && d <= 6 && dayThemes && typeof dayThemes === "object") {
+          themeDays[d] = { ...dayThemes };
+        }
+      }
+    }
 
     // Si la nube está vacía y hay datos en localStorage, fusionar para no perder el plan/recetas locales
     const stored = loadFromStorage();
@@ -352,6 +360,7 @@ export function useTableTimeData() {
         if (themeRows.length > 0) {
           await supabase.from("theme_days").insert(themeRows);
         }
+        saveToStorage(payload);
       } else {
         saveToStorage(payload);
       }

@@ -2253,7 +2253,7 @@ function GroceryListView({
             >
               Descargar .txt
             </button>
-            {typeof navigator !== "undefined" && navigator.share && (
+            {"share" in (typeof navigator !== "undefined" ? navigator : {}) && (
               <button
                 type="button"
                 onClick={shareList}

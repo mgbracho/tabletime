@@ -113,7 +113,7 @@ function RecipeDetailModal({
           )}
           <div className="mt-3 flex items-center gap-2">
             <span className="text-xs font-medium text-zinc-500">Raciones:</span>
-            {[2, 4, 6, 8].map((n) => (
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
               <button
                 key={n}
                 type="button"

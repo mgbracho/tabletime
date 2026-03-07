@@ -346,6 +346,68 @@ function getMonthGrid(monthStart: Date): { date: Date; dayLabel: string; dateLab
   return result;
 }
 
+/** Genera HTML del plan semanal y abre el diálogo de impresión (Guardar como PDF). */
+function printPlanToPdf(
+  plan: Record<string, string>,
+  recipes: { id: string; title: string }[],
+  themeDays: Record<number, Partial<Record<string, string>>>
+) {
+  const weekStart = getWeekStart();
+  const weekDays = getWeekDates(weekStart);
+  const weekTitle =
+    weekDays[0].date.getDate() +
+    " – " +
+    weekDays[6].date.getDate() +
+    " " +
+    weekDays[0].date.toLocaleDateString("es", { month: "long" });
+  const getRecipeTitle = (id: string) => recipes.find((r) => r.id === id)?.title ?? id;
+  const escape = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  const thCells = weekDays
+    .map(
+      (d) =>
+        `<th style="padding:8px;border:1px solid #e5e7eb;font-size:12px;font-weight:600;">${escape(d.dayLabel)}<br><span style="color:#6b7280">${d.dateLabel}</span></th>`
+    )
+    .join("");
+  const rows = MEAL_LABELS.map((meal) => {
+    const cells = weekDays.map((d, dayIndex) => {
+      const key = `${d.date.toISOString().slice(0, 10)}-${meal}`;
+      const value = plan[key];
+      const theme = themeDays[dayIndex]?.[meal];
+      let content = "—";
+      if (value) {
+        if (isSlotStatus(value)) content = SLOT_STATUS_LABELS[value];
+        else content = getRecipeTitle(value);
+      }
+      return `<td style="padding:8px;border:1px solid #e5e7eb;font-size:11px;vertical-align:top;">${escape(content)}${theme ? `<br><span style="color:#b45309;font-size:10px">${escape(theme)}</span>` : ""}</td>`;
+    });
+    return `<tr><td style="padding:8px;border:1px solid #e5e7eb;font-size:11px;font-weight:600;background:#f0fdfa;">${escape(meal)}</td>${cells.join("")}</tr>`;
+  }).join("");
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Plan semanal - TableTime</title>
+<style>body{font-family:system-ui,sans-serif;padding:24px;font-size:14px}h1{font-size:1.1rem;margin:0 0 4px}p{margin:0 0 16px;color:#555}table{border-collapse:collapse;width:100%;max-width:800px}</style>
+</head><body><h1>Plan semanal - TableTime</h1><p>Semana del ${escape(weekTitle)}</p><table><thead><tr><th style="padding:8px;border:1px solid #e5e7eb"></th>${thCells}</tr></thead><tbody>${rows}</tbody></table></body></html>`;
+
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText = "position:absolute;width:0;height:0;border:0;visibility:hidden";
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument;
+  if (!doc) {
+    document.body.removeChild(iframe);
+    return;
+  }
+  doc.open();
+  doc.write(html);
+  doc.close();
+  iframe.contentWindow?.focus();
+  setTimeout(() => {
+    iframe.contentWindow?.print();
+    setTimeout(() => document.body.removeChild(iframe), 500);
+  }, 100);
+}
+
 /** Extrae tokens de ingredientes para medir variedad (palabras significativas, sin números). */
 function getIngredientTokens(ingredients: string | undefined): Set<string> {
   if (!ingredients?.trim()) return new Set();
@@ -2107,6 +2169,26 @@ function GroceryListView({
     }
   };
 
+  const shareList = async () => {
+    if (!navigator.share) return;
+    try {
+      await navigator.share({
+        title: "Lista de la compra - TableTime",
+        text: getExportText(),
+      });
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") {
+        try {
+          await copyToClipboard();
+          setCopyFeedback(true);
+          setTimeout(() => setCopyFeedback(false), 2000);
+        } catch {
+          // ignore
+        }
+      }
+    }
+  };
+
   const downloadTxt = () => {
     const blob = new Blob([getExportText()], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -2156,13 +2238,13 @@ function GroceryListView({
           Generada a partir de tu plan de esta semana. Añade lo que falte y marca al comprar.
         </p>
         {allItems.length > 0 && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={copyToClipboard}
               className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
             >
-              {copyFeedback ? "¡Copiado!" : "Copiar"}
+              {copyFeedback ? "¡Copiado!" : "Copiar lista"}
             </button>
             <button
               type="button"
@@ -2171,6 +2253,15 @@ function GroceryListView({
             >
               Descargar .txt
             </button>
+            {typeof navigator !== "undefined" && navigator.share && (
+              <button
+                type="button"
+                onClick={shareList}
+                className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
+              >
+                Compartir (Notas/Recordatorios)
+              </button>
+            )}
             <button
               type="button"
               onClick={handlePrint}
@@ -2534,6 +2625,15 @@ function SectionPlaceholder({
           themeDays={themeDays}
           setThemeDays={setThemeDays}
         />
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => printPlanToPdf(plan, recipes, themeDays)}
+            className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
+          >
+            Imprimir plan / Guardar como PDF
+          </button>
+        </div>
         <CalendarWeekView
           recipes={recipes}
           plan={plan}
@@ -2552,7 +2652,7 @@ function SectionPlaceholder({
             setViewServings={setCalendarViewServings}
             onClose={() => setCalendarViewingRecipe(null)}
             onUpdateRecipe={(id, patch) => {
-              setRecipes((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+              onUpdateRecipe(id, patch);
               setCalendarViewingRecipe((prev) => (prev && prev.id === id ? { ...prev, ...patch } : null));
             }}
           />

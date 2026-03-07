@@ -19,7 +19,7 @@ type Recipe = { id: string; title: string; ingredients?: string; instructions?: 
 const SUGGESTED_TAGS = ["kid-friendly", "rápida", "vegetariana", "alta proteína", "económica", "sin gluten"] as const;
 
 function isExample(id: string) {
-  return /^[1-8]$/.test(id);
+  return /^([1-9]|1[0-5])$/.test(id);
 }
 
 function filterRecipes(

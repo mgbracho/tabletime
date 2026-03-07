@@ -85,6 +85,13 @@ const INITIAL_RECIPES: Recipe[] = [
   { id: "6", title: "Huevos revueltos", ingredients: "6 huevos\nMantequilla\nSal y pimienta", tags: ["rápida", "económica"], default_servings: 4 },
   { id: "7", title: "Pizza casera", ingredients: "Masa de pizza\nTomate frito\nMozzarella\nAlbahaca\nOregano", tags: ["kid-friendly"], default_servings: 4 },
   { id: "8", title: "Pescado al horno", ingredients: "4 filetes de merluza\nLimón\nAjo\nAceite de oliva\nPerejil", tags: ["alta proteína", "sin gluten"], default_servings: 4 },
+  { id: "9", title: "Lentejas con chorizo", ingredients: "300g lentejas\n1 chorizo\n1 cebolla\n2 zanahorias\n2 dientes de ajo\nCaldo de verduras\nPimentón", tags: ["económica", "kid-friendly"], default_servings: 4 },
+  { id: "10", title: "Tortilla de patatas", ingredients: "6 huevos\n4 patatas\n1 cebolla\nAceite de oliva\nSal", tags: ["rápida", "vegetariana"], default_servings: 4 },
+  { id: "11", title: "Pollo al limón", ingredients: "4 muslos de pollo\n2 limones\nAjo\nRomero\nAceite de oliva\nSal y pimienta", tags: ["alta proteína", "sin gluten"], default_servings: 4 },
+  { id: "12", title: "Crema de calabacín", ingredients: "2 calabacines\n1 patata\n1 cebolla\nCaldo de verduras\nNata líquida\nSal y nuez moscada", tags: ["vegetariana", "rápida"], default_servings: 4 },
+  { id: "13", title: "Hamburguesas caseras", ingredients: "500g carne picada\n1 cebolla\n1 huevo\nPan rallado\n4 panecillos\nLechuga\nTomate\nQueso en lonchas", tags: ["kid-friendly", "alta proteína"], default_servings: 4 },
+  { id: "14", title: "Paella de marisco", ingredients: "300g arroz\n200g gambas\n200g mejillones\n1 calamar\n1 pimiento rojo\nAzafrán\nGuisantes\nAceite de oliva", tags: ["alta proteína"], default_servings: 4 },
+  { id: "15", title: "Ensalada de quinoa", ingredients: "200g quinoa\n1 aguacate\n1 pepino\nTomate cherry\nLima\nAceite de oliva\nPerejil", tags: ["vegetariana", "rápida", "sin gluten"], default_servings: 4 },
 ];
 
 function saveToStorage(payload: {

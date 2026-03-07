@@ -123,6 +123,7 @@ export function useTableTimeData() {
   const effectiveHouseholdId = useRef<string | null>(null);
   const [realtimeHouseholdId, setRealtimeHouseholdId] = useState<string | null>(null);
   const ignoreThemeDaysRealtimeUntil = useRef<number>(0);
+  const ignorePlanSlotsRealtimeUntil = useRef<number>(0);
 
   const loadFromSupabase = useCallback(async (hid: string) => {
     const supabase = createClient();
@@ -240,6 +241,7 @@ export function useTableTimeData() {
         if (idsToDelete.length > 0) {
           await supabase.from("recipes").delete().in("id", idsToDelete);
         }
+        ignorePlanSlotsRealtimeUntil.current = Date.now() + 2000;
         await supabase.from("plan_slots").delete().eq("household_id", hid);
         const validSlots = Object.entries(payload.plan).filter(([, recipe_id]) => recipeIds.has(recipe_id));
         if (validSlots.length > 0) {
@@ -387,16 +389,19 @@ export function useTableTimeData() {
     };
 
     const handlePlanSlotsInsert = (payload: { new: { household_id: string; slot_key: string; recipe_id: string } }) => {
+      if (Date.now() < ignorePlanSlotsRealtimeUntil.current) return;
       if (payload.new.household_id === hid) {
         setPlan((prev) => ({ ...prev, [payload.new.slot_key]: payload.new.recipe_id }));
       }
     };
     const handlePlanSlotsUpdate = (payload: { new: { household_id: string; slot_key: string; recipe_id: string } }) => {
+      if (Date.now() < ignorePlanSlotsRealtimeUntil.current) return;
       if (payload.new.household_id === hid) {
         setPlan((prev) => ({ ...prev, [payload.new.slot_key]: payload.new.recipe_id }));
       }
     };
     const handlePlanSlotsDelete = (payload: { old: { household_id: string; slot_key: string } }) => {
+      if (Date.now() < ignorePlanSlotsRealtimeUntil.current) return;
       if (payload.old.household_id === hid) {
         setPlan((prev) => {
           const next = { ...prev };

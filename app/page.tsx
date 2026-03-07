@@ -50,7 +50,7 @@ function getRecipeConflicts(
     .filter((x): x is { displayName: string; missingTags: string[] } => x !== null);
 }
 
-type Recipe = { id: string; title: string; ingredients?: string; instructions?: string; tags?: string[]; default_servings?: number; last_used_at?: string };
+type Recipe = { id: string; title: string; ingredients?: string; instructions?: string; tags?: string[]; default_servings?: number; last_used_at?: string; is_favorite?: boolean; rating?: number | null; family_approved?: boolean };
 
 const SUGGESTED_TAGS = ["kid-friendly", "rápida", "vegetariana", "alta proteína", "económica", "sin gluten"] as const;
 
@@ -71,18 +71,22 @@ function isExample(id: string) {
 function filterRecipes(
   recipes: Recipe[],
   search: string,
-  activeTag: string | null
+  activeTag: string | null,
+  options?: { onlyFavorites?: boolean; onlyFamilyApproved?: boolean }
 ): Recipe[] {
   const q = search.toLowerCase().trim();
-  return recipes.filter((r) => {
+  let result = recipes.filter((r) => {
     const matchTag = !activeTag || r.tags?.some((t) => t.toLowerCase() === activeTag.toLowerCase());
     if (!matchTag) return false;
+    if (options?.onlyFavorites && !r.is_favorite) return false;
+    if (options?.onlyFamilyApproved && !r.family_approved) return false;
     if (!q) return true;
     const inTitle = r.title.toLowerCase().includes(q);
     const inTags = r.tags?.some((t) => t.toLowerCase().includes(q));
     const inIngredients = r.ingredients?.toLowerCase().includes(q);
     return inTitle || inTags || inIngredients;
   });
+  return result;
 }
 
 /** Escala cantidades en líneas de ingredientes (ej. "400g pasta" → "800g pasta" para factor 2). */
@@ -112,12 +116,14 @@ function RecipeDetailModal({
   setViewServings,
   onClose,
   onEdit,
+  onUpdateRecipe,
 }: {
   recipe: Recipe;
   viewServings: number;
   setViewServings: (n: number) => void;
   onClose: () => void;
   onEdit?: (recipe: Recipe) => void;
+  onUpdateRecipe?: (id: string, patch: Partial<Recipe>) => void;
 }) {
   return (
     <div
@@ -145,6 +151,44 @@ function RecipeDetailModal({
               ✕
             </button>
           </div>
+          {/* Favorito, valoración y Family approved */}
+          {onUpdateRecipe && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => onUpdateRecipe(recipe.id, { is_favorite: !recipe.is_favorite })}
+                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm transition hover:bg-amber-50"
+                aria-label={recipe.is_favorite ? "Quitar de favoritos" : "Añadir a favoritos"}
+                title={recipe.is_favorite ? "Quitar de favoritos" : "Añadir a favoritos"}
+              >
+                <span className={recipe.is_favorite ? "text-amber-500" : "text-zinc-300"}>♥</span>
+                <span className="text-xs text-zinc-600">Favorita</span>
+              </button>
+              <div className="flex items-center gap-0.5">
+                <span className="mr-1 text-xs text-zinc-500">Valoración:</span>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => onUpdateRecipe(recipe.id, { rating: recipe.rating === n ? null : n })}
+                    className="rounded p-0.5 text-lg leading-none transition hover:scale-110"
+                    aria-label={`${n} estrella${n > 1 ? "s" : ""}`}
+                  >
+                    <span className={recipe.rating != null && n <= recipe.rating ? "text-amber-400" : "text-zinc-300"}>★</span>
+                  </button>
+                ))}
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-teal-50">
+                <input
+                  type="checkbox"
+                  checked={recipe.family_approved === true}
+                  onChange={(e) => onUpdateRecipe(recipe.id, { family_approved: e.target.checked })}
+                  className="h-4 w-4 rounded border-teal-300 text-teal-600 focus:ring-teal-400"
+                />
+                <span className="text-xs font-medium text-teal-800">Family approved</span>
+              </label>
+            </div>
+          )}
           {recipe.tags && recipe.tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {recipe.tags.map((t) => (
@@ -1311,6 +1355,8 @@ function RecipesView({
   const [newServings, setNewServings] = useState(4);
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const [onlyFamilyApproved, setOnlyFamilyApproved] = useState(false);
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
   const [viewServings, setViewServings] = useState(4);
   const [showImport, setShowImport] = useState(false);
@@ -1361,7 +1407,15 @@ function RecipesView({
   const allTags = Array.from(
     new Set(recipes.flatMap((r) => r.tags ?? []))
   ).sort();
-  const filteredRecipes = filterRecipes(recipes, search, activeTag);
+  const filteredRecipes = filterRecipes(recipes, search, activeTag, {
+    onlyFavorites: onlyFavorites || undefined,
+    onlyFamilyApproved: onlyFamilyApproved || undefined,
+  });
+
+  const handleRecipePatch = (id: string, patch: Partial<Recipe>) => {
+    onUpdateRecipe(id, patch);
+    if (viewingRecipe?.id === id) setViewingRecipe((prev) => (prev ? { ...prev, ...patch } : null));
+  };
 
   const handleImportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1613,6 +1667,27 @@ function RecipesView({
             ))}
           </div>
         )}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-zinc-500">Filtros:</span>
+          <button
+            type="button"
+            onClick={() => setOnlyFavorites((v) => !v)}
+            className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+              onlyFavorites ? "bg-amber-200 text-amber-900" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+            }`}
+          >
+            ♥ Favoritas
+          </button>
+          <button
+            type="button"
+            onClick={() => setOnlyFamilyApproved((v) => !v)}
+            className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+              onlyFamilyApproved ? "bg-teal-200 text-teal-900" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+            }`}
+          >
+            Family approved
+          </button>
+        </div>
       </div>
 
       {filteredRecipes.length === 0 ? (
@@ -1624,19 +1699,51 @@ function RecipesView({
         {filteredRecipes.map((r) => (
           <li
             key={r.id}
-            className="flex items-center justify-between rounded-lg border border-teal-100 bg-white px-4 py-3"
+            className="flex items-center justify-between gap-3 rounded-lg border border-teal-100 bg-white px-4 py-3"
           >
             <div className="min-w-0 flex-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setViewingRecipe(r);
-                  setViewServings(r.default_servings ?? 4);
-                }}
-                className="text-left"
-              >
-                <span className="font-medium text-teal-900 hover:underline">{r.title}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleRecipePatch(r.id, { is_favorite: !r.is_favorite })}
+                  className="shrink-0 rounded p-0.5 text-lg leading-none transition hover:scale-110"
+                  aria-label={r.is_favorite ? "Quitar de favoritos" : "Añadir a favoritos"}
+                  title={r.is_favorite ? "Quitar de favoritos" : "Añadir a favoritos"}
+                >
+                  <span className={r.is_favorite ? "text-amber-500" : "text-zinc-300"}>♥</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewingRecipe(r);
+                    setViewServings(r.default_servings ?? 4);
+                  }}
+                  className="text-left"
+                >
+                  <span className="font-medium text-teal-900 hover:underline">{r.title}</span>
+                </button>
+                {r.family_approved && (
+                  <span className="shrink-0 rounded bg-teal-100 px-1.5 py-0.5 text-[10px] font-medium text-teal-700">
+                    Family approved
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRecipePatch(r.id, { rating: r.rating === n ? null : n });
+                    }}
+                    className="rounded p-0 text-amber-400/80 hover:text-amber-500"
+                    aria-label={`${n} estrella${n > 1 ? "s" : ""}`}
+                  >
+                    <span className={r.rating != null && n <= r.rating ? "text-amber-400" : "text-zinc-300"}>★</span>
+                  </button>
+                ))}
+              </div>
               {r.tags && r.tags.length > 0 && (
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   {r.tags.map((t) => (
@@ -1687,6 +1794,7 @@ function RecipesView({
           setViewServings={setViewServings}
           onClose={() => setViewingRecipe(null)}
           onEdit={(r) => startEdit(r)}
+          onUpdateRecipe={handleRecipePatch}
         />
       )}
     </div>
@@ -2327,6 +2435,10 @@ function SectionPlaceholder({
             viewServings={calendarViewServings}
             setViewServings={setCalendarViewServings}
             onClose={() => setCalendarViewingRecipe(null)}
+            onUpdateRecipe={(id, patch) => {
+              setRecipes((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+              setCalendarViewingRecipe((prev) => (prev && prev.id === id ? { ...prev, ...patch } : null));
+            }}
           />
         )}
       </div>

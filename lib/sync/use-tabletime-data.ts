@@ -17,6 +17,9 @@ export type Recipe = {
   tags?: string[];
   default_servings?: number;
   last_used_at?: string;
+  is_favorite?: boolean;
+  rating?: number | null;
+  family_approved?: boolean;
 };
 
 export type PlanState = Record<string, string>;
@@ -136,7 +139,7 @@ export function useTableTimeData() {
   } | null> => {
     const supabase = createClient();
     const [recipesRes, slotsRes, manualRes, checkedRes, themesRes] = await Promise.all([
-      supabase.from("recipes").select("id, title, ingredients, instructions, tags, default_servings").eq("household_id", hid),
+      supabase.from("recipes").select("id, title, ingredients, instructions, tags, default_servings, is_favorite, rating, family_approved").eq("household_id", hid),
       supabase.from("plan_slots").select("slot_key, recipe_id, slot_status").eq("household_id", hid),
       supabase.from("grocery_items").select("id, label").eq("household_id", hid).eq("source", "manual"),
       supabase.from("grocery_checked").select("item_key").eq("household_id", hid),
@@ -152,6 +155,9 @@ export function useTableTimeData() {
       instructions: r.instructions ?? undefined,
       tags: Array.isArray(r.tags) ? r.tags : [],
       default_servings: typeof r.default_servings === "number" ? r.default_servings : undefined,
+      is_favorite: r.is_favorite === true,
+      rating: typeof r.rating === "number" && r.rating >= 1 && r.rating <= 5 ? r.rating : undefined,
+      family_approved: r.family_approved === true,
     }));
 
     const plan: PlanState = {};
@@ -305,6 +311,9 @@ export function useTableTimeData() {
             instructions: r.instructions ?? null,
             tags: r.tags ?? [],
             default_servings: r.default_servings ?? 4,
+            is_favorite: r.is_favorite === true,
+            rating: typeof r.rating === "number" && r.rating >= 1 && r.rating <= 5 ? r.rating : null,
+            family_approved: r.family_approved === true,
           })),
           { onConflict: "id" }
         );
@@ -437,7 +446,7 @@ export function useTableTimeData() {
       }
     };
 
-    const handleRecipesInsert = (payload: { new: { id: string; title: string; ingredients: string | null; instructions: string | null; tags: string[]; default_servings?: number } }) => {
+    const handleRecipesInsert = (payload: { new: { id: string; title: string; ingredients: string | null; instructions: string | null; tags: string[]; default_servings?: number; is_favorite?: boolean; rating?: number | null; family_approved?: boolean } }) => {
       setRecipes((prev) => {
         if (prev.some((r) => r.id === payload.new.id)) return prev;
         return [...prev, {
@@ -447,10 +456,13 @@ export function useTableTimeData() {
           instructions: payload.new.instructions ?? undefined,
           tags: Array.isArray(payload.new.tags) ? payload.new.tags : [],
           default_servings: payload.new.default_servings,
+          is_favorite: payload.new.is_favorite === true,
+          rating: typeof payload.new.rating === "number" && payload.new.rating >= 1 && payload.new.rating <= 5 ? payload.new.rating : undefined,
+          family_approved: payload.new.family_approved === true,
         }];
       });
     };
-    const handleRecipesUpdate = (payload: { new: { id: string; title: string; ingredients: string | null; instructions: string | null; tags: string[]; default_servings?: number } }) => {
+    const handleRecipesUpdate = (payload: { new: { id: string; title: string; ingredients: string | null; instructions: string | null; tags: string[]; default_servings?: number; is_favorite?: boolean; rating?: number | null; family_approved?: boolean } }) => {
       setRecipes((prev) =>
         prev.map((r) =>
           r.id === payload.new.id
@@ -461,6 +473,9 @@ export function useTableTimeData() {
                 instructions: payload.new.instructions ?? undefined,
                 tags: Array.isArray(payload.new.tags) ? payload.new.tags : [],
                 default_servings: payload.new.default_servings,
+                is_favorite: payload.new.is_favorite === true,
+                rating: typeof payload.new.rating === "number" && payload.new.rating >= 1 && payload.new.rating <= 5 ? payload.new.rating : undefined,
+                family_approved: payload.new.family_approved === true,
               }
             : r
         )

@@ -595,6 +595,7 @@ function CalendarWeekView({
   const [monthStart, setMonthStart] = useState<Date>(() => getMonthStart(new Date()));
 
   const [openSlot, setOpenSlot] = useState<{ date: Date; meal: string } | null>(null);
+  const [swapSlot, setSwapSlot] = useState<{ date: Date; meal: string; currentRecipeId: string } | null>(null);
   const [pickerSearch, setPickerSearch] = useState("");
   const [pickerTag, setPickerTag] = useState<string | null>(null);
 
@@ -915,13 +916,22 @@ function CalendarWeekView({
                       >
                         {getRecipeTitle(recipeId)}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setPlan((prev) => { const next = { ...prev }; delete next[key]; return next; })}
-                        className="rounded-full bg-zinc-200 px-2 py-0.5 text-xs text-zinc-600 hover:bg-zinc-300"
-                      >
-                        ✕
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setSwapSlot({ date: new Date(focusedDate), meal, currentRecipeId: recipeId })}
+                          className="rounded bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700 hover:bg-teal-200"
+                        >
+                          Cambiar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPlan((prev) => { const next = { ...prev }; delete next[key]; return next; })}
+                          className="rounded-full bg-zinc-200 px-2 py-0.5 text-xs text-zinc-600 hover:bg-zinc-300"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex flex-wrap items-center gap-2">
@@ -1081,15 +1091,29 @@ function CalendarWeekView({
                           );
                         })()}
                       </div>
-                      <button
-                        type="button"
-                        onClick={(e) => clearSlot(d.date, meal, e)}
-                        onDragStart={(e) => e.stopPropagation()}
-                        className="absolute -right-1 -top-1 rounded-full bg-zinc-200 px-1.5 text-[10px] text-zinc-600 opacity-0 transition hover:bg-zinc-300 group-hover:opacity-100"
-                        aria-label="Quitar receta"
-                      >
-                        ✕
-                      </button>
+                      <div className="flex items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSwapSlot({ date: d.date, meal, currentRecipeId: recipeId });
+                          }}
+                          onDragStart={(e) => e.stopPropagation()}
+                          className="rounded bg-teal-100 px-1.5 py-0.5 text-[10px] font-medium text-teal-700 hover:bg-teal-200"
+                          aria-label="Cambiar receta"
+                        >
+                          Cambiar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => clearSlot(d.date, meal, e)}
+                          onDragStart={(e) => e.stopPropagation()}
+                          className="rounded-full bg-zinc-200 px-1.5 text-[10px] text-zinc-600 hover:bg-zinc-300"
+                          aria-label="Quitar receta"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-1">
@@ -1177,6 +1201,98 @@ function CalendarWeekView({
           </div>
         </div>
       )}
+
+      {swapSlot && (() => {
+        const weekdayIndex = (swapSlot.date.getDay() + 6) % 7;
+        const slotTheme = themeDays[weekdayIndex]?.[swapSlot.meal as MealType] ?? "";
+        const themeWords = slotTheme.toLowerCase().split(/\s+/).filter((w) => w.length > 1);
+        const matchesTheme = (r: Recipe) =>
+          themeWords.length > 0 &&
+          themeWords.some(
+            (w) =>
+              r.title.toLowerCase().includes(w) ||
+              (r.tags ?? []).some((t) => t.toLowerCase().includes(w))
+          );
+        const others = recipes.filter((r) => r.id !== swapSlot.currentRecipeId);
+        const withTheme = others.filter(matchesTheme);
+        const withoutTheme = others.filter((r) => !matchesTheme(r));
+        const sortByConflicts = (a: Recipe, b: Recipe) =>
+          (getRecipeConflicts(a, members).length) - (getRecipeConflicts(b, members).length);
+        const alternatives = [
+          ...withTheme.sort(sortByConflicts),
+          ...withoutTheme.sort(sortByConflicts),
+        ].slice(0, 5);
+        const key = slotKey(swapSlot.date, swapSlot.meal);
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+            onClick={() => setSwapSlot(null)}
+            role="presentation"
+          >
+            <div
+              className="mx-4 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-label="Cambiar receta"
+            >
+              <div className="border-b border-teal-100 px-4 py-3">
+                <h3 className="text-sm font-semibold text-teal-900">Cambiar receta</h3>
+                <p className="text-xs text-zinc-500">
+                  {swapSlot.date.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" })} · {swapSlot.meal}
+                </p>
+                {slotTheme && (
+                  <p className="mt-1 text-xs font-medium text-amber-600">Tema: {slotTheme}</p>
+                )}
+              </div>
+              <ul className="max-h-[50vh] overflow-y-auto">
+                {alternatives.length === 0 ? (
+                  <li className="px-4 py-6 text-center text-sm text-zinc-500">
+                    No hay otras recetas para sugerir.
+                  </li>
+                ) : (
+                  alternatives.map((r) => {
+                    const conflicts = getRecipeConflicts(r, members);
+                    const matches = themeWords.length > 0 && matchesTheme(r);
+                    return (
+                      <li key={r.id}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPlan((prev) => ({ ...prev, [key]: r.id }));
+                            setSwapSlot(null);
+                          }}
+                          className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm text-zinc-800 transition hover:bg-teal-50"
+                        >
+                          <span>{r.title}</span>
+                          <span className="flex shrink-0 items-center gap-1">
+                            {matches && (
+                              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                                tema
+                              </span>
+                            )}
+                            {conflicts.length > 0 && (
+                              <span className="text-amber-500" title={conflicts.map((c) => c.displayName).join(", ")}>⚠</span>
+                            )}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
+              <div className="border-t border-teal-100 px-4 py-2">
+                <button
+                  type="button"
+                  onClick={() => setSwapSlot(null)}
+                  className="text-sm text-zinc-500 hover:text-zinc-700"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {openSlot && (() => {
         const weekdayIndex = (openSlot.date.getDay() + 6) % 7;

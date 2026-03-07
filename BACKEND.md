@@ -36,6 +36,12 @@ En el **SQL Editor** de Supabase, ejecuta en orden:
 1. `supabase/migrations/20250306000000_initial_schema.sql`
 2. `supabase/migrations/20250306000001_grocery_checked.sql`
 3. `supabase/migrations/20250306000002_realtime_publication.sql` (para lista en tiempo real)
+4. `supabase/migrations/20250306100000_fix_household_members_rls.sql`
+5. `supabase/migrations/20250306200000_recipes_default_servings.sql`
+6. `supabase/migrations/20250307000000_household_profiles.sql` (perfiles: nombre y porciones por miembro)
+7. `supabase/migrations/20250307100000_dietary_restrictions.sql` (restricciones dietéticas por miembro)
+8. `supabase/migrations/20250307200000_household_invites.sql` (invitar por enlace)
+9. `supabase/migrations/20250307300000_household_share_tokens.sql` (compartir plan/lista por enlace, solo lectura)
 
 ### 4. Auth redirect (opcional)
 

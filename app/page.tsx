@@ -1,12 +1,16 @@
 "use client";
 
 import { useTableTimeData } from "@/lib/sync/use-tabletime-data";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { useHouseholdProfile } from "@/lib/hooks/use-household-profile";
+import type { HouseholdMember } from "@/lib/hooks/use-household-profile";
 import { useState } from "react";
 
 const TABS = [
   { id: "calendar", label: "Calendario" },
   { id: "recipes", label: "Recetas" },
   { id: "grocery", label: "Lista de la compra" },
+  { id: "household", label: "Hogar" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -14,9 +18,39 @@ type TabId = (typeof TABS)[number]["id"];
 const MEAL_LABELS = ["Desayuno", "Comida", "Cena"] as const;
 const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
+/** Devuelve miembros para los que la receta no cumple sus restricciones dietéticas. */
+function getRecipeConflicts(
+  recipe: Recipe,
+  members: HouseholdMember[]
+): { displayName: string; missingTags: string[] }[] {
+  const recipeTags = (recipe.tags ?? []).map((t) => t.toLowerCase());
+  return members
+    .map((m) => {
+      const missing = m.dietary_restrictions.filter(
+        (r) => !recipeTags.some((t) => t.includes(r.toLowerCase()) || r.toLowerCase().includes(t))
+      );
+      if (missing.length === 0) return null;
+      return {
+        displayName: m.display_name?.trim() || "Un miembro",
+        missingTags: missing,
+      };
+    })
+    .filter((x): x is { displayName: string; missingTags: string[] } => x !== null);
+}
+
 type Recipe = { id: string; title: string; ingredients?: string; instructions?: string; tags?: string[]; default_servings?: number; last_used_at?: string };
 
 const SUGGESTED_TAGS = ["kid-friendly", "rápida", "vegetariana", "alta proteína", "económica", "sin gluten"] as const;
+
+/** Opciones de restricción dietética (mismo tag que en recetas para detectar conflictos). */
+const DIETARY_RESTRICTION_OPTIONS = [
+  "sin gluten",
+  "vegetariana",
+  "vegano",
+  "sin lactosa",
+  "bajo en sodio",
+  "kid-friendly",
+] as const;
 
 function isExample(id: string) {
   return /^([1-9]|1[0-5])$/.test(id);
@@ -452,12 +486,14 @@ function CalendarWeekView({
   setPlan,
   themeDays,
   onViewRecipe,
+  members = [],
 }: {
   recipes: Recipe[];
   plan: PlanState;
   setPlan: React.Dispatch<React.SetStateAction<PlanState>>;
   themeDays: ThemeDays;
   onViewRecipe?: (recipe: Recipe) => void;
+  members?: HouseholdMember[];
 }) {
   const [weekStart, setWeekStart] = useState(() => {
     const d = new Date();
@@ -592,17 +628,33 @@ function CalendarWeekView({
                   className="flex min-h-[52px] items-center justify-center border-l border-teal-50 p-2"
                 >
                   {recipeId ? (
-                    <div className="group relative flex w-full items-center justify-center">
-                      <button
-                        type="button"
-                        onClick={() => {
+                    <div className="group relative flex w-full flex-col items-center justify-center gap-0.5">
+                      <div className="flex w-full items-center justify-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const recipe = recipes.find((r) => r.id === recipeId);
+                            if (recipe && onViewRecipe) onViewRecipe(recipe);
+                          }}
+                          className="truncate px-2 text-left text-xs font-medium text-teal-900 hover:underline focus:outline-none focus:ring-1 focus:ring-teal-400"
+                        >
+                          {getRecipeTitle(recipeId)}
+                        </button>
+                        {(() => {
                           const recipe = recipes.find((r) => r.id === recipeId);
-                          if (recipe && onViewRecipe) onViewRecipe(recipe);
-                        }}
-                        className="truncate px-2 text-left text-xs font-medium text-teal-900 hover:underline focus:outline-none focus:ring-1 focus:ring-teal-400"
-                      >
-                        {getRecipeTitle(recipeId)}
-                      </button>
+                          const conflicts = recipe ? getRecipeConflicts(recipe, members) : [];
+                          if (conflicts.length === 0) return null;
+                          return (
+                            <span
+                              className="shrink-0 text-amber-500"
+                              title={conflicts.map((c) => `No apto para ${c.displayName}: falta ${c.missingTags.join(", ")}`).join("\n")}
+                              aria-label="Aviso: receta con posible conflicto dietético"
+                            >
+                              ⚠
+                            </span>
+                          );
+                        })()}
+                      </div>
                       <button
                         type="button"
                         onClick={(e) => clearSlot(d.date, meal, e)}
@@ -1529,6 +1581,245 @@ function GroceryListView({
   );
 }
 
+function HouseholdView() {
+  const { user, householdId } = useAuth();
+  const {
+    householdName,
+    members,
+    setHouseholdName,
+    updateMember,
+    loading,
+  } = useHouseholdProfile(householdId, user?.id ?? null);
+  const [draftNames, setDraftNames] = useState<Record<string, string>>({});
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState(false);
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareCopyFeedback, setShareCopyFeedback] = useState(false);
+
+  if (loading) {
+    return <p className="text-sm text-zinc-500">Cargando perfiles…</p>;
+  }
+
+  if (!householdId) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50/50 px-4 py-6 text-sm text-amber-800">
+        Inicia sesión para ver y editar los perfiles de tu hogar.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <label className="mb-1 block text-xs font-medium text-zinc-500">Nombre del hogar</label>
+        <input
+          type="text"
+          value={householdName}
+          onChange={(e) => setHouseholdName(e.target.value)}
+          onBlur={(e) => {
+            const v = e.target.value.trim();
+            if (v && v !== householdName) setHouseholdName(v);
+          }}
+          className="w-full max-w-xs rounded-lg border border-teal-200 px-3 py-2 text-sm text-teal-900 focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
+          placeholder="Mi hogar"
+        />
+      </div>
+
+      <div className="rounded-xl border border-teal-100 bg-teal-50/30 p-4">
+        <h3 className="mb-2 text-sm font-semibold text-teal-800">Invitar a alguien al hogar</h3>
+        <p className="mb-3 text-xs text-zinc-600">
+          Genera un enlace. Quien lo abra podrá unirse a este hogar (debe tener cuenta o registrarse). El enlace caduca en 7 días.
+        </p>
+        {!inviteLink ? (
+          <button
+            type="button"
+            disabled={inviteLoading}
+            onClick={async () => {
+              setInviteLoading(true);
+              try {
+                const res = await fetch("/api/household/invite", { method: "POST", credentials: "include" });
+                const data = await res.json();
+                if (res.ok && data.link) setInviteLink(data.link);
+                else setInviteLink("Error al generar el enlace");
+              } catch {
+                setInviteLink("Error de conexión");
+              }
+              setInviteLoading(false);
+            }}
+            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-70"
+          >
+            {inviteLoading ? "Generando…" : "Generar enlace de invitación"}
+          </button>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              readOnly
+              value={inviteLink}
+              className="min-w-0 flex-1 rounded border border-teal-200 bg-white px-3 py-2 text-xs text-zinc-700"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(inviteLink);
+                setCopyFeedback(true);
+                setTimeout(() => setCopyFeedback(false), 2000);
+              }}
+              className="rounded-lg border border-teal-200 px-3 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50"
+            >
+              {copyFeedback ? "¡Copiado!" : "Copiar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setInviteLink(null)}
+              className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50"
+            >
+              Cerrar
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-teal-100 bg-teal-50/30 p-4">
+        <h3 className="mb-2 text-sm font-semibold text-teal-800">Compartir plan y lista (solo lectura)</h3>
+        <p className="mb-3 text-xs text-zinc-600">
+          Genera un enlace para que alguien vea el plan y la lista de la compra sin poder editarlos. El enlace caduca en 30 días.
+        </p>
+        {!shareLink ? (
+          <button
+            type="button"
+            disabled={shareLoading}
+            onClick={async () => {
+              setShareLoading(true);
+              try {
+                const res = await fetch("/api/household/share", { method: "POST", credentials: "include" });
+                const data = await res.json();
+                if (res.ok && data.link) setShareLink(data.link);
+                else setShareLink("Error al generar el enlace");
+              } catch {
+                setShareLink("Error de conexión");
+              }
+              setShareLoading(false);
+            }}
+            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-70"
+          >
+            {shareLoading ? "Generando…" : "Generar enlace de compartir"}
+          </button>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              readOnly
+              value={shareLink}
+              className="min-w-0 flex-1 rounded border border-teal-200 bg-white px-3 py-2 text-xs text-zinc-700"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(shareLink);
+                setShareCopyFeedback(true);
+                setTimeout(() => setShareCopyFeedback(false), 2000);
+              }}
+              className="rounded-lg border border-teal-200 px-3 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50"
+            >
+              {shareCopyFeedback ? "¡Copiado!" : "Copiar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShareLink(null)}
+              className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50"
+            >
+              Cerrar
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h3 className="mb-3 text-sm font-semibold text-teal-800">Miembros del hogar</h3>
+        <p className="mb-4 text-xs text-zinc-500">
+          Asigna un nombre (ej. &quot;Mamá&quot;, &quot;Pepe&quot;) y cuántas porciones come cada uno. Las restricciones dietéticas se usan para avisar si una receta del plan no es apta.
+        </p>
+        <ul className="space-y-3">
+          {members.map((member) => (
+            <li
+              key={member.id}
+              className="flex flex-wrap gap-4 rounded-xl border border-teal-100 bg-white p-4 shadow-sm"
+            >
+              <div className="min-w-0 flex-1">
+                <span className="block text-xs font-medium text-zinc-500">
+                  {member.is_current_user ? "Tú" : "Miembro"}
+                </span>
+                <input
+                  type="text"
+                  value={draftNames[member.id] ?? member.display_name ?? ""}
+                  onChange={(e) =>
+                    setDraftNames((prev) => ({ ...prev, [member.id]: e.target.value }))
+                  }
+                  onBlur={(e) => {
+                    const v = (draftNames[member.id] ?? member.display_name ?? "").trim() || null;
+                    if (v !== (member.display_name ?? null)) updateMember(member.id, { display_name: v });
+                    setDraftNames((prev) => {
+                      const next = { ...prev };
+                      delete next[member.id];
+                      return next;
+                    });
+                  }}
+                  placeholder="Nombre en casa"
+                  className="mt-1 w-full max-w-[200px] rounded border border-teal-200 px-2 py-1.5 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-zinc-500">Porciones</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={member.default_servings}
+                  onChange={(e) => {
+                    const n = parseInt(e.target.value, 10);
+                    if (!isNaN(n)) updateMember(member.id, { default_servings: n });
+                  }}
+                  className="w-14 rounded border border-teal-200 px-2 py-1.5 text-center text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
+                />
+              </div>
+              <div className="w-full border-t border-teal-100 pt-3 sm:w-auto sm:border-t-0 sm:pt-0">
+                <span className="block text-xs font-medium text-zinc-500 mb-1.5">Restricciones dietéticas</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {DIETARY_RESTRICTION_OPTIONS.map((tag) => {
+                    const active = member.dietary_restrictions.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => {
+                          const next = active
+                            ? member.dietary_restrictions.filter((t) => t !== tag)
+                            : [...member.dietary_restrictions, tag];
+                          updateMember(member.id, { dietary_restrictions: next });
+                        }}
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+                          active
+                            ? "bg-teal-600 text-white"
+                            : "bg-teal-100 text-teal-700 hover:bg-teal-200"
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 function SectionPlaceholder({
   activeTab,
   recipes,
@@ -1544,6 +1835,7 @@ function SectionPlaceholder({
   themeDays,
   setThemeDays,
   addManualGroceryItem,
+  householdMembers = [],
 }: {
   activeTab: TabId;
   recipes: Recipe[];
@@ -1559,6 +1851,7 @@ function SectionPlaceholder({
   themeDays: ThemeDays;
   setThemeDays: React.Dispatch<React.SetStateAction<ThemeDays>>;
   addManualGroceryItem?: (label: string) => void;
+  householdMembers?: HouseholdMember[];
 }) {
   const [calendarViewingRecipe, setCalendarViewingRecipe] = useState<Recipe | null>(null);
   const [calendarViewServings, setCalendarViewServings] = useState(4);
@@ -1579,6 +1872,7 @@ function SectionPlaceholder({
             setCalendarViewingRecipe(r);
             setCalendarViewServings(r.default_servings ?? 4);
           }}
+          members={householdMembers}
         />
         {calendarViewingRecipe && (
           <RecipeDetailModal
@@ -1601,6 +1895,10 @@ function SectionPlaceholder({
         onUpdateRecipe={onUpdateRecipe}
       />
     );
+  }
+
+  if (activeTab === "household") {
+    return <HouseholdView />;
   }
 
   return (
@@ -1640,6 +1938,9 @@ export default function Home() {
     isRemote,
     ensureError,
   } = useTableTimeData();
+
+  const { user, householdId } = useAuth();
+  const { members: householdMembers } = useHouseholdProfile(householdId, user?.id ?? null);
 
   const [creatingPlan, setCreatingPlan] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -1754,6 +2055,7 @@ export default function Home() {
             themeDays={themeDays}
             setThemeDays={setThemeDays}
             addManualGroceryItem={addManualGroceryItem}
+            householdMembers={householdMembers}
           />
         </section>
 

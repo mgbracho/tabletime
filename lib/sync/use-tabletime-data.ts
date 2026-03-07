@@ -158,7 +158,11 @@ export function useTableTimeData() {
       themeDays[t.day_index]![meal] = t.theme;
     }
 
-    setRecipes(recipes);
+    setRecipes(
+      recipes.length === 0
+        ? INITIAL_RECIPES.map((r) => ({ ...r, id: crypto.randomUUID() }))
+        : recipes
+    );
     setPlan(plan);
     setManualGroceryItems(manualGroceryItems);
     setGroceryCheckedIds(groceryCheckedIds);

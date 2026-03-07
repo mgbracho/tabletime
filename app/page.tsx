@@ -2877,14 +2877,7 @@ export default function Home() {
               disabled={creatingPlan}
               className="rounded-full bg-teal-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-700 disabled:opacity-70"
             >
-              {creatingPlan ? "Creando tu plan..." : "Crear mi primer plan semanal"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("recipes")}
-              className="rounded-full border border-teal-200 bg-white px-5 py-2 text-sm font-medium text-teal-700 transition hover:border-teal-300 hover:bg-teal-50"
-            >
-              Ver recetas de ejemplo
+              {creatingPlan ? "Creando tu plan..." : "Crear plan semanal"}
             </button>
           </div>
         </header>

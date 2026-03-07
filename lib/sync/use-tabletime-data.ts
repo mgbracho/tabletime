@@ -142,6 +142,8 @@ export function useTableTimeData() {
       supabase.from("theme_days").select("day_index, meal_type, theme").eq("household_id", hid),
     ]);
 
+    const stored = loadFromStorage();
+
     let recipes: Recipe[] = (recipesRes.data ?? []).map((r) => ({
       id: r.id,
       title: r.title,
@@ -176,7 +178,6 @@ export function useTableTimeData() {
     }
 
     // Si la nube está vacía y hay datos en localStorage, fusionar para no perder el plan/recetas locales
-    const stored = loadFromStorage();
     const remotePlanEmpty = Object.keys(plan).length === 0;
     const remoteRecipesEmpty = recipes.length === 0;
     const hasLocalData = stored && (

@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
-const MEAL_LABELS = ["Desayuno", "Comida", "Cena"] as const;
+const MEAL_LABELS = ["Desayuno", "Comida", "Cena", "Snacks"] as const;
 
 export async function GET(
   _request: NextRequest,

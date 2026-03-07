@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 const STORAGE_KEY = "tabletime-v1";
-const MEAL_TYPES = ["Desayuno", "Comida", "Cena"] as const;
+const MEAL_TYPES = ["Desayuno", "Comida", "Cena", "Snacks"] as const;
 type MealType = (typeof MEAL_TYPES)[number];
 
 export type Recipe = {

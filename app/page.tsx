@@ -15,7 +15,7 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-const MEAL_LABELS = ["Desayuno", "Comida", "Cena"] as const;
+const MEAL_LABELS = ["Desayuno", "Comida", "Cena", "Snacks"] as const;
 const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 /** Valores de slot que no son receta y se excluyen de la lista de la compra */
@@ -273,6 +273,35 @@ function getWeekStart(): Date {
   return d;
 }
 
+/** Primer día del mes (a las 00:00) */
+function getMonthStart(date: Date): Date {
+  const d = new Date(date);
+  d.setDate(1);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/** Días para vista mensual: incluye días del mes anterior/siguiente para completar la cuadrícula (lunes primero). */
+function getMonthGrid(monthStart: Date): { date: Date; dayLabel: string; dateLabel: string; isCurrentMonth: boolean }[] {
+  const first = new Date(monthStart);
+  const dayOfWeek = first.getDay();
+  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  first.setDate(first.getDate() + diff);
+  const result: { date: Date; dayLabel: string; dateLabel: string; isCurrentMonth: boolean }[] = [];
+  const month = monthStart.getMonth();
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(first);
+    d.setDate(first.getDate() + i);
+    result.push({
+      date: d,
+      dayLabel: DAY_NAMES[d.getDay() === 0 ? 6 : d.getDay() - 1],
+      dateLabel: d.getDate().toString(),
+      isCurrentMonth: d.getMonth() === month,
+    });
+  }
+  return result;
+}
+
 /** Extrae tokens de ingredientes para medir variedad (palabras significativas, sin números). */
 function getIngredientTokens(ingredients: string | undefined): Set<string> {
   if (!ingredients?.trim()) return new Set();
@@ -419,7 +448,7 @@ function generateSuggestedPlanForWeek(
 
 type PlanState = Record<string, string>;
 
-type MealType = "Desayuno" | "Comida" | "Cena";
+type MealType = "Desayuno" | "Comida" | "Cena" | "Snacks";
 type ThemeDays = Record<number, Partial<Record<MealType, string>>>;
 
 function ThemeConfig({
@@ -453,13 +482,14 @@ function ThemeConfig({
                   <th className="pb-2 px-2 font-medium text-amber-800">Desayuno</th>
                   <th className="pb-2 px-2 font-medium text-amber-800">Comida</th>
                   <th className="pb-2 px-2 font-medium text-amber-800">Cena</th>
+                  <th className="pb-2 px-2 font-medium text-amber-800">Snacks</th>
                 </tr>
               </thead>
               <tbody>
                 {DAY_NAMES.map((day, i) => (
                   <tr key={i} className="border-b border-amber-100">
                     <td className="py-2 pr-2 font-medium text-amber-900">{day}</td>
-                    {(["Desayuno", "Comida", "Cena"] as const).map((meal) => (
+                    {(["Desayuno", "Comida", "Cena", "Snacks"] as const).map((meal) => (
                       <td key={meal} className="px-2 py-2">
                         <input
                           type="text"
@@ -514,6 +544,11 @@ function CalendarWeekView({
     d.setDate(d.getDate() + diff);
     return d;
   });
+
+  type CalendarViewMode = "week" | "day" | "month";
+  const [viewMode, setViewMode] = useState<CalendarViewMode>("week");
+  const [focusedDate, setFocusedDate] = useState<Date>(() => new Date());
+  const [monthStart, setMonthStart] = useState<Date>(() => getMonthStart(new Date()));
 
   const [openSlot, setOpenSlot] = useState<{ date: Date; meal: string } | null>(null);
   const [pickerSearch, setPickerSearch] = useState("");
@@ -636,26 +671,107 @@ function CalendarWeekView({
 
   return (
     <div className="overflow-x-auto">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-zinc-500">Vista:</span>
+        {(["week", "day", "month"] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => setViewMode(mode)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+              viewMode === mode
+                ? "bg-teal-600 text-white"
+                : "border border-teal-200 text-teal-700 hover:bg-teal-50"
+            }`}
+          >
+            {mode === "week" ? "Semana" : mode === "day" ? "Día" : "Mes"}
+          </button>
+        ))}
+      </div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={goToPrevWeek}
-            className="rounded-lg border border-teal-200 px-2 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
-          >
-            ← Anterior
-          </button>
-          <span className="text-sm font-medium text-teal-800">
-            Semana del {weekTitle}
-          </span>
-          <button
-            type="button"
-            onClick={goToNextWeek}
-            className="rounded-lg border border-teal-200 px-2 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
-          >
-            Siguiente →
-          </button>
+          {viewMode === "week" && (
+            <>
+              <button
+                type="button"
+                onClick={goToPrevWeek}
+                className="rounded-lg border border-teal-200 px-2 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
+              >
+                ← Anterior
+              </button>
+              <span className="text-sm font-medium text-teal-800">
+                Semana del {weekTitle}
+              </span>
+              <button
+                type="button"
+                onClick={goToNextWeek}
+                className="rounded-lg border border-teal-200 px-2 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
+              >
+                Siguiente →
+              </button>
+            </>
+          )}
+          {viewMode === "day" && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  const d = new Date(focusedDate);
+                  d.setDate(d.getDate() - 1);
+                  setFocusedDate(d);
+                }}
+                className="rounded-lg border border-teal-200 px-2 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
+              >
+                ← Día anterior
+              </button>
+              <span className="text-sm font-medium text-teal-800">
+                {focusedDate.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const d = new Date(focusedDate);
+                  d.setDate(d.getDate() + 1);
+                  setFocusedDate(d);
+                }}
+                className="rounded-lg border border-teal-200 px-2 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
+              >
+                Siguiente día →
+              </button>
+            </>
+          )}
+          {viewMode === "month" && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  const d = new Date(monthStart);
+                  d.setMonth(d.getMonth() - 1);
+                  setMonthStart(d);
+                }}
+                className="rounded-lg border border-teal-200 px-2 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
+              >
+                ← Mes anterior
+              </button>
+              <span className="text-sm font-medium text-teal-800">
+                {monthStart.toLocaleDateString("es", { month: "long", year: "numeric" })}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const d = new Date(monthStart);
+                  d.setMonth(d.getMonth() + 1);
+                  setMonthStart(d);
+                }}
+                className="rounded-lg border border-teal-200 px-2 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
+              >
+                Siguiente mes →
+              </button>
+            </>
+          )}
         </div>
+        {viewMode === "week" && (
+          <>
         <button
           type="button"
           onClick={copyFromPreviousWeek}
@@ -709,7 +825,128 @@ function CalendarWeekView({
             </>
           )}
         </div>
+          </>
+        )}
       </div>
+      {viewMode === "day" && (
+        <div className="min-w-[400px] rounded-xl border border-teal-100 bg-white">
+          <div className="border-b border-teal-100 px-4 py-2">
+            <span className="text-sm font-semibold text-teal-800">
+              {focusedDate.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" })}
+            </span>
+          </div>
+          {MEAL_LABELS.map((meal) => {
+            const key = slotKey(focusedDate, meal);
+            const slotValue = plan[key];
+            const recipeId = isSlotStatus(slotValue) ? null : slotValue;
+            const dayIndex = (focusedDate.getDay() + 6) % 7;
+            const slotTheme = themeDays[dayIndex]?.[meal as MealType];
+            return (
+              <div
+                key={meal}
+                className="flex items-center gap-3 border-b border-teal-50 px-4 py-3 last:border-b-0"
+              >
+                <span className="w-24 shrink-0 text-sm font-medium text-teal-800">{meal}</span>
+                <div className="min-h-[44px] flex-1">
+                  {isSlotStatus(slotValue) ? (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-zinc-600">{SLOT_STATUS_LABELS[slotValue]}</span>
+                      <button
+                        type="button"
+                        onClick={() => setPlan((prev) => { const next = { ...prev }; delete next[key]; return next; })}
+                        className="rounded-full bg-zinc-200 px-2 py-0.5 text-xs text-zinc-600 hover:bg-zinc-300"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : recipeId ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const recipe = recipes.find((r) => r.id === recipeId);
+                          if (recipe && onViewRecipe) onViewRecipe(recipe);
+                        }}
+                        className="text-left text-sm font-medium text-teal-900 hover:underline"
+                      >
+                        {getRecipeTitle(recipeId)}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPlan((prev) => { const next = { ...prev }; delete next[key]; return next; })}
+                        className="rounded-full bg-zinc-200 px-2 py-0.5 text-xs text-zinc-600 hover:bg-zinc-300"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setOpenSlot({ date: new Date(focusedDate), meal })}
+                        className="rounded-lg border border-dashed border-teal-200 bg-teal-50/30 px-3 py-1.5 text-sm text-teal-600 hover:bg-teal-50"
+                      >
+                        Añadir receta
+                      </button>
+                      {(["leftovers", "skip", "eating_out"] as const).map((status) => (
+                        <button
+                          key={status}
+                          type="button"
+                          onClick={() => setPlan((prev) => ({ ...prev, [key]: status }))}
+                          className="rounded border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100"
+                        >
+                          {SLOT_STATUS_LABELS[status]}
+                        </button>
+                      ))}
+                      {slotTheme && (
+                        <span className="text-xs text-amber-600">Tema: {slotTheme}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {viewMode === "month" && (
+        <div className="rounded-xl border border-teal-100 bg-white p-2">
+          <div className="grid grid-cols-7 gap-px text-center text-xs font-semibold text-zinc-500">
+            {DAY_NAMES.map((d) => (
+              <div key={d} className="py-1">{d}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-px">
+            {getMonthGrid(monthStart).map((cell) => (
+              <button
+                key={cell.date.toISOString()}
+                type="button"
+                onClick={() => {
+                  setWeekStart(getWeekDates(cell.date)[0]?.date ?? cell.date);
+                  setViewMode("week");
+                }}
+                className={`min-h-[52px] rounded p-1.5 text-left text-sm ${
+                  cell.isCurrentMonth ? "bg-white text-zinc-800 hover:bg-teal-50" : "bg-zinc-50 text-zinc-400"
+                }`}
+              >
+                <span className="font-medium">{cell.dateLabel}</span>
+                <div className="mt-0.5 flex flex-wrap gap-0.5">
+                  {MEAL_LABELS.map((meal) => {
+                    const key = slotKey(cell.date, meal);
+                    const v = plan[key];
+                    if (!v) return null;
+                    if (isSlotStatus(v)) {
+                      return <span key={meal} className="inline-block h-1.5 w-1.5 rounded-full bg-zinc-400" title={SLOT_STATUS_LABELS[v]} />;
+                    }
+                    return <span key={meal} className="inline-block h-1.5 w-1.5 rounded-full bg-teal-500" title={getRecipeTitle(v)} />;
+                  })}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {viewMode === "week" && (
       <div className="min-w-[600px] rounded-xl border border-teal-100 bg-white">
         <div className="grid grid-cols-8 border-b border-teal-100">
           <div className="p-2 text-xs font-semibold text-zinc-500" />
@@ -849,6 +1086,7 @@ function CalendarWeekView({
           </div>
         ))}
       </div>
+      )}
 
       {clearConfirm && (
         <div
@@ -871,7 +1109,7 @@ function CalendarWeekView({
             <p className="mt-2 text-sm text-zinc-600">
               {clearConfirm === "week"
                 ? "Se quitarán todas las recetas de la semana actual."
-                : "Se quitarán Desayuno, Comida y Cena de ese día."}
+                : "Se quitarán Desayuno, Comida, Cena y Snacks de ese día."}
             </p>
             <div className="mt-4 flex justify-end gap-2">
               <button

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-const MEAL_LABELS = ["Desayuno", "Comida", "Cena"] as const;
+const MEAL_LABELS = ["Desayuno", "Comida", "Cena", "Snacks"] as const;
 const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 const SLOT_STATUS_VALUES = ["leftovers", "skip", "eating_out"] as const;

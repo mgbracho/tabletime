@@ -1,4 +1,4 @@
-export type MealType = "Desayuno" | "Comida" | "Cena";
+export type MealType = "Desayuno" | "Comida" | "Cena" | "Snacks";
 
 export interface Household {
   id: string;

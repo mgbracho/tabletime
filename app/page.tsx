@@ -85,9 +85,9 @@ function RecipeDetailModal({
         role="dialog"
         aria-label="Ver receta"
       >
-        <div className="border-b border-emerald-100 px-4 py-4">
+        <div className="border-b border-teal-100 px-4 py-4">
           <div className="flex items-start justify-between gap-4">
-            <h2 className="text-lg font-semibold text-emerald-900">
+            <h2 className="text-lg font-semibold text-teal-900">
               {recipe.title}
             </h2>
             <button
@@ -104,7 +104,7 @@ function RecipeDetailModal({
               {recipe.tags.map((t) => (
                 <span
                   key={t}
-                  className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700"
+                  className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700"
                 >
                   {t}
                 </span>
@@ -119,7 +119,7 @@ function RecipeDetailModal({
                 type="button"
                 onClick={() => setViewServings(n)}
                 className={`rounded-lg px-2.5 py-1 text-xs font-medium transition ${
-                  viewServings === n ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                  viewServings === n ? "bg-teal-600 text-white" : "bg-teal-100 text-teal-700 hover:bg-teal-200"
                 }`}
               >
                 {n}
@@ -130,7 +130,7 @@ function RecipeDetailModal({
         <div className="max-h-[60vh] overflow-y-auto px-4 py-4">
           {recipe.ingredients && (
             <section className="mb-4">
-              <h3 className="mb-2 text-sm font-semibold text-emerald-800">
+              <h3 className="mb-2 text-sm font-semibold text-teal-800">
                 Ingredientes{viewServings !== (recipe.default_servings ?? 4) ? ` (para ${viewServings} raciones)` : ""}
               </h3>
               <ul className="space-y-1 text-sm text-zinc-700">
@@ -144,7 +144,7 @@ function RecipeDetailModal({
                   .filter(Boolean)
                   .map((line, i) => (
                     <li key={i} className="flex flex-wrap">
-                      <span className="mr-2 text-emerald-500">•</span>
+                      <span className="mr-2 text-teal-500">•</span>
                       {line}
                     </li>
                   ))}
@@ -153,7 +153,7 @@ function RecipeDetailModal({
           )}
           {recipe.instructions && (
             <section>
-              <h3 className="mb-2 text-sm font-semibold text-emerald-800">
+              <h3 className="mb-2 text-sm font-semibold text-teal-800">
                 Pasos
               </h3>
               <ol className="list-inside list-decimal space-y-2 text-sm text-zinc-700">
@@ -173,7 +173,7 @@ function RecipeDetailModal({
             </p>
           )}
         </div>
-        <div className="flex justify-end gap-2 border-t border-emerald-100 px-4 py-3">
+        <div className="flex justify-end gap-2 border-t border-teal-100 px-4 py-3">
           {onEdit && (
             <button
               type="button"
@@ -181,7 +181,7 @@ function RecipeDetailModal({
                 onClose();
                 onEdit(recipe);
               }}
-              className="rounded-lg border border-emerald-200 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+              className="rounded-lg border border-teal-200 px-4 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50"
             >
               Editar
             </button>
@@ -189,7 +189,7 @@ function RecipeDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
           >
             Cerrar
           </button>
@@ -537,17 +537,17 @@ function CalendarWeekView({
           <button
             type="button"
             onClick={goToPrevWeek}
-            className="rounded-lg border border-emerald-200 px-2 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+            className="rounded-lg border border-teal-200 px-2 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
           >
             ← Anterior
           </button>
-          <span className="text-sm font-medium text-emerald-800">
+          <span className="text-sm font-medium text-teal-800">
             Semana del {weekTitle}
           </span>
           <button
             type="button"
             onClick={goToNextWeek}
-            className="rounded-lg border border-emerald-200 px-2 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+            className="rounded-lg border border-teal-200 px-2 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
           >
             Siguiente →
           </button>
@@ -560,15 +560,15 @@ function CalendarWeekView({
           Copiar semana anterior
         </button>
       </div>
-      <div className="min-w-[600px] rounded-xl border border-emerald-100 bg-white">
-        <div className="grid grid-cols-8 border-b border-emerald-100">
+      <div className="min-w-[600px] rounded-xl border border-teal-100 bg-white">
+        <div className="grid grid-cols-8 border-b border-teal-100">
           <div className="p-2 text-xs font-semibold text-zinc-500" />
           {weekDays.map((d, i) => (
             <div
               key={d.date.toISOString()}
-              className="border-l border-emerald-50 p-2 text-center"
+              className="border-l border-teal-50 p-2 text-center"
             >
-              <span className="block text-xs font-medium text-emerald-800">
+              <span className="block text-xs font-medium text-teal-800">
                 {d.dayLabel}
               </span>
               <span className="text-xs text-zinc-500">{d.dateLabel}</span>
@@ -578,9 +578,9 @@ function CalendarWeekView({
         {MEAL_LABELS.map((meal) => (
           <div
             key={meal}
-            className="grid grid-cols-8 border-b border-emerald-50 last:border-b-0"
+            className="grid grid-cols-8 border-b border-teal-50 last:border-b-0"
           >
-            <div className="flex items-center border-r border-emerald-50 bg-emerald-50/50 px-3 py-2 text-xs font-medium text-emerald-800">
+            <div className="flex items-center border-r border-teal-50 bg-teal-50/50 px-3 py-2 text-xs font-medium text-teal-800">
               {meal}
             </div>
             {weekDays.map((d, dayIndex) => {
@@ -589,7 +589,7 @@ function CalendarWeekView({
               return (
                 <div
                   key={key}
-                  className="flex min-h-[52px] items-center justify-center border-l border-emerald-50 p-2"
+                  className="flex min-h-[52px] items-center justify-center border-l border-teal-50 p-2"
                 >
                   {recipeId ? (
                     <div className="group relative flex w-full items-center justify-center">
@@ -599,7 +599,7 @@ function CalendarWeekView({
                           const recipe = recipes.find((r) => r.id === recipeId);
                           if (recipe && onViewRecipe) onViewRecipe(recipe);
                         }}
-                        className="truncate px-2 text-left text-xs font-medium text-emerald-900 hover:underline focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                        className="truncate px-2 text-left text-xs font-medium text-teal-900 hover:underline focus:outline-none focus:ring-1 focus:ring-teal-400"
                       >
                         {getRecipeTitle(recipeId)}
                       </button>
@@ -617,7 +617,7 @@ function CalendarWeekView({
                       <button
                         type="button"
                         onClick={() => setOpenSlot({ date: d.date, meal })}
-                        className="rounded-lg border border-dashed border-emerald-200 bg-emerald-50/30 px-2 py-1.5 text-xs text-emerald-600 transition hover:border-emerald-300 hover:bg-emerald-50"
+                        className="rounded-lg border border-dashed border-teal-200 bg-teal-50/30 px-2 py-1.5 text-xs text-teal-600 transition hover:border-teal-300 hover:bg-teal-50"
                       >
                         Añadir
                       </button>
@@ -669,8 +669,8 @@ function CalendarWeekView({
             role="dialog"
             aria-label="Elegir receta"
           >
-            <div className="border-b border-emerald-100 px-4 py-3">
-              <h3 className="text-sm font-semibold text-emerald-900">
+            <div className="border-b border-teal-100 px-4 py-3">
+              <h3 className="text-sm font-semibold text-teal-900">
                 Elegir receta para {openSlot.meal}
               </h3>
               <p className="text-xs text-zinc-500">
@@ -686,13 +686,13 @@ function CalendarWeekView({
                 </p>
               )}
             </div>
-            <div className="border-b border-emerald-100 px-4 py-2">
+            <div className="border-b border-teal-100 px-4 py-2">
               <input
                 type="search"
                 value={pickerSearch}
                 onChange={(e) => setPickerSearch(e.target.value)}
                 placeholder="Buscar..."
-                className="w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                className="w-full rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
               />
               {pickerTags.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
@@ -700,7 +700,7 @@ function CalendarWeekView({
                     type="button"
                     onClick={() => setPickerTag(null)}
                     className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                      !pickerTag ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-700"
+                      !pickerTag ? "bg-teal-600 text-white" : "bg-teal-100 text-teal-700"
                     }`}
                   >
                     Todas
@@ -711,7 +711,7 @@ function CalendarWeekView({
                       type="button"
                       onClick={() => setPickerTag(pickerTag === t ? null : t)}
                       className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        pickerTag === t ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-700"
+                        pickerTag === t ? "bg-teal-600 text-white" : "bg-teal-100 text-teal-700"
                       }`}
                     >
                       {t}
@@ -737,7 +737,7 @@ function CalendarWeekView({
                           <button
                             type="button"
                             onClick={() => assignRecipe(r.id)}
-                            className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm text-zinc-800 transition hover:bg-emerald-50"
+                            className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm text-zinc-800 transition hover:bg-teal-50"
                           >
                             <span>{r.title}</span>
                             <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
@@ -751,7 +751,7 @@ function CalendarWeekView({
                   {otherRecipes.length > 0 && (
                     <>
                       {slotTheme && (
-                        <li className="sticky top-0 z-10 border-b border-emerald-100 bg-emerald-50/50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-800">
+                        <li className="sticky top-0 z-10 border-b border-teal-100 bg-teal-50/50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-teal-800">
                           Otras recetas
                         </li>
                       )}
@@ -760,7 +760,7 @@ function CalendarWeekView({
                           <button
                             type="button"
                             onClick={() => assignRecipe(r.id)}
-                            className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm text-zinc-600 transition hover:bg-emerald-50"
+                            className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm text-zinc-600 transition hover:bg-teal-50"
                           >
                             <span>{r.title}</span>
                           </button>
@@ -771,7 +771,7 @@ function CalendarWeekView({
                 </>
               )}
             </ul>
-            <div className="border-t border-emerald-100 px-4 py-2">
+            <div className="border-t border-teal-100 px-4 py-2">
               <button
                 type="button"
                 onClick={() => {
@@ -904,14 +904,14 @@ function RecipesView({
           <button
             type="button"
             onClick={() => setShowImport(true)}
-            className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-medium text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
+            className="rounded-full border border-teal-200 bg-white px-4 py-2 text-sm font-medium text-teal-700 transition hover:border-teal-300 hover:bg-teal-50"
           >
             Importar desde URL
           </button>
           <button
             type="button"
             onClick={() => setShowForm(true)}
-            className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
+            className="rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-700"
           >
             + Añadir receta
           </button>
@@ -921,9 +921,9 @@ function RecipesView({
       {showImport && (
         <form
           onSubmit={handleImportSubmit}
-          className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-4"
+          className="rounded-xl border border-teal-100 bg-teal-50/30 p-4"
         >
-          <label className="mb-2 block text-xs font-medium text-emerald-800">
+          <label className="mb-2 block text-xs font-medium text-teal-800">
             Pegar URL de la receta
           </label>
           <p className="mb-3 text-xs text-zinc-600">
@@ -938,13 +938,13 @@ function RecipesView({
                 setImportError(null);
               }}
               placeholder="https://ejemplo.com/receta-pasta..."
-              className="flex-1 rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              className="flex-1 rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
               disabled={importLoading}
             />
             <button
               type="submit"
               disabled={importLoading || !importUrl.trim()}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-700 disabled:opacity-50"
             >
               {importLoading ? "Importando…" : "Importar"}
             </button>
@@ -969,12 +969,12 @@ function RecipesView({
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-4"
+          className="rounded-xl border border-teal-100 bg-teal-50/30 p-4"
         >
-          <h3 className="mb-3 text-sm font-semibold text-emerald-900">
+          <h3 className="mb-3 text-sm font-semibold text-teal-900">
             {editingId ? "Editar receta" : "Nueva receta"}
           </h3>
-          <label className="mb-2 block text-xs font-medium text-emerald-800">
+          <label className="mb-2 block text-xs font-medium text-teal-800">
             Nombre de la receta
           </label>
           <input
@@ -982,10 +982,10 @@ function RecipesView({
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder="Ej: Lentejas con chorizo"
-            className="mb-3 w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            className="mb-3 w-full rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
             autoFocus
           />
-          <label className="mb-2 block text-xs font-medium text-emerald-800">
+          <label className="mb-2 block text-xs font-medium text-teal-800">
             Ingredientes (opcional)
           </label>
           <textarea
@@ -993,9 +993,9 @@ function RecipesView({
             onChange={(e) => setNewIngredients(e.target.value)}
             placeholder="Uno por línea: 200g lentejas, 1 chorizo..."
             rows={3}
-            className="mb-3 w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            className="mb-3 w-full rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
           />
-          <label className="mb-2 block text-xs font-medium text-emerald-800">
+          <label className="mb-2 block text-xs font-medium text-teal-800">
             Pasos (opcional)
           </label>
           <textarea
@@ -1003,9 +1003,9 @@ function RecipesView({
             onChange={(e) => setNewInstructions(e.target.value)}
             placeholder="1. Sofreír la cebolla..."
             rows={3}
-            className="mb-3 w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            className="mb-3 w-full rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
           />
-          <label className="mb-2 block text-xs font-medium text-emerald-800">
+          <label className="mb-2 block text-xs font-medium text-teal-800">
             Etiquetas (opcional)
           </label>
           <div className="mb-2 flex flex-wrap gap-1.5">
@@ -1020,8 +1020,8 @@ function RecipesView({
                 }
                 className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
                   newTags.includes(tag)
-                    ? "bg-emerald-600 text-white"
-                    : "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                    ? "bg-teal-600 text-white"
+                    : "bg-teal-100 text-teal-800 hover:bg-teal-200"
                 }`}
               >
                 {tag}
@@ -1042,9 +1042,9 @@ function RecipesView({
               setNewTags([...suggested, ...val]);
             }}
             placeholder="Otras etiquetas (separadas por coma)"
-            className="mb-3 w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            className="mb-3 w-full rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
           />
-          <label className="mb-2 block text-xs font-medium text-emerald-800">
+          <label className="mb-2 block text-xs font-medium text-teal-800">
             Raciones por defecto
           </label>
           <input
@@ -1053,12 +1053,12 @@ function RecipesView({
             max={24}
             value={newServings}
             onChange={(e) => setNewServings(Math.max(1, Math.min(24, parseInt(e.target.value, 10) || 4)))}
-            className="mb-3 w-20 rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            className="mb-3 w-20 rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
           />
           <div className="flex gap-2">
             <button
               type="submit"
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
             >
               Guardar
             </button>
@@ -1073,7 +1073,7 @@ function RecipesView({
                 setNewTags([]);
                 setNewServings(4);
               }}
-              className="rounded-lg border border-emerald-200 px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50"
+              className="rounded-lg border border-teal-200 px-4 py-2 text-sm text-teal-700 hover:bg-teal-50"
             >
               Cancelar
             </button>
@@ -1087,7 +1087,7 @@ function RecipesView({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por nombre, etiqueta o ingrediente..."
-          className="w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+          className="w-full rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
         />
         {allTags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
@@ -1095,7 +1095,7 @@ function RecipesView({
               type="button"
               onClick={() => setActiveTag(null)}
               className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
-                !activeTag ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                !activeTag ? "bg-teal-600 text-white" : "bg-teal-100 text-teal-800 hover:bg-teal-200"
               }`}
             >
               Todas
@@ -1106,7 +1106,7 @@ function RecipesView({
                 type="button"
                 onClick={() => setActiveTag(activeTag === tag ? null : tag)}
                 className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
-                  activeTag === tag ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                  activeTag === tag ? "bg-teal-600 text-white" : "bg-teal-100 text-teal-800 hover:bg-teal-200"
                 }`}
               >
                 {tag}
@@ -1125,7 +1125,7 @@ function RecipesView({
         {filteredRecipes.map((r) => (
           <li
             key={r.id}
-            className="flex items-center justify-between rounded-lg border border-emerald-100 bg-white px-4 py-3"
+            className="flex items-center justify-between rounded-lg border border-teal-100 bg-white px-4 py-3"
           >
             <div className="min-w-0 flex-1">
               <button
@@ -1136,14 +1136,14 @@ function RecipesView({
                 }}
                 className="text-left"
               >
-                <span className="font-medium text-emerald-900 hover:underline">{r.title}</span>
+                <span className="font-medium text-teal-900 hover:underline">{r.title}</span>
               </button>
               {r.tags && r.tags.length > 0 && (
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   {r.tags.map((t) => (
                     <span
                       key={t}
-                      className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"
+                      className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-medium text-teal-700"
                     >
                       {t}
                     </span>
@@ -1160,7 +1160,7 @@ function RecipesView({
               <button
                 type="button"
                 onClick={() => startEdit(r)}
-                className="rounded-full p-1.5 text-zinc-400 hover:bg-emerald-50 hover:text-emerald-600"
+                className="rounded-full p-1.5 text-zinc-400 hover:bg-teal-50 hover:text-teal-600"
                 aria-label="Editar receta"
               >
                 ✎
@@ -1437,21 +1437,21 @@ function GroceryListView({
             <button
               type="button"
               onClick={copyToClipboard}
-              className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+              className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
             >
               {copyFeedback ? "¡Copiado!" : "Copiar"}
             </button>
             <button
               type="button"
               onClick={downloadTxt}
-              className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+              className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
             >
               Descargar .txt
             </button>
             <button
               type="button"
               onClick={handlePrint}
-              className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+              className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
             >
               Imprimir
             </button>
@@ -1465,25 +1465,25 @@ function GroceryListView({
           value={newItem}
           onChange={(e) => setNewItem(e.target.value)}
           placeholder="Añadir producto (ej. Leche, Pan)"
-          className="flex-1 rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+          className="flex-1 rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
         />
         <button
           type="submit"
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+          className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
         >
           Añadir
         </button>
       </form>
 
       {allItems.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/30 py-8 text-center text-sm text-zinc-600">
+        <p className="rounded-xl border border-dashed border-teal-200 bg-teal-50/30 py-8 text-center text-sm text-zinc-600">
           No hay nada aún. Asigna recetas con ingredientes en el Calendario o añade productos arriba.
         </p>
       ) : (
         <div className="space-y-4">
           {grouped.map((group) => (
             <div key={group.key}>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-teal-700">
                 {group.label}
               </h3>
               <ul className="space-y-1">
@@ -1494,14 +1494,14 @@ function GroceryListView({
                       key={item.id}
                       className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${
                         checked
-                          ? "border-emerald-100 bg-emerald-50/50 text-zinc-500 line-through"
-                          : "border-emerald-100 bg-white"
+                          ? "border-teal-100 bg-teal-50/50 text-zinc-500 line-through"
+                          : "border-teal-100 bg-white"
                       }`}
                     >
                       <button
                         type="button"
                         onClick={() => toggle(item.id)}
-                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-emerald-300 text-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-teal-300 text-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-400"
                         aria-label={checked ? "Marcar como no comprado" : "Marcar como comprado"}
                       >
                         {checked ? "✓" : ""}
@@ -1662,14 +1662,14 @@ export default function Home() {
 
   if (!hasHydrated || syncLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-emerald-50 via-white to-amber-50">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-teal-50 via-white to-teal-50/60">
         <p className="text-zinc-500">Cargando…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-amber-50 px-4 py-10 font-sans text-zinc-900">
+    <div className="min-h-screen bg-gradient-to-b from-teal-50 via-white to-teal-50/60 px-4 py-10 font-sans text-zinc-900">
       {syncError && (
         <div className="mx-auto max-w-5xl rounded-lg bg-red-50 px-4 py-2 text-sm text-red-800 ring-1 ring-red-200">
           Error al guardar en la nube: {syncError}
@@ -1684,14 +1684,14 @@ export default function Home() {
         </div>
       )}
       {isRemote && !syncError && (
-        <div className="mx-auto max-w-5xl text-right text-xs text-emerald-700">
+        <div className="mx-auto max-w-5xl text-right text-xs text-teal-700">
           Sincronizado con la nube
         </div>
       )}
       <main className="mx-auto flex max-w-5xl flex-col gap-10">
         <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-emerald-900 sm:text-4xl">
+            <h1 className="text-3xl font-semibold tracking-tight text-teal-900 sm:text-4xl">
               TableTime
             </h1>
             <p className="mt-2 max-w-xl text-sm sm:text-base text-zinc-700">
@@ -1704,21 +1704,21 @@ export default function Home() {
               type="button"
               onClick={handleCreatePlan}
               disabled={creatingPlan}
-              className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-70"
+              className="rounded-full bg-teal-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-700 disabled:opacity-70"
             >
               {creatingPlan ? "Creando tu plan..." : "Crear mi primer plan semanal"}
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("recipes")}
-              className="rounded-full border border-emerald-200 bg-white px-5 py-2 text-sm font-medium text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
+              className="rounded-full border border-teal-200 bg-white px-5 py-2 text-sm font-medium text-teal-700 transition hover:border-teal-300 hover:bg-teal-50"
             >
               Ver recetas de ejemplo
             </button>
           </div>
         </header>
 
-        <nav className="flex gap-2 rounded-full bg-emerald-50 p-1 text-sm font-medium text-emerald-800 sm:max-w-md">
+        <nav className="flex gap-2 rounded-full bg-teal-50 p-1 text-sm font-medium text-teal-800 sm:max-w-md">
           {TABS.map((tab) => {
             const isActive = tab.id === activeTab;
             return (
@@ -1728,7 +1728,7 @@ export default function Home() {
                 className={`flex-1 rounded-full px-4 py-2 transition ${
                   isActive
                     ? "bg-white shadow-sm"
-                    : "bg-transparent hover:bg-emerald-100"
+                    : "bg-transparent hover:bg-teal-100"
                 }`}
                 type="button"
               >
@@ -1738,7 +1738,7 @@ export default function Home() {
           })}
         </nav>
 
-        <section className="rounded-2xl bg-white/80 p-6 shadow-sm ring-1 ring-emerald-50">
+        <section className="rounded-2xl bg-white/80 p-6 shadow-sm ring-1 ring-teal-50">
           <SectionPlaceholder
             activeTab={activeTab}
             recipes={recipes}
@@ -1758,8 +1758,8 @@ export default function Home() {
         </section>
 
         <section className="grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl bg-white/80 p-5 shadow-sm ring-1 ring-emerald-50">
-            <h2 className="text-sm font-semibold text-emerald-800">
+          <div className="rounded-2xl bg-white/80 p-5 shadow-sm ring-1 ring-teal-50">
+            <h2 className="text-sm font-semibold text-teal-800">
               1. Calendario de comidas
             </h2>
             <p className="mt-2 text-sm text-zinc-700">
@@ -1768,8 +1768,8 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white/80 p-5 shadow-sm ring-1 ring-emerald-50">
-            <h2 className="text-sm font-semibold text-emerald-800">
+          <div className="rounded-2xl bg-white/80 p-5 shadow-sm ring-1 ring-teal-50">
+            <h2 className="text-sm font-semibold text-teal-800">
               2. Biblioteca de recetas
             </h2>
             <p className="mt-2 text-sm text-zinc-700">
@@ -1780,8 +1780,8 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white/80 p-5 shadow-sm ring-1 ring-emerald-50">
-            <h2 className="text-sm font-semibold text-emerald-800">
+          <div className="rounded-2xl bg-white/80 p-5 shadow-sm ring-1 ring-teal-50">
+            <h2 className="text-sm font-semibold text-teal-800">
               3. Lista de la compra
             </h2>
             <p className="mt-2 text-sm text-zinc-700">
@@ -1791,9 +1791,9 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="rounded-2xl bg-emerald-900 px-6 py-5 text-emerald-50">
+        <section className="rounded-2xl bg-teal-900 px-6 py-5 text-teal-50">
           <h2 className="text-sm font-semibold">Progreso</h2>
-          <p className="mt-2 text-sm text-emerald-100">
+          <p className="mt-2 text-sm text-teal-100">
             <span className="font-medium">Calendario</span>,{" "}
             <span className="font-medium">Recetas</span> y{" "}
             <span className="font-medium">Lista de la compra</span> ya están conectados: planifica la semana, añade recetas con ingredientes y genera la lista al instante.
@@ -1804,7 +1804,7 @@ export default function Home() {
       {toastMessage && (
         <div
           role="status"
-          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-emerald-800 px-4 py-2 text-sm font-medium text-white shadow-lg"
+          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-teal-800 px-4 py-2 text-sm font-medium text-white shadow-lg"
         >
           {toastMessage}
         </div>

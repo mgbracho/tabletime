@@ -24,7 +24,7 @@ export function AuthHeader() {
       ) : (
         <Link
           href="/login"
-          className="rounded-lg bg-amber-600 px-3 py-1.5 text-white hover:bg-amber-700"
+          className="rounded-lg bg-teal-600 px-3 py-1.5 text-white hover:bg-teal-700"
         >
           Entrar
         </Link>

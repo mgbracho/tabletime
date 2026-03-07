@@ -125,6 +125,7 @@ export function useTableTimeData() {
   const [realtimeHouseholdId, setRealtimeHouseholdId] = useState<string | null>(null);
   const ignoreThemeDaysRealtimeUntil = useRef<number>(0);
   const ignorePlanSlotsRealtimeUntil = useRef<number>(0);
+  const ignoreGroceryCheckedRealtimeUntil = useRef<number>(0);
 
   const loadFromSupabase = useCallback(async (hid: string): Promise<{
     recipes: Recipe[];
@@ -341,6 +342,7 @@ export function useTableTimeData() {
           await supabase.from("grocery_items").delete().in("id", toDelete);
         }
         await supabase.from("grocery_checked").delete().eq("household_id", hid);
+        ignoreGroceryCheckedRealtimeUntil.current = Date.now() + 2000;
         if (payload.groceryCheckedIds.length > 0) {
           await supabase.from("grocery_checked").insert(
             payload.groceryCheckedIds.map((item_key) => ({ household_id: hid, item_key }))
@@ -390,9 +392,11 @@ export function useTableTimeData() {
     const channelName = `household:${hid}`;
 
     const handleGroceryCheckedInsert = (payload: { new: { item_key: string } }) => {
+      if (Date.now() < ignoreGroceryCheckedRealtimeUntil.current) return;
       setGroceryCheckedIds((prev) => new Set([...prev, payload.new.item_key]));
     };
     const handleGroceryCheckedDelete = (payload: { old: { household_id: string; item_key: string } }) => {
+      if (Date.now() < ignoreGroceryCheckedRealtimeUntil.current) return;
       if (payload.old.household_id === hid) {
         setGroceryCheckedIds((prev) => {
           const next = new Set(prev);

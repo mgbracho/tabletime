@@ -5,6 +5,16 @@ import { useEffect, useState } from "react";
 const MEAL_LABELS = ["Desayuno", "Comida", "Cena"] as const;
 const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
+const SLOT_STATUS_VALUES = ["leftovers", "skip", "eating_out"] as const;
+const SLOT_STATUS_LABELS: Record<string, string> = {
+  leftovers: "Sobras",
+  skip: "Saltar",
+  eating_out: "Fuera",
+};
+function isSlotStatus(v: string): boolean {
+  return SLOT_STATUS_VALUES.includes(v as (typeof SLOT_STATUS_VALUES)[number]);
+}
+
 function getWeekStart(): Date {
   const d = new Date();
   const day = d.getDay();
@@ -156,7 +166,7 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
       for (const d of weekDays) {
         const key = slotKey(d.date, meal);
         const recipeId = data.plan[key];
-        if (!recipeId) continue;
+        if (!recipeId || isSlotStatus(recipeId)) continue;
         const recipe = data.recipes.find((r) => r.id === recipeId);
         if (!recipe?.ingredients) continue;
         recipe.ingredients.split("\n").map((s) => s.trim()).filter(Boolean).forEach((line) => fromPlan.push({ label: line }));
@@ -180,6 +190,8 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
   };
 
   const getRecipeTitle = (recipeId: string) => data.recipes.find((r) => r.id === recipeId)?.title ?? recipeId;
+  const getSlotLabel = (value: string) =>
+    isSlotStatus(value) ? SLOT_STATUS_LABELS[value] ?? value : getRecipeTitle(value);
 
   return (
     <div className="min-h-screen bg-teal-50/60 px-4 py-8">
@@ -218,7 +230,7 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
                           key={key}
                           className="border-l border-teal-50 p-2 text-center text-zinc-700"
                         >
-                          {recipeId ? getRecipeTitle(recipeId) : "—"}
+                          {recipeId ? getSlotLabel(recipeId) : "—"}
                         </div>
                       );
                     })}

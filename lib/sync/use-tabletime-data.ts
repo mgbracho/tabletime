@@ -137,7 +137,7 @@ export function useTableTimeData() {
     const supabase = createClient();
     const [recipesRes, slotsRes, manualRes, checkedRes, themesRes] = await Promise.all([
       supabase.from("recipes").select("id, title, ingredients, instructions, tags, default_servings").eq("household_id", hid),
-      supabase.from("plan_slots").select("slot_key, recipe_id").eq("household_id", hid),
+      supabase.from("plan_slots").select("slot_key, recipe_id, slot_status").eq("household_id", hid),
       supabase.from("grocery_items").select("id, label").eq("household_id", hid).eq("source", "manual"),
       supabase.from("grocery_checked").select("item_key").eq("household_id", hid),
       supabase.from("theme_days").select("day_index, meal_type, theme").eq("household_id", hid),
@@ -156,7 +156,11 @@ export function useTableTimeData() {
 
     const plan: PlanState = {};
     for (const s of slotsRes.data ?? []) {
-      plan[s.slot_key] = s.recipe_id;
+      if (s.slot_status && s.slot_status !== "recipe") {
+        plan[s.slot_key] = s.slot_status;
+      } else if (s.recipe_id) {
+        plan[s.slot_key] = s.recipe_id;
+      }
     }
 
     let manualGroceryItems = (manualRes.data ?? []).map((r) => ({ id: r.id, label: r.label }));
@@ -316,11 +320,21 @@ export function useTableTimeData() {
         }
         ignorePlanSlotsRealtimeUntil.current = Date.now() + 2000;
         await supabase.from("plan_slots").delete().eq("household_id", hid);
-        const validSlots = Object.entries(payload.plan).filter(([, recipe_id]) => recipeIds.has(recipe_id));
-        if (validSlots.length > 0) {
-          await supabase.from("plan_slots").insert(
-            validSlots.map(([slot_key, recipe_id]) => ({ household_id: hid, slot_key, recipe_id }))
-          );
+        const slotStatuses = ["leftovers", "skip", "eating_out"] as const;
+        const planEntries = Object.entries(payload.plan);
+        const slotsToInsert = planEntries
+          .map(([slot_key, value]) => {
+            const isStatus = slotStatuses.includes(value as (typeof slotStatuses)[number]);
+            return {
+              household_id: hid,
+              slot_key,
+              slot_status: isStatus ? value : "recipe",
+              recipe_id: isStatus ? null : (recipeIds.has(value) ? value : null),
+            };
+          })
+          .filter((s) => s.slot_status !== "recipe" || s.recipe_id != null);
+        if (slotsToInsert.length > 0) {
+          await supabase.from("plan_slots").insert(slotsToInsert);
         }
         const existingManual = await supabase.from("grocery_items").select("id").eq("household_id", hid).eq("source", "manual");
         const existingIds = new Set((existingManual.data ?? []).map((r) => r.id));
@@ -465,16 +479,23 @@ export function useTableTimeData() {
       }
     };
 
-    const handlePlanSlotsInsert = (payload: { new: { household_id: string; slot_key: string; recipe_id: string } }) => {
+    const handlePlanSlotsInsert = (payload: { new: { household_id: string; slot_key: string; recipe_id: string | null; slot_status?: string } }) => {
       if (Date.now() < ignorePlanSlotsRealtimeUntil.current) return;
       if (payload.new.household_id === hid) {
-        setPlan((prev) => ({ ...prev, [payload.new.slot_key]: payload.new.recipe_id }));
+        const value = payload.new.slot_status && payload.new.slot_status !== "recipe"
+          ? payload.new.slot_status
+          : payload.new.recipe_id;
+        if (value) setPlan((prev) => ({ ...prev, [payload.new.slot_key]: value }));
       }
     };
-    const handlePlanSlotsUpdate = (payload: { new: { household_id: string; slot_key: string; recipe_id: string } }) => {
+    const handlePlanSlotsUpdate = (payload: { new: { household_id: string; slot_key: string; recipe_id: string | null; slot_status?: string } }) => {
       if (Date.now() < ignorePlanSlotsRealtimeUntil.current) return;
       if (payload.new.household_id === hid) {
-        setPlan((prev) => ({ ...prev, [payload.new.slot_key]: payload.new.recipe_id }));
+        const value = payload.new.slot_status && payload.new.slot_status !== "recipe"
+          ? payload.new.slot_status
+          : payload.new.recipe_id;
+        if (value) setPlan((prev) => ({ ...prev, [payload.new.slot_key]: value }));
+        else setPlan((prev) => { const next = { ...prev }; delete next[payload.new.slot_key]; return next; });
       }
     };
     const handlePlanSlotsDelete = (payload: { old: { household_id: string; slot_key: string } }) => {

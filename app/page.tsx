@@ -18,6 +18,18 @@ type TabId = (typeof TABS)[number]["id"];
 const MEAL_LABELS = ["Desayuno", "Comida", "Cena"] as const;
 const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
+/** Valores de slot que no son receta y se excluyen de la lista de la compra */
+const SLOT_STATUS_VALUES = ["leftovers", "skip", "eating_out"] as const;
+type SlotStatusValue = (typeof SLOT_STATUS_VALUES)[number];
+function isSlotStatus(v: string): v is SlotStatusValue {
+  return SLOT_STATUS_VALUES.includes(v as SlotStatusValue);
+}
+const SLOT_STATUS_LABELS: Record<SlotStatusValue, string> = {
+  leftovers: "Sobras",
+  skip: "Saltar",
+  eating_out: "Fuera",
+};
+
 /** Devuelve miembros para los que la receta no cumple sus restricciones dietéticas. */
 function getRecipeConflicts(
   recipe: Recipe,
@@ -566,6 +578,62 @@ function CalendarWeekView({
     });
   };
 
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  const [clearConfirm, setClearConfirm] = useState<"day" | "week" | null>(null);
+  const [clearDayIndex, setClearDayIndex] = useState<number | null>(null);
+  const [clearMenuOpen, setClearMenuOpen] = useState(false);
+  const handleDragStart = (e: React.DragEvent, sourceKey: string, recipeId: string) => {
+    e.dataTransfer.setData("application/slot-key", sourceKey);
+    e.dataTransfer.setData("application/recipe-id", recipeId);
+    e.dataTransfer.effectAllowed = "move";
+  };
+  const handleDragOver = (e: React.DragEvent, targetKey: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverKey(targetKey);
+  };
+  const handleDragLeave = () => setDragOverKey(null);
+  const handleDrop = (e: React.DragEvent, targetKey: string) => {
+    e.preventDefault();
+    setDragOverKey(null);
+    const sourceKey = e.dataTransfer.getData("application/slot-key");
+    const recipeId = e.dataTransfer.getData("application/recipe-id");
+    if (!sourceKey || !recipeId) return;
+    setPlan((prev) => {
+      const next = { ...prev };
+      next[targetKey] = recipeId;
+      if (sourceKey !== targetKey) delete next[sourceKey];
+      return next;
+    });
+  };
+  const handleDragEnd = () => setDragOverKey(null);
+
+  const clearDay = (dayIndex: number) => {
+    setPlan((prev) => {
+      const next = { ...prev };
+      for (const m of MEAL_LABELS) {
+        delete next[slotKey(weekDays[dayIndex].date, m)];
+      }
+      return next;
+    });
+    setClearConfirm(null);
+    setClearDayIndex(null);
+  };
+  const clearWeek = () => {
+    setPlan((prev) => {
+      const next = { ...prev };
+      for (const d of weekDays) {
+        for (const m of MEAL_LABELS) delete next[slotKey(d.date, m)];
+      }
+      return next;
+    });
+    setClearConfirm(null);
+  };
+  const runClearConfirm = () => {
+    if (clearConfirm === "week") clearWeek();
+    else if (clearConfirm === "day" && clearDayIndex !== null) clearDay(clearDayIndex);
+  };
+
   return (
     <div className="overflow-x-auto">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -595,6 +663,52 @@ function CalendarWeekView({
         >
           Copiar semana anterior
         </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setClearMenuOpen((o) => !o)}
+            className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
+          >
+            Borrar ▼
+          </button>
+          {clearMenuOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                aria-hidden
+                onClick={() => setClearMenuOpen(false)}
+              />
+              <div className="absolute right-0 top-full z-20 mt-1 min-w-[180px] rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
+                <button
+                  type="button"
+                  className="block w-full px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-100"
+                  onClick={() => {
+                    setClearConfirm("week");
+                    setClearMenuOpen(false);
+                  }}
+                >
+                  Borrar semana actual
+                </button>
+                <div className="my-1 border-t border-zinc-100" />
+                <span className="block px-3 py-1 text-xs font-medium text-zinc-500">Borrar un día</span>
+                {weekDays.map((d, i) => (
+                  <button
+                    key={d.date.toISOString()}
+                    type="button"
+                    className="block w-full px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-100"
+                    onClick={() => {
+                      setClearDayIndex(i);
+                      setClearConfirm("day");
+                      setClearMenuOpen(false);
+                    }}
+                  >
+                    {d.dayLabel} {d.dateLabel}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
       <div className="min-w-[600px] rounded-xl border border-teal-100 bg-white">
         <div className="grid grid-cols-8 border-b border-teal-100">
@@ -621,14 +735,45 @@ function CalendarWeekView({
             </div>
             {weekDays.map((d, dayIndex) => {
               const key = slotKey(d.date, meal);
-              const recipeId = plan[key];
+              const slotValue = plan[key];
+              const recipeId = isSlotStatus(slotValue) ? null : slotValue;
+              const isDragOver = dragOverKey === key;
               return (
                 <div
                   key={key}
-                  className="flex min-h-[52px] items-center justify-center border-l border-teal-50 p-2"
+                  className={`flex min-h-[52px] items-center justify-center border-l border-teal-50 p-2 ${isDragOver ? "bg-teal-100 ring-1 ring-teal-300" : ""}`}
+                  onDragOver={(e) => handleDragOver(e, key)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, key)}
                 >
-                  {recipeId ? (
+                  {isSlotStatus(slotValue) ? (
                     <div className="group relative flex w-full flex-col items-center justify-center gap-0.5">
+                      <span className="text-xs font-medium text-zinc-600">
+                        {SLOT_STATUS_LABELS[slotValue]}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPlan((prev) => {
+                            const next = { ...prev };
+                            delete next[key];
+                            return next;
+                          });
+                        }}
+                        className="absolute -right-1 -top-1 rounded-full bg-zinc-200 px-1.5 text-[10px] text-zinc-600 opacity-0 transition hover:bg-zinc-300 group-hover:opacity-100"
+                        aria-label="Quitar"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : recipeId ? (
+                    <div
+                      className="group relative flex w-full cursor-grab flex-col items-center justify-center gap-0.5 active:cursor-grabbing"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, key, recipeId)}
+                      onDragEnd={handleDragEnd}
+                    >
                       <div className="flex w-full items-center justify-center gap-1">
                         <button
                           type="button"
@@ -658,6 +803,7 @@ function CalendarWeekView({
                       <button
                         type="button"
                         onClick={(e) => clearSlot(d.date, meal, e)}
+                        onDragStart={(e) => e.stopPropagation()}
                         className="absolute -right-1 -top-1 rounded-full bg-zinc-200 px-1.5 text-[10px] text-zinc-600 opacity-0 transition hover:bg-zinc-300 group-hover:opacity-100"
                         aria-label="Quitar receta"
                       >
@@ -671,8 +817,25 @@ function CalendarWeekView({
                         onClick={() => setOpenSlot({ date: d.date, meal })}
                         className="rounded-lg border border-dashed border-teal-200 bg-teal-50/30 px-2 py-1.5 text-xs text-teal-600 transition hover:border-teal-300 hover:bg-teal-50"
                       >
-                        Añadir
+                        Añadir receta
                       </button>
+                      <div className="flex flex-wrap justify-center gap-0.5">
+                        {(["leftovers", "skip", "eating_out"] as const).map((status) => (
+                          <button
+                            key={status}
+                            type="button"
+                            onClick={() =>
+                              setPlan((prev) => ({
+                                ...prev,
+                                [key]: status,
+                              }))
+                            }
+                            className="rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] text-zinc-600 hover:bg-zinc-100"
+                          >
+                            {SLOT_STATUS_LABELS[status]}
+                          </button>
+                        ))}
+                      </div>
                       {themeDays[dayIndex]?.[meal] && (
                         <span className="text-[10px] font-medium text-amber-600">
                           {themeDays[dayIndex][meal]}
@@ -686,6 +849,52 @@ function CalendarWeekView({
           </div>
         ))}
       </div>
+
+      {clearConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal
+          aria-labelledby="clear-confirm-title"
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-white p-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="clear-confirm-title" className="text-sm font-semibold text-zinc-900">
+              {clearConfirm === "week"
+                ? "¿Borrar toda la semana?"
+                : clearDayIndex !== null
+                  ? `¿Borrar el ${weekDays[clearDayIndex].dayLabel} ${weekDays[clearDayIndex].dateLabel}?`
+                  : "Confirmar"}
+            </h3>
+            <p className="mt-2 text-sm text-zinc-600">
+              {clearConfirm === "week"
+                ? "Se quitarán todas las recetas de la semana actual."
+                : "Se quitarán Desayuno, Comida y Cena de ese día."}
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setClearConfirm(null);
+                  setClearDayIndex(null);
+                }}
+                className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={runClearConfirm}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
+                Borrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {openSlot && (() => {
         const weekdayIndex = (openSlot.date.getDay() + 6) % 7;
@@ -1312,7 +1521,7 @@ function getGroceryItemsFromPlan(
     for (const d of weekDays) {
       const key = slotKey(d.date, meal);
       const recipeId = plan[key];
-      if (!recipeId) continue;
+      if (!recipeId || isSlotStatus(recipeId)) continue;
       const recipe = recipes.find((r) => r.id === recipeId);
       if (!recipe?.ingredients) continue;
       const lines = recipe.ingredients.split(/\n/).map((s) => s.trim()).filter(Boolean);

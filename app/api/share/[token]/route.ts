@@ -40,7 +40,7 @@ export async function GET(
   const [hRes, recipesRes, slotsRes, themesRes, manualRes, checkedRes] = await Promise.all([
     db.from("households").select("name").eq("id", hid).single(),
     share.share_plan ? db.from("recipes").select("id, title, ingredients, instructions, tags, default_servings").eq("household_id", hid) : { data: [] },
-    share.share_plan ? db.from("plan_slots").select("slot_key, recipe_id").eq("household_id", hid) : { data: [] },
+    share.share_plan ? db.from("plan_slots").select("slot_key, recipe_id, slot_status").eq("household_id", hid) : { data: [] },
     share.share_plan ? db.from("theme_days").select("day_index, meal_type, theme").eq("household_id", hid) : { data: [] },
     share.share_list ? db.from("grocery_items").select("id, label").eq("household_id", hid).eq("source", "manual") : { data: [] },
     share.share_list ? db.from("grocery_checked").select("item_key").eq("household_id", hid) : { data: [] },
@@ -57,7 +57,11 @@ export async function GET(
   }));
   const plan: Record<string, string> = {};
   for (const s of slotsRes.data ?? []) {
-    plan[s.slot_key] = s.recipe_id;
+    if (s.slot_status && s.slot_status !== "recipe") {
+      plan[s.slot_key] = s.slot_status;
+    } else if (s.recipe_id) {
+      plan[s.slot_key] = s.recipe_id;
+    }
   }
   const themeDays: Record<number, Record<string, string>> = {};
   for (const t of themesRes.data ?? []) {

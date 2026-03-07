@@ -122,6 +122,7 @@ export function useTableTimeData() {
   const [cloudUnavailable, setCloudUnavailable] = useState(false);
   const effectiveHouseholdId = useRef<string | null>(null);
   const [realtimeHouseholdId, setRealtimeHouseholdId] = useState<string | null>(null);
+  const ignoreThemeDaysRealtimeUntil = useRef<number>(0);
 
   const loadFromSupabase = useCallback(async (hid: string) => {
     const supabase = createClient();
@@ -272,6 +273,7 @@ export function useTableTimeData() {
           );
         }
         await supabase.from("theme_days").delete().eq("household_id", hid);
+        ignoreThemeDaysRealtimeUntil.current = Date.now() + 2000;
         const themeRows: { household_id: string; day_index: number; meal_type: string; theme: string }[] = [];
         for (const [dayStr, dayThemes] of Object.entries(payload.themeDays)) {
           const dayIndex = parseInt(dayStr, 10);
@@ -405,6 +407,7 @@ export function useTableTimeData() {
     };
 
     const handleThemeDaysInsert = (payload: { new: { household_id: string; day_index: number; meal_type: string; theme: string } }) => {
+      if (Date.now() < ignoreThemeDaysRealtimeUntil.current) return;
       if (payload.new.household_id === hid && MEAL_TYPES.includes(payload.new.meal_type as MealType)) {
         setThemeDays((prev) => ({
           ...prev,
@@ -416,6 +419,7 @@ export function useTableTimeData() {
       }
     };
     const handleThemeDaysDelete = (payload: { old: { household_id: string; day_index: number; meal_type: string } }) => {
+      if (Date.now() < ignoreThemeDaysRealtimeUntil.current) return;
       if (payload.old.household_id === hid) {
         setThemeDays((prev) => {
           const next = { ...prev };

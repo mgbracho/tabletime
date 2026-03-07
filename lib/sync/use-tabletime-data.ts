@@ -230,6 +230,11 @@ export function useTableTimeData() {
           setSyncError(recipesError.message);
           return;
         }
+        const { data: existingRecipes } = await supabase.from("recipes").select("id").eq("household_id", hid);
+        const idsToDelete = (existingRecipes ?? []).map((r) => r.id).filter((id) => !recipeIds.has(id));
+        if (idsToDelete.length > 0) {
+          await supabase.from("recipes").delete().in("id", idsToDelete);
+        }
         await supabase.from("plan_slots").delete().eq("household_id", hid);
         const validSlots = Object.entries(payload.plan).filter(([, recipe_id]) => recipeIds.has(recipe_id));
         if (validSlots.length > 0) {

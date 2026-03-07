@@ -2350,6 +2350,7 @@ function HouseholdView() {
     members,
     setHouseholdName,
     updateMember,
+    addMember,
     loading,
   } = useHouseholdProfile(householdId, user?.id ?? null);
   const [draftNames, setDraftNames] = useState<Record<string, string>>({});
@@ -2359,6 +2360,11 @@ function HouseholdView() {
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareCopyFeedback, setShareCopyFeedback] = useState(false);
+  const [showAddNoApp, setShowAddNoApp] = useState(false);
+  const [addNoAppName, setAddNoAppName] = useState("");
+  const [addNoAppServings, setAddNoAppServings] = useState(1);
+  const [addNoAppLoading, setAddNoAppLoading] = useState(false);
+  const [addNoAppError, setAddNoAppError] = useState<string | null>(null);
 
   if (loading) {
     return <p className="text-sm text-zinc-500">Cargando perfiles…</p>;
@@ -2390,9 +2396,9 @@ function HouseholdView() {
       </div>
 
       <div className="rounded-xl border border-teal-100 bg-teal-50/30 p-4">
-        <h3 className="mb-2 text-sm font-semibold text-teal-800">Invitar a alguien al hogar</h3>
+        <h3 className="mb-2 text-sm font-semibold text-teal-800">Añadir miembros al hogar</h3>
         <p className="mb-3 text-xs text-zinc-600">
-          Genera un enlace. Quien lo abra podrá unirse a este hogar (debe tener cuenta o registrarse). El enlace caduca en 7 días.
+          Pulsa «Generar enlace de invitación» y comparte el enlace con quien quieras que se una (WhatsApp, correo, etc.). Esa persona debe abrir el enlace e iniciar sesión (o registrarse); al hacerlo se unirá al hogar y aparecerá en la lista de miembros más abajo. El enlace caduca en 7 días.
         </p>
         {!inviteLink ? (
           <button
@@ -2501,6 +2507,95 @@ function HouseholdView() {
 
       <div>
         <h3 className="mb-3 text-sm font-semibold text-teal-800">Miembros del hogar</h3>
+        <p className="mb-2 text-xs text-zinc-500">
+          Para añadir más personas que usan la app, usa el bloque «Añadir miembros al hogar» de arriba: genera el enlace, compártelo y cuando abran el enlace e inicien sesión aparecerán aquí.
+        </p>
+        <p className="mb-2 text-xs text-zinc-500">
+          También puedes añadir a alguien que <strong>no usa la app</strong> (ej. un hijo sin teléfono): solo un perfil con nombre y porciones para el plan.
+        </p>
+        {!showAddNoApp ? (
+          <button
+            type="button"
+            onClick={() => {
+              setShowAddNoApp(true);
+              setAddNoAppError(null);
+              setAddNoAppName("");
+              setAddNoAppServings(1);
+            }}
+            className="mb-4 rounded-lg border border-teal-300 bg-teal-50 px-3 py-2 text-sm font-medium text-teal-700 hover:bg-teal-100"
+          >
+            + Añadir miembro que no usa la app
+          </button>
+        ) : (
+          <div className="mb-4 rounded-xl border border-teal-200 bg-teal-50/50 p-4">
+            <p className="mb-3 text-xs font-medium text-teal-800">Añadir perfil sin cuenta</p>
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="mb-1 block text-xs text-zinc-500">Nombre</label>
+                <input
+                  type="text"
+                  value={addNoAppName}
+                  onChange={(e) => setAddNoAppName(e.target.value)}
+                  placeholder="Ej. Peque"
+                  className="w-40 rounded border border-teal-200 px-2 py-1.5 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-zinc-500">Porciones</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={addNoAppServings}
+                  onChange={(e) => {
+                    const n = parseInt(e.target.value, 10);
+                    if (!isNaN(n)) setAddNoAppServings(n);
+                  }}
+                  className="w-14 rounded border border-teal-200 px-2 py-1.5 text-center text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={addNoAppLoading}
+                  onClick={async () => {
+                    setAddNoAppError(null);
+                    setAddNoAppLoading(true);
+                    try {
+                      await addMember(
+                        addNoAppName.trim() || undefined,
+                        addNoAppServings
+                      );
+                      setShowAddNoApp(false);
+                      setAddNoAppName("");
+                      setAddNoAppServings(1);
+                    } catch (e) {
+                      setAddNoAppError(e instanceof Error ? e.message : "Error al añadir");
+                    } finally {
+                      setAddNoAppLoading(false);
+                    }
+                  }}
+                  className="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-70"
+                >
+                  {addNoAppLoading ? "Añadiendo…" : "Añadir"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddNoApp(false);
+                    setAddNoAppError(null);
+                  }}
+                  className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm text-teal-700 hover:bg-teal-100"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+            {addNoAppError && (
+              <p className="mt-2 text-xs text-red-600">{addNoAppError}</p>
+            )}
+          </div>
+        )}
         <p className="mb-4 text-xs text-zinc-500">
           Asigna un nombre (ej. &quot;Mamá&quot;, &quot;Pepe&quot;) y cuántas porciones come cada uno. Las restricciones dietéticas se usan para avisar si una receta del plan no es apta.
         </p>

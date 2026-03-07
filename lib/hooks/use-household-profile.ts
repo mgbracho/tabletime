@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export type HouseholdMember = {
   id: string;
-  user_id: string;
+  user_id: string | null;
   display_name: string | null;
   default_servings: number;
   dietary_restrictions: string[];
@@ -25,25 +25,24 @@ export function useHouseholdProfile(householdId: string | null, currentUserId: s
       return;
     }
     const supabase = createClient();
-    const [hRes, mRes] = await Promise.all([
+    const [hRes, membersRes] = await Promise.all([
       supabase.from("households").select("name").eq("id", householdId).single(),
-      supabase
-        .from("household_members")
-        .select("id, user_id, display_name, default_servings, dietary_restrictions")
-        .eq("household_id", householdId),
+      fetch("/api/household/members", { credentials: "include" }).then((r) => r.json()),
     ]);
     setHouseholdNameState((hRes.data?.name as string) ?? "Mi hogar");
-    const list: HouseholdMember[] = (mRes.data ?? []).map((m) => ({
-      id: m.id,
-      user_id: m.user_id,
-      display_name: m.display_name ?? null,
-      default_servings: typeof m.default_servings === "number" ? m.default_servings : 1,
-      dietary_restrictions: Array.isArray(m.dietary_restrictions) ? m.dietary_restrictions : [],
-      is_current_user: m.user_id === currentUserId,
-    }));
+    const list: HouseholdMember[] = Array.isArray(membersRes?.members)
+      ? membersRes.members.map((m: { id: string; user_id?: string | null; display_name?: string | null; default_servings?: number; dietary_restrictions?: string[]; is_current_user?: boolean }) => ({
+          id: m.id,
+          user_id: m.user_id ?? null,
+          display_name: m.display_name ?? null,
+          default_servings: typeof m.default_servings === "number" ? m.default_servings : 1,
+          dietary_restrictions: Array.isArray(m.dietary_restrictions) ? m.dietary_restrictions : [],
+          is_current_user: m.is_current_user,
+        }))
+      : [];
     setMembers(list);
     setLoading(false);
-  }, [householdId, currentUserId]);
+  }, [householdId]);
 
   useEffect(() => {
     setLoading(true);
@@ -70,7 +69,7 @@ export function useHouseholdProfile(householdId: string | null, currentUserId: s
       }
     ) => {
       if (!householdId) return;
-      const supabase = createClient();
+      const member = members.find((m) => m.id === memberId);
       const payload: {
         display_name?: string | null;
         default_servings?: number;
@@ -81,7 +80,20 @@ export function useHouseholdProfile(householdId: string | null, currentUserId: s
         payload.default_servings = Math.max(1, Math.min(20, updates.default_servings));
       if (updates.dietary_restrictions !== undefined)
         payload.dietary_restrictions = updates.dietary_restrictions;
-      await supabase.from("household_members").update(payload).eq("id", memberId).eq("household_id", householdId);
+
+      if (member?.user_id == null) {
+        const res = await fetch(`/api/household/members/${memberId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) return;
+      } else {
+        const supabase = createClient();
+        await supabase.from("household_members").update(payload).eq("id", memberId).eq("household_id", householdId);
+      }
+
       setMembers((prev) =>
         prev.map((m) =>
           m.id === memberId
@@ -95,8 +107,25 @@ export function useHouseholdProfile(householdId: string | null, currentUserId: s
         )
       );
     },
-    [householdId]
+    [householdId, members]
   );
 
-  return { householdName, members, setHouseholdName, updateMember, loading, reload: load };
+  const addMember = useCallback(
+    async (display_name?: string, default_servings?: number) => {
+      const res = await fetch("/api/household/members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ display_name: display_name?.trim() || undefined, default_servings }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error ?? "Error al añadir miembro");
+      }
+      await load();
+    },
+    [load]
+  );
+
+  return { householdName, members, setHouseholdName, updateMember, addMember, loading, reload: load };
 }

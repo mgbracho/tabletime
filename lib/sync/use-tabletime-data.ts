@@ -16,6 +16,7 @@ export type Recipe = {
   instructions?: string;
   tags?: string[];
   default_servings?: number;
+  last_used_at?: string;
 };
 
 export type PlanState = Record<string, string>;
@@ -125,7 +126,13 @@ export function useTableTimeData() {
   const ignoreThemeDaysRealtimeUntil = useRef<number>(0);
   const ignorePlanSlotsRealtimeUntil = useRef<number>(0);
 
-  const loadFromSupabase = useCallback(async (hid: string) => {
+  const loadFromSupabase = useCallback(async (hid: string): Promise<{
+    recipes: Recipe[];
+    plan: PlanState;
+    manualGroceryItems: { id: string; label: string }[];
+    groceryCheckedIds: string[];
+    themeDays: ThemeDays;
+  } | null> => {
     const supabase = createClient();
     const [recipesRes, slotsRes, manualRes, checkedRes, themesRes] = await Promise.all([
       supabase.from("recipes").select("id, title, ingredients, instructions, tags, default_servings").eq("household_id", hid),
@@ -135,7 +142,7 @@ export function useTableTimeData() {
       supabase.from("theme_days").select("day_index, meal_type, theme").eq("household_id", hid),
     ]);
 
-    const recipes: Recipe[] = (recipesRes.data ?? []).map((r) => ({
+    let recipes: Recipe[] = (recipesRes.data ?? []).map((r) => ({
       id: r.id,
       title: r.title,
       ingredients: r.ingredients ?? undefined,
@@ -149,15 +156,67 @@ export function useTableTimeData() {
       plan[s.slot_key] = s.recipe_id;
     }
 
-    const manualGroceryItems = (manualRes.data ?? []).map((r) => ({ id: r.id, label: r.label }));
+    let manualGroceryItems = (manualRes.data ?? []).map((r) => ({ id: r.id, label: r.label }));
 
-    const groceryCheckedIds = new Set((checkedRes.data ?? []).map((c) => c.item_key));
+    let groceryCheckedIds = new Set((checkedRes.data ?? []).map((c) => c.item_key));
 
     const themeDays: ThemeDays = {};
     for (const t of themesRes.data ?? []) {
       const meal = t.meal_type as MealType;
       if (!themeDays[t.day_index]) themeDays[t.day_index] = {};
       themeDays[t.day_index]![meal] = t.theme;
+    }
+
+    // Si la nube está vacía y hay datos en localStorage, fusionar para no perder el plan/recetas locales
+    const stored = loadFromStorage();
+    const remotePlanEmpty = Object.keys(plan).length === 0;
+    const remoteRecipesEmpty = recipes.length === 0;
+    const hasLocalData = stored && (
+      Object.keys(stored.plan).length > 0 ||
+      stored.recipes.length > 0 ||
+      stored.manualGroceryItems.length > 0 ||
+      stored.groceryCheckedIds.length > 0 ||
+      Object.keys(stored.themeDays).length > 0
+    );
+    const shouldMerge = hasLocalData && (remotePlanEmpty || remoteRecipesEmpty);
+
+    if (shouldMerge && stored) {
+      const mergedPlan = { ...plan, ...stored.plan };
+      const remoteRecipeIds = new Set(recipes.map((r) => r.id));
+      const mergedRecipes =
+        recipes.length > 0
+          ? [...recipes, ...stored.recipes.filter((r) => !remoteRecipeIds.has(r.id))]
+          : stored.recipes.length > 0
+            ? stored.recipes
+            : INITIAL_RECIPES.map((r) => ({ ...r, id: crypto.randomUUID() }));
+      const remoteManualIds = new Set(manualGroceryItems.map((m) => m.id));
+      const mergedManual = [
+        ...manualGroceryItems,
+        ...stored.manualGroceryItems.filter((m) => !remoteManualIds.has(m.id)),
+      ];
+      const mergedChecked = new Set([...groceryCheckedIds, ...stored.groceryCheckedIds]);
+      const mergedThemeDays: ThemeDays = { ...themeDays };
+      for (const [dayStr, dayThemes] of Object.entries(stored.themeDays)) {
+        const d = parseInt(dayStr, 10);
+        if (!isNaN(d) && d >= 0 && d <= 6 && dayThemes && typeof dayThemes === "object") {
+          mergedThemeDays[d] = { ...mergedThemeDays[d], ...dayThemes };
+        }
+      }
+
+      const mergedPayload = {
+        recipes: mergedRecipes,
+        plan: mergedPlan,
+        manualGroceryItems: mergedManual,
+        groceryCheckedIds: [...mergedChecked],
+        themeDays: mergedThemeDays,
+      };
+      setRecipes(mergedPayload.recipes);
+      setPlan(mergedPayload.plan);
+      setManualGroceryItems(mergedPayload.manualGroceryItems);
+      setGroceryCheckedIds(mergedChecked);
+      setThemeDays(mergedPayload.themeDays);
+      saveToStorage(mergedPayload);
+      return mergedPayload;
     }
 
     setRecipes(
@@ -169,6 +228,7 @@ export function useTableTimeData() {
     setManualGroceryItems(manualGroceryItems);
     setGroceryCheckedIds(groceryCheckedIds);
     setThemeDays(themeDays);
+    return null;
   }, []);
 
   useEffect(() => {
@@ -184,7 +244,10 @@ export function useTableTimeData() {
         setCloudUnavailable(false);
         effectiveHouseholdId.current = hid;
         setRealtimeHouseholdId(hid);
-        await loadFromSupabase(hid);
+        const mergedPayload = await loadFromSupabase(hid);
+        if (mergedPayload) {
+          await persist(mergedPayload);
+        }
       } else {
         setRealtimeHouseholdId(null);
         setCloudUnavailable(!!user);
@@ -204,7 +267,7 @@ export function useTableTimeData() {
     };
 
     init();
-  }, [authLoading, user, householdId, ensureHousehold, loadFromSupabase]);
+  }, [authLoading, user, householdId, ensureHousehold, loadFromSupabase, persist]);
 
   const persist = useCallback(
     async (payload: {

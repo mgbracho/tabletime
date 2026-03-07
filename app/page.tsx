@@ -14,7 +14,7 @@ type TabId = (typeof TABS)[number]["id"];
 const MEAL_LABELS = ["Desayuno", "Comida", "Cena"] as const;
 const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
-type Recipe = { id: string; title: string; ingredients?: string; instructions?: string; tags?: string[]; default_servings?: number };
+type Recipe = { id: string; title: string; ingredients?: string; instructions?: string; tags?: string[]; default_servings?: number; last_used_at?: string };
 
 const SUGGESTED_TAGS = ["kid-friendly", "rápida", "vegetariana", "alta proteína", "económica", "sin gluten"] as const;
 
@@ -225,6 +225,150 @@ function getWeekStart(): Date {
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
   return d;
+}
+
+/** Extrae tokens de ingredientes para medir variedad (palabras significativas, sin números). */
+function getIngredientTokens(ingredients: string | undefined): Set<string> {
+  if (!ingredients?.trim()) return new Set();
+  const text = ingredients
+    .toLowerCase()
+    .replace(/\d+(?:[.,]\d+)?\s*(?:g|kg|ml|l|oz|lb|ud|u\.?)\b/g, "")
+    .replace(/\d+/g, " ");
+  const tokens = new Set(
+    text.split(/[\s\n,;]+/).filter((w) => w.length > 2 && !/^\d+$/.test(w))
+  );
+  return tokens;
+}
+
+const PROTEIN_KEYWORDS: Record<string, string[]> = {
+  pollo: ["pollo", "chicken", "ave"],
+  beef: ["ternera", "vaca", "beef", "carne"],
+  pescado: ["pescado", "fish", "atún", "salmón", "merluza", "gamba", "mejillón", "calamar"],
+  cerdo: ["cerdo", "pork", "bacon", "jamón", "chorizo"],
+  legumbres: ["lentejas", "garbanzos", "alubias", "legumbres", "quinoa"],
+  huevo: ["huevo", "egg", "huevos"],
+};
+function getProteinsForRecipe(recipe: Recipe): Set<string> {
+  const text = `${recipe.title ?? ""} ${recipe.ingredients ?? ""}`.toLowerCase();
+  const proteins = new Set<string>();
+  for (const [protein, keywords] of Object.entries(PROTEIN_KEYWORDS)) {
+    if (keywords.some((kw) => text.includes(kw))) proteins.add(protein);
+  }
+  return proteins;
+}
+
+/**
+ * Genera un plan sugerido para la semana.
+ * - No sobrescribe slots ya rellenados por el usuario.
+ * - En días temáticos sin recetas que coincidan, deja el slot vacío.
+ * - Puntuación: días desde último uso (0–30) + variedad de ingredientes/proteínas + factor aleatorio.
+ */
+function generateSuggestedPlanForWeek(
+  recipes: Recipe[],
+  themeDays: ThemeDays,
+  currentPlan: PlanState,
+  weekStart: Date
+): PlanState {
+  if (recipes.length === 0) return {};
+  const weekDays = getWeekDates(weekStart);
+  const tokensByRecipe = new Map(recipes.map((r) => [r.id, getIngredientTokens(r.ingredients)]));
+  const proteinsByRecipe = new Map(recipes.map((r) => [r.id, getProteinsForRecipe(r)]));
+
+  const slots: { dayIndex: number; meal: MealType; key: string }[] = [];
+  for (let i = 0; i < weekDays.length; i++) {
+    for (const meal of MEAL_LABELS) {
+      slots.push({
+        dayIndex: i,
+        meal,
+        key: slotKey(weekDays[i].date, meal),
+      });
+    }
+  }
+
+  const plan: PlanState = {};
+  const chosenThisWeek: Recipe[] = [];
+  const usedInWeek: Record<string, number> = {};
+  const usedProteinsThisWeek: Record<string, number> = {};
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (const { dayIndex, meal, key } of slots) {
+    if (currentPlan[key]) {
+      plan[key] = currentPlan[key];
+      const r = recipes.find((x) => x.id === currentPlan[key]);
+      if (r) {
+        chosenThisWeek.push(r);
+        usedInWeek[r.id] = (usedInWeek[r.id] ?? 0) + 1;
+        for (const p of getProteinsForRecipe(r)) {
+          usedProteinsThisWeek[p] = (usedProteinsThisWeek[p] ?? 0) + 1;
+        }
+      }
+      continue;
+    }
+
+    const theme = themeDays[dayIndex]?.[meal]?.trim().toLowerCase();
+    const themeWords = theme ? theme.split(/\s+/).filter(Boolean) : [];
+
+    const candidates = themeWords.length > 0
+      ? recipes.filter((r) => {
+          const tagStr = (r.tags ?? []).join(" ").toLowerCase();
+          const titleLower = r.title.toLowerCase();
+          return themeWords.some((w) => tagStr.includes(w) || titleLower.includes(w));
+        })
+      : [...recipes];
+
+    if (themeWords.length > 0 && candidates.length === 0) {
+      continue;
+    }
+
+    const available = candidates.length > 0 ? candidates : recipes;
+
+    const score = (r: Recipe): number => {
+      let daysSince = 30;
+      if (r.last_used_at) {
+        const d = new Date(r.last_used_at);
+        d.setHours(0, 0, 0, 0);
+        daysSince = Math.floor((today.getTime() - d.getTime()) / (24 * 60 * 60 * 1000));
+      }
+      const daysSinceLastUsed = daysSince <= 7 ? 0 : daysSince >= 30 ? 1 : (daysSince - 7) / 23;
+
+      let ingredientVarietyScore = 1;
+      if (chosenThisWeek.length > 0) {
+        const myTokens = tokensByRecipe.get(r.id) ?? new Set();
+        let overlap = 0;
+        for (const other of chosenThisWeek) {
+          const otherTokens = tokensByRecipe.get(other.id) ?? new Set();
+          const inter = [...myTokens].filter((t) => otherTokens.has(t)).length;
+          const un = new Set([...myTokens, ...otherTokens]).size;
+          if (un > 0) overlap += inter / un;
+        }
+        overlap /= chosenThisWeek.length;
+        ingredientVarietyScore = 1 - overlap;
+        const myProteins = proteinsByRecipe.get(r.id) ?? new Set();
+        for (const p of myProteins) {
+          const count = usedProteinsThisWeek[p] ?? 0;
+          if (count >= 2) ingredientVarietyScore -= 0.25;
+        }
+        ingredientVarietyScore = Math.max(0, ingredientVarietyScore);
+      }
+
+      const random = Math.random();
+      return daysSinceLastUsed * 0.4 + ingredientVarietyScore * 0.35 + random * 0.25;
+    };
+
+    const sorted = [...available].sort((a, b) => score(b) - score(a));
+    const top = sorted.slice(0, Math.max(1, Math.min(3, Math.ceil(sorted.length / 2))));
+    const picked = top[Math.floor(Math.random() * top.length)];
+    plan[key] = picked.id;
+    chosenThisWeek.push(picked);
+    usedInWeek[picked.id] = (usedInWeek[picked.id] ?? 0) + 1;
+    for (const p of getProteinsForRecipe(picked)) {
+      usedProteinsThisWeek[p] = (usedProteinsThisWeek[p] ?? 0) + 1;
+    }
+  }
+
+  return plan;
 }
 
 type PlanState = Record<string, string>;
@@ -1497,6 +1641,25 @@ export default function Home() {
     ensureError,
   } = useTableTimeData();
 
+  const [creatingPlan, setCreatingPlan] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const handleCreatePlan = () => {
+    setActiveTab("calendar");
+    setCreatingPlan(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setPlan((prev) => ({
+          ...prev,
+          ...generateSuggestedPlanForWeek(recipes, themeDays, prev, getWeekStart()),
+        }));
+        setCreatingPlan(false);
+        setToastMessage("Plan creado — puedes arrastrar recetas para ajustarlo");
+        setTimeout(() => setToastMessage(null), 3000);
+      });
+    });
+  };
+
   if (!hasHydrated || syncLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-emerald-50 via-white to-amber-50">
@@ -1539,10 +1702,11 @@ export default function Home() {
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={() => setActiveTab("calendar")}
-              className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700"
+              onClick={handleCreatePlan}
+              disabled={creatingPlan}
+              className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-70"
             >
-              Crear mi primer plan semanal
+              {creatingPlan ? "Creando tu plan..." : "Crear mi primer plan semanal"}
             </button>
             <button
               type="button"
@@ -1636,6 +1800,15 @@ export default function Home() {
           </p>
         </section>
       </main>
+
+      {toastMessage && (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-emerald-800 px-4 py-2 text-sm font-medium text-white shadow-lg"
+        >
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 }

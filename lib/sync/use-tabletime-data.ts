@@ -267,7 +267,7 @@ export function useTableTimeData() {
     };
 
     init();
-  }, [authLoading, user, householdId, ensureHousehold, loadFromSupabase, persist]);
+  }, [authLoading, user, householdId, ensureHousehold, loadFromSupabase]);
 
   const persist = useCallback(
     async (payload: {

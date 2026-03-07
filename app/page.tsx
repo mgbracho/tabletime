@@ -60,6 +60,145 @@ function scaleIngredientLines(ingredientsText: string, defaultServings: number, 
     .join("\n");
 }
 
+function RecipeDetailModal({
+  recipe,
+  viewServings,
+  setViewServings,
+  onClose,
+  onEdit,
+}: {
+  recipe: Recipe;
+  viewServings: number;
+  setViewServings: (n: number) => void;
+  onClose: () => void;
+  onEdit?: (recipe: Recipe) => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label="Ver receta"
+      >
+        <div className="border-b border-emerald-100 px-4 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <h2 className="text-lg font-semibold text-emerald-900">
+              {recipe.title}
+            </h2>
+            <button
+              type="button"
+              onClick={onClose}
+              className="shrink-0 rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+          </div>
+          {recipe.tags && recipe.tags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {recipe.tags.map((t) => (
+                <span
+                  key={t}
+                  className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-xs font-medium text-zinc-500">Raciones:</span>
+            {[2, 4, 6, 8].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setViewServings(n)}
+                className={`rounded-lg px-2.5 py-1 text-xs font-medium transition ${
+                  viewServings === n ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="max-h-[60vh] overflow-y-auto px-4 py-4">
+          {recipe.ingredients && (
+            <section className="mb-4">
+              <h3 className="mb-2 text-sm font-semibold text-emerald-800">
+                Ingredientes{viewServings !== (recipe.default_servings ?? 4) ? ` (para ${viewServings} raciones)` : ""}
+              </h3>
+              <ul className="space-y-1 text-sm text-zinc-700">
+                {scaleIngredientLines(
+                  recipe.ingredients,
+                  recipe.default_servings ?? 4,
+                  viewServings
+                )
+                  .split("\n")
+                  .map((line) => line.trim())
+                  .filter(Boolean)
+                  .map((line, i) => (
+                    <li key={i} className="flex flex-wrap">
+                      <span className="mr-2 text-emerald-500">•</span>
+                      {line}
+                    </li>
+                  ))}
+              </ul>
+            </section>
+          )}
+          {recipe.instructions && (
+            <section>
+              <h3 className="mb-2 text-sm font-semibold text-emerald-800">
+                Pasos
+              </h3>
+              <ol className="list-inside list-decimal space-y-2 text-sm text-zinc-700">
+                {recipe.instructions
+                  .split(/\n+/)
+                  .map((step) => step.trim())
+                  .filter(Boolean)
+                  .map((step, i) => (
+                    <li key={i}>{step}</li>
+                  ))}
+              </ol>
+            </section>
+          )}
+          {!recipe.ingredients && !recipe.instructions && (
+            <p className="text-sm text-zinc-500">
+              Sin ingredientes ni pasos. Haz clic en Editar para añadirlos.
+            </p>
+          )}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-emerald-100 px-4 py-3">
+          {onEdit && (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onEdit(recipe);
+              }}
+              className="rounded-lg border border-emerald-200 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+            >
+              Editar
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function slotKey(date: Date, meal: string): string {
   return `${date.toISOString().slice(0, 10)}-${meal}`;
 }
@@ -168,11 +307,13 @@ function CalendarWeekView({
   plan,
   setPlan,
   themeDays,
+  onViewRecipe,
 }: {
   recipes: Recipe[];
   plan: PlanState;
   setPlan: React.Dispatch<React.SetStateAction<PlanState>>;
   themeDays: ThemeDays;
+  onViewRecipe?: (recipe: Recipe) => void;
 }) {
   const [weekStart, setWeekStart] = useState(() => {
     const d = new Date();
@@ -308,9 +449,16 @@ function CalendarWeekView({
                 >
                   {recipeId ? (
                     <div className="group relative flex w-full items-center justify-center">
-                      <span className="truncate px-2 text-xs font-medium text-emerald-900">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const recipe = recipes.find((r) => r.id === recipeId);
+                          if (recipe && onViewRecipe) onViewRecipe(recipe);
+                        }}
+                        className="truncate px-2 text-left text-xs font-medium text-emerald-900 hover:underline focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                      >
                         {getRecipeTitle(recipeId)}
-                      </span>
+                      </button>
                       <button
                         type="button"
                         onClick={(e) => clearSlot(d.date, meal, e)}
@@ -890,126 +1038,13 @@ function RecipesView({
       )}
 
       {viewingRecipe && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setViewingRecipe(null)}
-          role="presentation"
-        >
-          <div
-            className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-label="Ver receta"
-          >
-            <div className="border-b border-emerald-100 px-4 py-4">
-              <div className="flex items-start justify-between gap-4">
-                <h2 className="text-lg font-semibold text-emerald-900">
-                  {viewingRecipe.title}
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setViewingRecipe(null)}
-                  className="shrink-0 rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-                  aria-label="Cerrar"
-                >
-                  ✕
-                </button>
-              </div>
-              {viewingRecipe.tags && viewingRecipe.tags.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {viewingRecipe.tags.map((t) => (
-                    <span
-                      key={t}
-                      className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              )}
-              <div className="mt-3 flex items-center gap-2">
-                <span className="text-xs font-medium text-zinc-500">Raciones:</span>
-                {[2, 4, 6, 8].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setViewServings(n)}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-medium transition ${
-                      viewServings === n ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="max-h-[60vh] overflow-y-auto px-4 py-4">
-              {viewingRecipe.ingredients && (
-                <section className="mb-4">
-                  <h3 className="mb-2 text-sm font-semibold text-emerald-800">
-                    Ingredientes{viewServings !== (viewingRecipe.default_servings ?? 4) ? ` (para ${viewServings} raciones)` : ""}
-                  </h3>
-                  <ul className="space-y-1 text-sm text-zinc-700">
-                    {scaleIngredientLines(
-                      viewingRecipe.ingredients,
-                      viewingRecipe.default_servings ?? 4,
-                      viewServings
-                    )
-                      .split("\n")
-                      .map((line) => line.trim())
-                      .filter(Boolean)
-                      .map((line, i) => (
-                        <li key={i} className="flex flex-wrap">
-                          <span className="mr-2 text-emerald-500">•</span>
-                          {line}
-                        </li>
-                      ))}
-                  </ul>
-                </section>
-              )}
-              {viewingRecipe.instructions && (
-                <section>
-                  <h3 className="mb-2 text-sm font-semibold text-emerald-800">
-                    Pasos
-                  </h3>
-                  <ol className="list-inside list-decimal space-y-2 text-sm text-zinc-700">
-                    {viewingRecipe.instructions
-                      .split(/\n+/)
-                      .map((step) => step.trim())
-                      .filter(Boolean)
-                      .map((step, i) => (
-                        <li key={i}>{step}</li>
-                      ))}
-                  </ol>
-                </section>
-              )}
-              {!viewingRecipe.ingredients && !viewingRecipe.instructions && (
-                <p className="text-sm text-zinc-500">
-                  Sin ingredientes ni pasos. Haz clic en Editar para añadirlos.
-                </p>
-              )}
-            </div>
-            <div className="flex justify-end gap-2 border-t border-emerald-100 px-4 py-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setViewingRecipe(null);
-                  startEdit(viewingRecipe);
-                }}
-                className="rounded-lg border border-emerald-200 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
-              >
-                Editar
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewingRecipe(null)}
-                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
+        <RecipeDetailModal
+          recipe={viewingRecipe}
+          viewServings={viewServings}
+          setViewServings={setViewServings}
+          onClose={() => setViewingRecipe(null)}
+          onEdit={(r) => startEdit(r)}
+        />
       )}
     </div>
   );
@@ -1381,6 +1416,9 @@ function SectionPlaceholder({
   setThemeDays: React.Dispatch<React.SetStateAction<ThemeDays>>;
   addManualGroceryItem?: (label: string) => void;
 }) {
+  const [calendarViewingRecipe, setCalendarViewingRecipe] = useState<Recipe | null>(null);
+  const [calendarViewServings, setCalendarViewServings] = useState(4);
+
   if (activeTab === "calendar") {
     return (
       <div className="flex flex-col gap-4">
@@ -1393,7 +1431,19 @@ function SectionPlaceholder({
           plan={plan}
           setPlan={setPlan}
           themeDays={themeDays}
+          onViewRecipe={(r) => {
+            setCalendarViewingRecipe(r);
+            setCalendarViewServings(r.default_servings ?? 4);
+          }}
         />
+        {calendarViewingRecipe && (
+          <RecipeDetailModal
+            recipe={calendarViewingRecipe}
+            viewServings={calendarViewServings}
+            setViewServings={setCalendarViewServings}
+            onClose={() => setCalendarViewingRecipe(null)}
+          />
+        )}
       </div>
     );
   }

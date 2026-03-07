@@ -15,6 +15,7 @@ export type Recipe = {
   ingredients?: string;
   instructions?: string;
   tags?: string[];
+  default_servings?: number;
 };
 
 export type PlanState = Record<string, string>;
@@ -76,14 +77,14 @@ function loadFromStorage(): {
 }
 
 const INITIAL_RECIPES: Recipe[] = [
-  { id: "1", title: "Pasta con tomate", ingredients: "400g pasta\n1 bote tomate triturado\n2 dientes de ajo\nAceite de oliva\nAlbahaca", tags: ["rápida", "vegetariana"] },
-  { id: "2", title: "Tacos de pollo", ingredients: "500g pechuga de pollo\nTortillas de maíz\nLechuga\nTomate\nQueso rallado\nCrema ácida", tags: ["kid-friendly", "alta proteína"] },
-  { id: "3", title: "Sopa de verduras", ingredients: "Zanahoria\nApio\nCebolla\nCalabacín\nCaldo de verduras\nFideos finos", tags: ["vegetariana", "económica"] },
-  { id: "4", title: "Ensalada César", ingredients: "Lechuga romana\nPollo a la plancha\nPan tostado\nParmesano\nSalsa César", tags: ["rápida", "alta proteína"] },
-  { id: "5", title: "Arroz con pollo", ingredients: "300g arroz\n400g pollo\n1 cebolla\nPimiento\nGuisantes\nAzafrán", tags: ["kid-friendly", "económica"] },
-  { id: "6", title: "Huevos revueltos", ingredients: "6 huevos\nMantequilla\nSal y pimienta", tags: ["rápida", "económica"] },
-  { id: "7", title: "Pizza casera", ingredients: "Masa de pizza\nTomate frito\nMozzarella\nAlbahaca\nOregano", tags: ["kid-friendly"] },
-  { id: "8", title: "Pescado al horno", ingredients: "4 filetes de merluza\nLimón\nAjo\nAceite de oliva\nPerejil", tags: ["alta proteína", "sin gluten"] },
+  { id: "1", title: "Pasta con tomate", ingredients: "400g pasta\n1 bote tomate triturado\n2 dientes de ajo\nAceite de oliva\nAlbahaca", tags: ["rápida", "vegetariana"], default_servings: 4 },
+  { id: "2", title: "Tacos de pollo", ingredients: "500g pechuga de pollo\nTortillas de maíz\nLechuga\nTomate\nQueso rallado\nCrema ácida", tags: ["kid-friendly", "alta proteína"], default_servings: 4 },
+  { id: "3", title: "Sopa de verduras", ingredients: "Zanahoria\nApio\nCebolla\nCalabacín\nCaldo de verduras\nFideos finos", tags: ["vegetariana", "económica"], default_servings: 4 },
+  { id: "4", title: "Ensalada César", ingredients: "Lechuga romana\nPollo a la plancha\nPan tostado\nParmesano\nSalsa César", tags: ["rápida", "alta proteína"], default_servings: 4 },
+  { id: "5", title: "Arroz con pollo", ingredients: "300g arroz\n400g pollo\n1 cebolla\nPimiento\nGuisantes\nAzafrán", tags: ["kid-friendly", "económica"], default_servings: 4 },
+  { id: "6", title: "Huevos revueltos", ingredients: "6 huevos\nMantequilla\nSal y pimienta", tags: ["rápida", "económica"], default_servings: 4 },
+  { id: "7", title: "Pizza casera", ingredients: "Masa de pizza\nTomate frito\nMozzarella\nAlbahaca\nOregano", tags: ["kid-friendly"], default_servings: 4 },
+  { id: "8", title: "Pescado al horno", ingredients: "4 filetes de merluza\nLimón\nAjo\nAceite de oliva\nPerejil", tags: ["alta proteína", "sin gluten"], default_servings: 4 },
 ];
 
 function saveToStorage(payload: {
@@ -118,7 +119,7 @@ export function useTableTimeData() {
   const loadFromSupabase = useCallback(async (hid: string) => {
     const supabase = createClient();
     const [recipesRes, slotsRes, manualRes, checkedRes, themesRes] = await Promise.all([
-      supabase.from("recipes").select("id, title, ingredients, instructions, tags").eq("household_id", hid),
+      supabase.from("recipes").select("id, title, ingredients, instructions, tags, default_servings").eq("household_id", hid),
       supabase.from("plan_slots").select("slot_key, recipe_id").eq("household_id", hid),
       supabase.from("grocery_items").select("id, label").eq("household_id", hid).eq("source", "manual"),
       supabase.from("grocery_checked").select("item_key").eq("household_id", hid),
@@ -131,6 +132,7 @@ export function useTableTimeData() {
       ingredients: r.ingredients ?? undefined,
       instructions: r.instructions ?? undefined,
       tags: Array.isArray(r.tags) ? r.tags : [],
+      default_servings: typeof r.default_servings === "number" ? r.default_servings : undefined,
     }));
 
     const plan: PlanState = {};
@@ -212,6 +214,7 @@ export function useTableTimeData() {
             ingredients: r.ingredients ?? null,
             instructions: r.instructions ?? null,
             tags: r.tags ?? [],
+            default_servings: r.default_servings ?? 4,
           })),
           { onConflict: "id" }
         );
@@ -323,7 +326,7 @@ export function useTableTimeData() {
       }
     };
 
-    const handleRecipesInsert = (payload: { new: { id: string; title: string; ingredients: string | null; instructions: string | null; tags: string[] } }) => {
+    const handleRecipesInsert = (payload: { new: { id: string; title: string; ingredients: string | null; instructions: string | null; tags: string[]; default_servings?: number } }) => {
       setRecipes((prev) => {
         if (prev.some((r) => r.id === payload.new.id)) return prev;
         return [...prev, {
@@ -332,10 +335,11 @@ export function useTableTimeData() {
           ingredients: payload.new.ingredients ?? undefined,
           instructions: payload.new.instructions ?? undefined,
           tags: Array.isArray(payload.new.tags) ? payload.new.tags : [],
+          default_servings: payload.new.default_servings,
         }];
       });
     };
-    const handleRecipesUpdate = (payload: { new: { id: string; title: string; ingredients: string | null; instructions: string | null; tags: string[] } }) => {
+    const handleRecipesUpdate = (payload: { new: { id: string; title: string; ingredients: string | null; instructions: string | null; tags: string[]; default_servings?: number } }) => {
       setRecipes((prev) =>
         prev.map((r) =>
           r.id === payload.new.id
@@ -345,6 +349,7 @@ export function useTableTimeData() {
                 ingredients: payload.new.ingredients ?? undefined,
                 instructions: payload.new.instructions ?? undefined,
                 tags: Array.isArray(payload.new.tags) ? payload.new.tags : [],
+                default_servings: payload.new.default_servings,
               }
             : r
         )
@@ -486,9 +491,9 @@ export function useTableTimeData() {
     };
   }, [hid]);
 
-  const addRecipe = useCallback((title: string, ingredients?: string, instructions?: string, tags?: string[]) => {
+  const addRecipe = useCallback((title: string, ingredients?: string, instructions?: string, tags?: string[], default_servings?: number) => {
     const id = (effectiveHouseholdId.current ?? householdId) ? crypto.randomUUID() : `u-${Date.now()}`;
-    setRecipes((prev) => [...prev, { id, title, ingredients, instructions, tags }]);
+    setRecipes((prev) => [...prev, { id, title, ingredients, instructions, tags, default_servings: default_servings ?? 4 }]);
   }, [householdId]);
 
   const addManualGroceryItem = useCallback((label: string) => {

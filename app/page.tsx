@@ -14,7 +14,7 @@ type TabId = (typeof TABS)[number]["id"];
 const MEAL_LABELS = ["Desayuno", "Comida", "Cena"] as const;
 const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
-type Recipe = { id: string; title: string; ingredients?: string; instructions?: string; tags?: string[] };
+type Recipe = { id: string; title: string; ingredients?: string; instructions?: string; tags?: string[]; default_servings?: number };
 
 const SUGGESTED_TAGS = ["kid-friendly", "rápida", "vegetariana", "alta proteína", "económica", "sin gluten"] as const;
 
@@ -37,6 +37,27 @@ function filterRecipes(
     const inIngredients = r.ingredients?.toLowerCase().includes(q);
     return inTitle || inTags || inIngredients;
   });
+}
+
+/** Escala cantidades en líneas de ingredientes (ej. "400g pasta" → "800g pasta" para factor 2). */
+function scaleIngredientLines(ingredientsText: string, defaultServings: number, targetServings: number): string {
+  if (!ingredientsText.trim() || defaultServings <= 0 || targetServings <= 0) return ingredientsText;
+  const factor = targetServings / defaultServings;
+  if (Math.abs(factor - 1) < 0.01) return ingredientsText;
+  return ingredientsText
+    .split(/\n/)
+    .map((line) => {
+      const trimmed = line.trim();
+      const match = trimmed.match(/^(\d+(?:[.,]\d+)?)\s*(.*)$/);
+      if (!match) return line;
+      const numStr = match[1].replace(",", ".");
+      const num = parseFloat(numStr);
+      const rest = match[2] ?? "";
+      const scaled = num * factor;
+      const display = scaled >= 10 || scaled % 1 === 0 ? Math.round(scaled).toString() : scaled.toFixed(1);
+      return display + (rest ? " " + rest : "");
+    })
+    .join("\n");
 }
 
 function slotKey(date: Date, meal: string): string {
@@ -328,21 +349,18 @@ function CalendarWeekView({
         const themeWords = slotTheme
           .toLowerCase()
           .split(/\s+/)
-          .filter(Boolean);
+          .filter((w) => w.length > 1);
         const filtered = filterRecipes(recipes, pickerSearch, pickerTag);
+        const matchesTheme = (r: Recipe) =>
+          themeWords.length > 0 &&
+          themeWords.some(
+            (w) =>
+              r.title.toLowerCase().includes(w) ||
+              (r.tags ?? []).some((t) => t.toLowerCase().includes(w))
+          );
+        const suggestedRecipes = slotTheme ? filtered.filter(matchesTheme) : [];
+        const otherRecipes = slotTheme ? filtered.filter((r) => !matchesTheme(r)) : filtered;
         const pickerTags = Array.from(new Set(recipes.flatMap((r) => r.tags ?? []))).sort();
-        const sortedRecipes = [...filtered].sort((a, b) => {
-          if (!slotTheme) return 0;
-          const aMatch = themeWords.some((w) =>
-            a.title.toLowerCase().includes(w)
-          );
-          const bMatch = themeWords.some((w) =>
-            b.title.toLowerCase().includes(w)
-          );
-          if (aMatch && !bMatch) return -1;
-          if (!aMatch && bMatch) return 1;
-          return 0;
-        });
         return (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
@@ -411,31 +429,55 @@ function CalendarWeekView({
               )}
             </div>
             <ul className="max-h-[40vh] overflow-y-auto">
-              {sortedRecipes.length === 0 ? (
+              {filtered.length === 0 ? (
                 <li className="px-4 py-6 text-center text-sm text-zinc-500">
                   Ninguna receta coincide con el filtro.
                 </li>
-              ) : sortedRecipes.map((r) => {
-                const matchesTheme =
-                  slotTheme &&
-                  themeWords.some((w) => r.title.toLowerCase().includes(w));
-                return (
-                  <li key={r.id}>
-                    <button
-                      type="button"
-                      onClick={() => assignRecipe(r.id)}
-                      className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm text-zinc-800 transition hover:bg-emerald-50"
-                    >
-                      <span>{r.title}</span>
-                      {matchesTheme && (
-                        <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
-                          ✓ tema
-                        </span>
+              ) : (
+                <>
+                  {slotTheme && suggestedRecipes.length > 0 && (
+                    <>
+                      <li className="sticky top-0 z-10 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-amber-800">
+                        Sugeridas para «{slotTheme}»
+                      </li>
+                      {suggestedRecipes.map((r) => (
+                        <li key={r.id}>
+                          <button
+                            type="button"
+                            onClick={() => assignRecipe(r.id)}
+                            className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm text-zinc-800 transition hover:bg-emerald-50"
+                          >
+                            <span>{r.title}</span>
+                            <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                              ✓ tema
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </>
+                  )}
+                  {otherRecipes.length > 0 && (
+                    <>
+                      {slotTheme && (
+                        <li className="sticky top-0 z-10 border-b border-emerald-100 bg-emerald-50/50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-800">
+                          Otras recetas
+                        </li>
                       )}
-                    </button>
-                  </li>
-                );
-              })}
+                      {otherRecipes.map((r) => (
+                        <li key={r.id}>
+                          <button
+                            type="button"
+                            onClick={() => assignRecipe(r.id)}
+                            className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm text-zinc-600 transition hover:bg-emerald-50"
+                          >
+                            <span>{r.title}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </>
+                  )}
+                </>
+              )}
             </ul>
             <div className="border-t border-emerald-100 px-4 py-2">
               <button
@@ -465,7 +507,7 @@ function RecipesView({
   onUpdateRecipe,
 }: {
   recipes: Recipe[];
-  onAddRecipe: (title: string, ingredients?: string, instructions?: string, tags?: string[]) => void;
+  onAddRecipe: (title: string, ingredients?: string, instructions?: string, tags?: string[], default_servings?: number) => void;
   onRemoveRecipe: (id: string) => void;
   onUpdateRecipe: (id: string, updates: Partial<Recipe>) => void;
 }) {
@@ -475,9 +517,11 @@ function RecipesView({
   const [newIngredients, setNewIngredients] = useState("");
   const [newInstructions, setNewInstructions] = useState("");
   const [newTags, setNewTags] = useState<string[]>([]);
+  const [newServings, setNewServings] = useState(4);
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
+  const [viewServings, setViewServings] = useState(4);
   const [showImport, setShowImport] = useState(false);
   const [importUrl, setImportUrl] = useState("");
   const [importLoading, setImportLoading] = useState(false);
@@ -493,6 +537,7 @@ function RecipesView({
         ingredients: newIngredients.trim() || undefined,
         instructions: newInstructions.trim() || undefined,
         tags: newTags.length > 0 ? newTags : undefined,
+        default_servings: newServings,
       });
       setEditingId(null);
     } else {
@@ -500,13 +545,15 @@ function RecipesView({
         title,
         newIngredients.trim() || undefined,
         newInstructions.trim() || undefined,
-        newTags.length > 0 ? newTags : undefined
+        newTags.length > 0 ? newTags : undefined,
+        newServings
       );
     }
     setNewTitle("");
     setNewIngredients("");
     setNewInstructions("");
     setNewTags([]);
+    setNewServings(4);
     setShowForm(false);
   };
 
@@ -516,6 +563,7 @@ function RecipesView({
     setNewIngredients(r.ingredients ?? "");
     setNewInstructions(r.instructions ?? "");
     setNewTags(r.tags ?? []);
+    setNewServings(r.default_servings ?? 4);
     setShowForm(true);
   };
 
@@ -704,6 +752,17 @@ function RecipesView({
             placeholder="Otras etiquetas (separadas por coma)"
             className="mb-3 w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
           />
+          <label className="mb-2 block text-xs font-medium text-emerald-800">
+            Raciones por defecto
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={24}
+            value={newServings}
+            onChange={(e) => setNewServings(Math.max(1, Math.min(24, parseInt(e.target.value, 10) || 4)))}
+            className="mb-3 w-20 rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+          />
           <div className="flex gap-2">
             <button
               type="submit"
@@ -720,6 +779,7 @@ function RecipesView({
                 setNewIngredients("");
                 setNewInstructions("");
                 setNewTags([]);
+                setNewServings(4);
               }}
               className="rounded-lg border border-emerald-200 px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50"
             >
@@ -778,7 +838,10 @@ function RecipesView({
             <div className="min-w-0 flex-1">
               <button
                 type="button"
-                onClick={() => setViewingRecipe(r)}
+                onClick={() => {
+                  setViewingRecipe(r);
+                  setViewServings(r.default_servings ?? 4);
+                }}
                 className="text-left"
               >
                 <span className="font-medium text-emerald-900 hover:underline">{r.title}</span>
@@ -864,15 +927,34 @@ function RecipesView({
                   ))}
                 </div>
               )}
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-xs font-medium text-zinc-500">Raciones:</span>
+                {[2, 4, 6, 8].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setViewServings(n)}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-medium transition ${
+                      viewServings === n ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="max-h-[60vh] overflow-y-auto px-4 py-4">
               {viewingRecipe.ingredients && (
                 <section className="mb-4">
                   <h3 className="mb-2 text-sm font-semibold text-emerald-800">
-                    Ingredientes
+                    Ingredientes{viewServings !== (viewingRecipe.default_servings ?? 4) ? ` (para ${viewServings} raciones)` : ""}
                   </h3>
                   <ul className="space-y-1 text-sm text-zinc-700">
-                    {viewingRecipe.ingredients
+                    {scaleIngredientLines(
+                      viewingRecipe.ingredients,
+                      viewingRecipe.default_servings ?? 4,
+                      viewServings
+                    )
                       .split("\n")
                       .map((line) => line.trim())
                       .filter(Boolean)
@@ -934,6 +1016,21 @@ function RecipesView({
 }
 
 type GroceryItem = { id: string; label: string; fromPlan: boolean };
+
+const GROCERY_CATEGORIES = [
+  { key: "vegetables", label: "Verduras y frutas", keywords: ["lechuga", "tomate", "cebolla", "zanahoria", "ajo", "pimiento", "calabacín", "berenjena", "espinaca", "brócoli", "limón", "manzana", "plátano", "naranja", "pera", "uva", "fresa", "patata", "boniato", "apio", "pepino", "aguacate", "albahaca", "perejil", "cebollino"] },
+  { key: "dairy", label: "Lácteos", keywords: ["leche", "yogur", "queso", "mantequilla", "nata", "crema", "mozzarella", "parmesano", "ricotta"] },
+  { key: "meat", label: "Carne y pescado", keywords: ["pollo", "carne", "ternera", "cerdo", "pescado", "merluza", "salmón", "atún", "bacalao", "jamón", "bacon", "pechuga", "muslo"] },
+  { key: "pantry", label: "Despensa", keywords: ["aceite", "sal", "pimienta", "arroz", "pasta", "harina", "azúcar", "vinagre", "salsa", "tomate triturado", "caldo", "legumbres", "lentejas", "garbanzos", "alubias", "pan", "tortilla", "cereal", "miel", "mostaza", "mayonesa", "aceituna", "almendra", "nuez"] },
+] as const;
+
+function getGroceryCategory(label: string): string {
+  const lower = label.toLowerCase();
+  for (const cat of GROCERY_CATEGORIES) {
+    if (cat.keywords.some((k) => lower.includes(k))) return cat.key;
+  }
+  return "other";
+}
 
 function normalizeIngredientForGrouping(label: string): string {
   let s = label.trim().toLowerCase();
@@ -1022,6 +1119,20 @@ function GroceryListView({
     fromPlan: false,
   }));
   const allItems: GroceryItem[] = mergeGroceryItems([...fromPlan, ...manualAsItems]);
+
+  const categoryOrder = ["vegetables", "dairy", "meat", "pantry", "other"] as const;
+  const categoryLabels: Record<string, string> = {
+    vegetables: "Verduras y frutas",
+    dairy: "Lácteos",
+    meat: "Carne y pescado",
+    pantry: "Despensa",
+    other: "Otros",
+  };
+  const grouped = categoryOrder.map((key) => ({
+    key,
+    label: categoryLabels[key],
+    items: allItems.filter((item) => getGroceryCategory(item.label) === key),
+  })).filter((g) => g.items.length > 0);
 
   const toggle = (id: string) => {
     setCheckedIds((prev) => {
@@ -1190,41 +1301,50 @@ function GroceryListView({
           No hay nada aún. Asigna recetas con ingredientes en el Calendario o añade productos arriba.
         </p>
       ) : (
-        <ul className="space-y-1">
-          {allItems.map((item) => {
-            const checked = checkedIds.has(item.id);
-            return (
-              <li
-                key={item.id}
-                className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${
-                  checked
-                    ? "border-emerald-100 bg-emerald-50/50 text-zinc-500 line-through"
-                    : "border-emerald-100 bg-white"
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggle(item.id)}
-                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-emerald-300 text-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                  aria-label={checked ? "Marcar como no comprado" : "Marcar como comprado"}
-                >
-                  {checked ? "✓" : ""}
-                </button>
-                <span className="min-w-0 flex-1 text-sm">{item.label}</span>
-                {!item.fromPlan && (
-                  <button
-                    type="button"
-                    onClick={() => removeManual(item.id)}
-                    className="shrink-0 rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-                    aria-label="Quitar"
-                  >
-                    ✕
-                  </button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+        <div className="space-y-4">
+          {grouped.map((group) => (
+            <div key={group.key}>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                {group.label}
+              </h3>
+              <ul className="space-y-1">
+                {group.items.map((item) => {
+                  const checked = checkedIds.has(item.id);
+                  return (
+                    <li
+                      key={item.id}
+                      className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${
+                        checked
+                          ? "border-emerald-100 bg-emerald-50/50 text-zinc-500 line-through"
+                          : "border-emerald-100 bg-white"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggle(item.id)}
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-emerald-300 text-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        aria-label={checked ? "Marcar como no comprado" : "Marcar como comprado"}
+                      >
+                        {checked ? "✓" : ""}
+                      </button>
+                      <span className="min-w-0 flex-1 text-sm">{item.label}</span>
+                      {!item.fromPlan && (
+                        <button
+                          type="button"
+                          onClick={() => removeManual(item.id)}
+                          className="shrink-0 rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+                          aria-label="Quitar"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -1367,10 +1487,18 @@ export default function Home() {
             </p>
           </div>
           <div className="flex gap-3">
-            <button className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700">
+            <button
+              type="button"
+              onClick={() => setActiveTab("calendar")}
+              className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700"
+            >
               Crear mi primer plan semanal
             </button>
-            <button className="rounded-full border border-emerald-200 bg-white px-5 py-2 text-sm font-medium text-emerald-700 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50">
+            <button
+              type="button"
+              onClick={() => setActiveTab("recipes")}
+              className="rounded-full border border-emerald-200 bg-white px-5 py-2 text-sm font-medium text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
+            >
               Ver recetas de ejemplo
             </button>
           </div>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TableTime · Skeuomorphic</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:Georgia,serif;font-size:14px;color:#3d3d3d;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L60 30L30 60L0 30z' fill='%23e8e4dc' fill-opacity='0.4'/%3E%3C/svg%3E"),#d4c4a8;padding:2rem 1.5rem}
+    .wrap{max-width:960px;margin:0 auto}
+    header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:1.5rem;margin-bottom:2rem}
+    h1{font-size:1.75rem;margin:0;color:#2c2416;text-shadow:1px 1px 0 rgba(255,255,255,0.8)}
+    .tagline{margin:0.4rem 0 0;max-width:36ch;color:#5c5344;line-height:1.5}
+    .btn-primary{padding:10px 20px;border:2px solid #8b6914;border-radius:8px;background:linear-gradient(180deg,#f4e4a6 0%,#d4a84b 50%,#b8860b 100%);color:#2c2416;font-weight:bold;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),0 4px 8px rgba(0,0,0,0.25)}
+    nav.tabs{display:flex;gap:4px;padding:6px;background:linear-gradient(180deg,#a08060,#806040);border-radius:10px;margin-bottom:1.5rem;max-width:28rem;border:2px solid #604020;box-shadow:inset 0 2px 4px rgba(255,255,255,0.2),0 4px 8px rgba(0,0,0,0.3)}
+    nav.tabs button{flex:1;padding:8px 12px;border:1px solid #604020;border-radius:6px;background:linear-gradient(180deg,#f5e6d3,#e8d4b8);color:#3d3d3d;font-family:Georgia,serif;font-size:13px;cursor:pointer;box-shadow:inset 0 1px 0 #fff}
+    nav.tabs button.active{background:linear-gradient(180deg,#fff8e7,#f0e6d2);border-color:#8b6914;box-shadow:inset 0 2px 4px rgba(255,255,255,0.8),0 1px 2px rgba(0,0,0,0.2)}
+    .panel{display:none;background:linear-gradient(180deg,#faf6ef,#f0eae0);border:3px solid #a09078;border-radius:12px;padding:1.25rem;margin-bottom:1rem;box-shadow:inset 0 2px 0 rgba(255,255,255,0.9),0 6px 16px rgba(0,0,0,0.2)}
+    .panel.active{display:block}
+    .meal-filters{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:1rem;padding:12px;background:linear-gradient(180deg,#e8e0d4,#d8d0c4);border:2px solid #b8a898;border-radius:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.6)}
+    .meal-filters span{font-weight:bold;color:#3d3d3d}
+    .calendar-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem}
+    .calendar-actions button{padding:6px 12px;border:2px solid #a09078;border-radius:6px;background:linear-gradient(180deg,#f5f0e8,#e8e0d4);font-size:12px;cursor:pointer;box-shadow:inset 0 1px 0 #fff}
+    .calendar-week-label{margin:0 8px;align-self:center;font-size:13px}
+    .week-table{width:100%;border-collapse:collapse;font-size:12px}
+    .week-table th,.week-table td{padding:8px;text-align:left;border:1px solid #b8a898}
+    .week-table thead th{background:linear-gradient(180deg,#e0d8c8,#d0c8b8);font-weight:bold}
+    .week-table .meal-name{background:linear-gradient(180deg,#e8e0d4,#d8d0c4);font-weight:bold;width:90px}
+    .week-table .recipe{font-weight:bold;color:#5c4a32}
+    .pdf-btn{margin-top:1rem;text-align:right}
+    .pdf-btn button{padding:8px 16px;border:2px solid #a09078;border-radius:6px;background:linear-gradient(180deg,#f5f0e8,#e0d8c8);cursor:pointer}
+    .panel-intro{margin:0 0 1rem;font-size:13px;color:#5c5344}
+    .recipe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+    .recipe-card{background:linear-gradient(180deg,#faf6ef,#f0eae0);border:2px solid #b8a898;border-radius:10px;padding:12px;box-shadow:inset 0 2px 0 rgba(255,255,255,0.8),0 3px 8px rgba(0,0,0,0.15)}
+    .recipe-card h3{margin:0 0 8px;font-size:14px}
+    .recipe-card .tags{display:flex;flex-wrap:wrap;gap:6px}
+    .recipe-card .tag{font-size:10px;padding:4px 8px;background:linear-gradient(180deg,#e8dcc8,#d4c4a8);border:1px solid #b8a898;border-radius:4px}
+    .grocery-categories{display:flex;flex-direction:column;gap:10px}
+    .grocery-cat{background:linear-gradient(180deg,#f5f0e8,#e8e0d4);border:2px solid #b8a898;border-left:6px solid #8b6914;border-radius:8px;padding:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.6)}
+    .grocery-cat h3{margin:0 0 6px;font-size:13px}
+    .grocery-cat ul{margin:0;padding-left:1.2rem;font-size:12px}
+    .household-placeholder{padding:2rem;text-align:center;color:#5c5344}
+    .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:1.5rem}
+    .feature-card{background:linear-gradient(180deg,#faf6ef,#f0eae0);border:2px solid #b8a898;border-radius:10px;padding:14px;box-shadow:inset 0 2px 0 rgba(255,255,255,0.7),0 4px 10px rgba(0,0,0,0.15)}
+    .feature-card h2{font-size:13px;margin:0 0 6px}
+    .feature-card p{margin:0;font-size:12px;color:#5c5344;line-height:1.4}
+    .footer-strip{background:linear-gradient(180deg,#604020,#3d2817);color:#f0e6d2;border:3px solid #2c1810;border-radius:10px;padding:14px;margin-top:1.5rem;box-shadow:inset 0 2px 0 rgba(255,255,255,0.1),0 4px 12px rgba(0,0,0,0.3)}
+    .footer-strip h2{font-size:13px;margin:0 0 4px}
+    .footer-strip p{margin:0;font-size:12px;opacity:0.9}
+  </style>
+</head>
+<body>
+  <div class="wrap"><header><div><h1>TableTime</h1><p class="tagline">Organiza los meals de tu familia sin estrés: calendario visual, recetas compartidas y lista de la compra inteligente.</p></div><button type="button" class="btn-primary">Crear plan semanal</button></header>
+    <nav class="tabs" role="tablist"><button type="button" role="tab" aria-selected="true" data-tab="calendar" class="active">Calendario</button><button type="button" role="tab" aria-selected="false" data-tab="recipes">Recetas</button><button type="button" role="tab" aria-selected="false" data-tab="grocery">Lista de la compra</button><button type="button" role="tab" aria-selected="false" data-tab="household">Hogar</button></nav>
+    <section id="panel-calendar" class="panel active" role="tabpanel"><div class="meal-filters"><span>Comidas en el calendario:</span><label><input type="checkbox" checked /> Desayuno</label><label><input type="checkbox" checked /> Comida</label><label><input type="checkbox" checked /> Cena</label><label><input type="checkbox" checked /> Snacks</label><button type="button" class="btn-primary">Todas</button></div><div class="calendar-actions"><button type="button">Semana</button><button type="button">Día</button><button type="button">Mes</button><button type="button">← Anterior</button><span class="calendar-week-label">Semana del 2 – 8 marzo</span><button type="button">Siguiente →</button></div><table class="week-table"><thead><tr><th></th><th>Lun 2</th><th>Mar 3</th><th>Mié 4</th><th>Jue 5</th><th>Vie 6</th><th>Sáb 7</th><th>Dom 8</th></tr></thead><tbody><tr><td class="meal-name">Desayuno</td><td class="recipe">Tostadas</td><td class="recipe">Avena</td><td class="recipe">Yogur</td><td class="recipe">Tostadas</td><td class="recipe">Avena</td><td>—</td><td>—</td></tr><tr><td class="meal-name">Comida</td><td class="recipe">Lentejas</td><td class="recipe">Ensalada</td><td class="recipe">Pasta</td><td class="recipe">Arroz</td><td class="recipe">Pollo</td><td>—</td><td>—</td></tr><tr><td class="meal-name">Cena</td><td class="recipe">Sopa</td><td class="recipe">Tortilla</td><td class="recipe">Ensalada</td><td class="recipe">Pescado</td><td class="recipe">Pizza</td><td>—</td><td>—</td></tr><tr><td class="meal-name">Snacks</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody></table><p class="pdf-btn"><button type="button">Imprimir plan / Guardar como PDF</button></p></section>
+    <section id="panel-recipes" class="panel" role="tabpanel"><p class="panel-intro">Biblioteca de recetas. Añade, edita y etiqueta.</p><div class="recipe-grid"><div class="recipe-card"><h3>Lentejas con verduras</h3><div class="tags"><span class="tag">vegetariana</span><span class="tag">económica</span></div></div><div class="recipe-card"><h3>Pasta al pesto</h3><div class="tags"><span class="tag">rápida</span><span class="tag">kid-friendly</span></div></div><div class="recipe-card"><h3>Ensalada César</h3><div class="tags"><span class="tag">rápida</span></div></div><div class="recipe-card"><h3>Pollo al horno</h3><div class="tags"><span class="tag">alta proteína</span></div></div></div></section>
+    <section id="panel-grocery" class="panel" role="tabpanel"><p class="panel-intro">Lista generada a partir del plan y manual.</p><div class="grocery-categories"><div class="grocery-cat"><h3>Verduras y frutas</h3><ul><li>Tomates</li><li>Lechuga</li><li>Zanahorias</li><li>Manzanas</li></ul></div><div class="grocery-cat"><h3>Carne y pescado</h3><ul><li>Pollo</li><li>Merluza</li></ul></div><div class="grocery-cat"><h3>Despensa</h3><ul><li>Lentejas</li><li>Arroz</li><li>Pasta</li><li>Aceite de oliva</li></ul></div></div></section>
+    <section id="panel-household" class="panel" role="tabpanel"><div class="household-placeholder"><p>Gestión del hogar y miembros. Vista previa de estilo.</p></div></section>
+    <section class="features"><div class="feature-card"><h2>1. Calendario de comidas</h2><p>Ve tu semana de un vistazo con temas como Pasta Tuesday o Kids Choice Night.</p></div><div class="feature-card"><h2>2. Biblioteca de recetas</h2><p>Guarda tus recetas favoritas e impórtalas desde cualquier web.</p></div><div class="feature-card"><h2>3. Lista de la compra</h2><p>Genera la lista para toda la semana, compartida en tiempo real.</p></div></section>
+    <div class="footer-strip"><h2>Progreso</h2><p>Calendario, recetas y lista de la compra en un solo lugar.</p></div>
+  </div>
+  <script>document.querySelectorAll('nav.tabs button').forEach(btn=>{btn.addEventListener('click',()=>{const tab=btn.dataset.tab;document.querySelectorAll('nav.tabs button').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-selected','false');});btn.classList.add('active');btn.setAttribute('aria-selected','true');document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.getElementById('panel-'+tab).classList.add('active');});});</script>
+</body>
+</html>

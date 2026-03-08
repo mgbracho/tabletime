@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TableTime · Dark / Terminal</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:'JetBrains Mono',monospace;font-size:13px;color:#00ff41;background:#0c0c0c;padding:2rem 1.5rem}
+    .wrap{max-width:960px;margin:0 auto}
+    header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:1.5rem;margin-bottom:2rem}
+    h1{font-size:1.5rem;margin:0;font-weight:600;color:#00ff41}
+    .tagline{margin:0.5rem 0 0;max-width:40ch;color:#00aa2a;line-height:1.6}
+    .btn-primary{padding:10px 20px;border:1px solid #00ff41;background:transparent;color:#00ff41;font-family:inherit;font-weight:500;font-size:12px;cursor:pointer}
+    .btn-primary:hover{background:#00ff41;color:#0c0c0c}
+    nav.tabs{display:flex;gap:0;margin-bottom:1.5rem;max-width:28rem}
+    nav.tabs button{flex:1;padding:10px 14px;border:1px solid #333;border-right-width:0;background:#0c0c0c;color:#00aa2a;font-family:inherit;font-size:12px;cursor:pointer}
+    nav.tabs button:last-child{border-right-width:1px}
+    nav.tabs button.active{background:#003300;color:#00ff41;border-color:#00ff41}
+    .panel{display:none;border:1px solid #333;padding:1.25rem;margin-bottom:1rem}
+    .panel.active{display:block}
+    .meal-filters{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:1rem;padding:10px;border:1px solid #333}
+    .meal-filters span{color:#00ff41;font-weight:500}
+    .calendar-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem}
+    .calendar-actions button{padding:6px 12px;border:1px solid #333;background:transparent;color:#00aa2a;font-family:inherit;font-size:11px;cursor:pointer}
+    .calendar-actions button:first-of-type{border-color:#00ff41;color:#00ff41}
+    .calendar-week-label{margin:0 8px;align-self:center;font-size:12px;color:#00aa2a}
+    .week-table{width:100%;border-collapse:collapse;font-size:12px}
+    .week-table th,.week-table td{padding:10px;text-align:left;border-bottom:1px solid #222}
+    .week-table thead th{color:#00aa2a;font-weight:500}
+    .week-table .meal-name{color:#00ff41;font-weight:500;width:90px}
+    .week-table td{color:#00aa2a}
+    .week-table .recipe{color:#00ff41}
+    .pdf-btn{margin-top:1rem;text-align:right}
+    .pdf-btn button{padding:6px 14px;border:1px solid #333;background:transparent;color:#00aa2a;font-family:inherit;cursor:pointer}
+    .panel-intro{margin:0 0 1rem;font-size:12px;color:#00aa2a}
+    .recipe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+    .recipe-card{border:1px solid #333;padding:12px}
+    .recipe-card h3{margin:0 0 6px;font-size:13px;color:#00ff41}
+    .recipe-card .tags{display:flex;flex-wrap:wrap;gap:6px}
+    .recipe-card .tag{font-size:10px;padding:2px 6px;border:1px solid #00aa2a;color:#00aa2a}
+    .grocery-categories{display:flex;flex-direction:column;gap:8px}
+    .grocery-cat{border:1px solid #333;border-left:3px solid #00ff41;padding:12px}
+    .grocery-cat h3{margin:0 0 6px;font-size:12px;color:#00ff41}
+    .grocery-cat ul{margin:0;padding-left:1.2rem;font-size:12px;color:#00aa2a}
+    .household-placeholder{padding:2rem;text-align:center;color:#00aa2a;border:1px solid #333}
+    .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:1.5rem}
+    .feature-card{border:1px solid #333;padding:14px}
+    .feature-card h2{font-size:12px;margin:0 0 6px;color:#00ff41}
+    .feature-card p{margin:0;font-size:11px;color:#00aa2a;line-height:1.5}
+    .footer-strip{background:#001a00;color:#00ff41;border:1px solid #00ff41;padding:14px;margin-top:1.5rem}
+    .footer-strip h2{font-size:12px;margin:0 0 4px}
+    .footer-strip p{margin:0;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap"><header><div><h1>TableTime</h1><p class="tagline">Organiza los meals de tu familia sin estrés: calendario visual, recetas compartidas y lista de la compra inteligente.</p></div><button type="button" class="btn-primary">Crear plan semanal</button></header>
+    <nav class="tabs" role="tablist"><button type="button" role="tab" aria-selected="true" data-tab="calendar" class="active">Calendario</button><button type="button" role="tab" aria-selected="false" data-tab="recipes">Recetas</button><button type="button" role="tab" aria-selected="false" data-tab="grocery">Lista de la compra</button><button type="button" role="tab" aria-selected="false" data-tab="household">Hogar</button></nav>
+    <section id="panel-calendar" class="panel active" role="tabpanel"><div class="meal-filters"><span>Comidas en el calendario:</span><label><input type="checkbox" checked /> Desayuno</label><label><input type="checkbox" checked /> Comida</label><label><input type="checkbox" checked /> Cena</label><label><input type="checkbox" checked /> Snacks</label><button type="button" class="btn-primary">Todas</button></div><div class="calendar-actions"><button type="button">Semana</button><button type="button">Día</button><button type="button">Mes</button><button type="button">← Anterior</button><span class="calendar-week-label">Semana del 2 – 8 marzo</span><button type="button">Siguiente →</button></div><table class="week-table"><thead><tr><th></th><th>Lun 2</th><th>Mar 3</th><th>Mié 4</th><th>Jue 5</th><th>Vie 6</th><th>Sáb 7</th><th>Dom 8</th></tr></thead><tbody><tr><td class="meal-name">Desayuno</td><td class="recipe">Tostadas</td><td class="recipe">Avena</td><td class="recipe">Yogur</td><td class="recipe">Tostadas</td><td class="recipe">Avena</td><td>—</td><td>—</td></tr><tr><td class="meal-name">Comida</td><td class="recipe">Lentejas</td><td class="recipe">Ensalada</td><td class="recipe">Pasta</td><td class="recipe">Arroz</td><td class="recipe">Pollo</td><td>—</td><td>—</td></tr><tr><td class="meal-name">Cena</td><td class="recipe">Sopa</td><td class="recipe">Tortilla</td><td class="recipe">Ensalada</td><td class="recipe">Pescado</td><td class="recipe">Pizza</td><td>—</td><td>—</td></tr><tr><td class="meal-name">Snacks</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody></table><p class="pdf-btn"><button type="button">Imprimir plan / Guardar como PDF</button></p></section>
+    <section id="panel-recipes" class="panel" role="tabpanel"><p class="panel-intro">Biblioteca de recetas. Añade, edita y etiqueta.</p><div class="recipe-grid"><div class="recipe-card"><h3>Lentejas con verduras</h3><div class="tags"><span class="tag">vegetariana</span><span class="tag">económica</span></div></div><div class="recipe-card"><h3>Pasta al pesto</h3><div class="tags"><span class="tag">rápida</span><span class="tag">kid-friendly</span></div></div><div class="recipe-card"><h3>Ensalada César</h3><div class="tags"><span class="tag">rápida</span></div></div><div class="recipe-card"><h3>Pollo al horno</h3><div class="tags"><span class="tag">alta proteína</span></div></div></div></section>
+    <section id="panel-grocery" class="panel" role="tabpanel"><p class="panel-intro">Lista generada a partir del plan y manual.</p><div class="grocery-categories"><div class="grocery-cat"><h3>Verduras y frutas</h3><ul><li>Tomates</li><li>Lechuga</li><li>Zanahorias</li><li>Manzanas</li></ul></div><div class="grocery-cat"><h3>Carne y pescado</h3><ul><li>Pollo</li><li>Merluza</li></ul></div><div class="grocery-cat"><h3>Despensa</h3><ul><li>Lentejas</li><li>Arroz</li><li>Pasta</li><li>Aceite de oliva</li></ul></div></div></section>
+    <section id="panel-household" class="panel" role="tabpanel"><div class="household-placeholder"><p>Gestión del hogar y miembros. Vista previa de estilo.</p></div></section>
+    <section class="features"><div class="feature-card"><h2>1. Calendario de comidas</h2><p>Ve tu semana de un vistazo con temas como Pasta Tuesday o Kids Choice Night.</p></div><div class="feature-card"><h2>2. Biblioteca de recetas</h2><p>Guarda tus recetas favoritas e impórtalas desde cualquier web.</p></div><div class="feature-card"><h2>3. Lista de la compra</h2><p>Genera la lista para toda la semana, compartida en tiempo real.</p></div></section>
+    <div class="footer-strip"><h2>Progreso</h2><p>Calendario, recetas y lista de la compra en un solo lugar.</p></div>
+  </div>
+  <script>document.querySelectorAll('nav.tabs button').forEach(btn=>{btn.addEventListener('click',()=>{const tab=btn.dataset.tab;document.querySelectorAll('nav.tabs button').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-selected','false');});btn.classList.add('active');btn.setAttribute('aria-selected','true');document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.getElementById('panel-'+tab).classList.add('active');});});</script>
+</body>
+</html>

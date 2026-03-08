@@ -1,15 +1,50 @@
 @import "tailwindcss";
 
+/* Mid-century + Memphis palette */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #FDF5F8;
+  --foreground: #1A1A1A;
+  --mcm-cream: #FDF5F8;
+  --mcm-white: #FFFEFC;
+  --mcm-pink: #E91E8C;
+  --mcm-lime: #B8E62E;
+  --mcm-turquoise: #00BCD4;
+  --mcm-yellow: #FFEB3B;
+  --mcm-purple: #9C27B0;
+  --mcm-orange: #FF9800;
+  --mcm-dark: #1A1A1A;
+  --mcm-muted: #4A4A4A;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-geist-sans), var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-baskerville), ui-serif, Georgia, serif;
+
+  /* Override teal scale → Mid-century Memphis (cream, pink, purple, turquoise, dark) */
+  --color-teal-50: #FDF5F8;
+  --color-teal-100: #F8E8F0;
+  --color-teal-200: #E8D0E0;
+  --color-teal-300: #B8D4E0;
+  --color-teal-400: #00BCD4;
+  --color-teal-500: #00BCD4;
+  --color-teal-600: #E91E8C;
+  --color-teal-700: #9C27B0;
+  --color-teal-800: #1A1A1A;
+  --color-teal-900: #1A1A1A;
+
+  /* Override amber → yellow/lime accents (themes, favorites, ratings) */
+  --color-amber-50: #FFFDE7;
+  --color-amber-100: #FFF9C4;
+  --color-amber-200: #FFEB3B;
+  --color-amber-300: #B8E62E;
+  --color-amber-400: #FFEB3B;
+  --color-amber-500: #FFEB3B;
+  --color-amber-600: #B8E62E;
+  --color-amber-700: #9EBB26;
+  --color-amber-800: #1A1A1A;
+  --color-amber-900: #1A1A1A;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,5 +57,10 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(233, 30, 140, 0.06), transparent),
+    radial-gradient(ellipse 80% 50% at 80% 50%, rgba(0, 188, 212, 0.05), transparent),
+    linear-gradient(180deg, var(--mcm-cream) 0%, var(--mcm-white) 100%);
+  background-attachment: fixed;
 }

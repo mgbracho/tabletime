@@ -2767,7 +2767,7 @@ function SectionPlaceholder({
           themeDays={themeDays}
           setThemeDays={setThemeDays}
         />
-        <div className="flex flex-wrap items-center gap-4 rounded-lg border border-teal-100 bg-teal-50/40 px-3 py-2">
+        <div className="flex flex-wrap items-center gap-4 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2">
           <span className="text-sm font-medium text-teal-800">Comidas en el calendario:</span>
           <div className="flex flex-wrap items-center gap-3">
             {MEAL_LABELS.map((meal) => (
@@ -2934,7 +2934,7 @@ export default function Home() {
       <main className="mx-auto flex max-w-5xl flex-col gap-10">
         <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-teal-900 sm:text-4xl">
+            <h1 className="font-serif text-3xl font-semibold tracking-tight text-teal-900 sm:text-4xl">
               TableTime
             </h1>
             <p className="mt-2 max-w-xl text-sm sm:text-base text-zinc-700">
@@ -2954,7 +2954,7 @@ export default function Home() {
           </div>
         </header>
 
-        <nav className="flex gap-2 rounded-full bg-teal-50 p-1 text-sm font-medium text-teal-800 sm:max-w-md">
+        <nav className="flex gap-2 rounded-full bg-teal-300/20 p-1 text-sm font-medium text-teal-800 sm:max-w-md">
           {TABS.map((tab) => {
             const isActive = tab.id === activeTab;
             return (
@@ -2963,7 +2963,7 @@ export default function Home() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 rounded-full px-4 py-2 transition ${
                   isActive
-                    ? "bg-white shadow-sm"
+                    ? "bg-white text-teal-700 shadow-sm"
                     : "bg-transparent hover:bg-teal-100"
                 }`}
                 type="button"
@@ -3028,9 +3028,9 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="rounded-2xl bg-teal-900 px-6 py-5 text-teal-50">
+        <section className="rounded-2xl bg-gradient-to-r from-teal-600 to-teal-700 px-6 py-5 text-white">
           <h2 className="text-sm font-semibold">Progreso</h2>
-          <p className="mt-2 text-sm text-teal-100">
+          <p className="mt-2 text-sm text-white/90">
             <span className="font-medium">Calendario</span>,{" "}
             <span className="font-medium">Recetas</span> y{" "}
             <span className="font-medium">Lista de la compra</span> ya están conectados: planifica la semana, añade recetas con ingredientes y genera la lista al instante.

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TableTime · Neumorphism</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:system-ui,sans-serif;font-size:14px;color:#4a5568;background:#e0e5ec;padding:2rem 1.5rem}
+    .wrap{max-width:960px;margin:0 auto}
+    header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:1.5rem;margin-bottom:2rem}
+    h1{font-size:1.75rem;margin:0;color:#4a5568;font-weight:600}
+    .tagline{margin:0.4rem 0 0;max-width:36ch;color:#718096;line-height:1.5}
+    .btn-primary{padding:12px 24px;border:none;border-radius:12px;background:#e0e5ec;color:#4a5568;font-weight:600;cursor:pointer;box-shadow:6px 6px 12px #bebebe,-6px -6px 12px #fff}
+    .btn-primary:hover{box-shadow:inset 4px 4px 8px #bebebe,inset -4px -4px 8px #fff}
+    nav.tabs{display:flex;gap:8px;padding:8px;background:#e0e5ec;border-radius:16px;margin-bottom:1.5rem;max-width:28rem;box-shadow:inset 4px 4px 8px #bebebe,inset -4px -4px 8px #fff}
+    nav.tabs button{flex:1;padding:10px 14px;border:none;border-radius:12px;background:#e0e5ec;color:#718096;font-size:13px;cursor:pointer;box-shadow:4px 4px 8px #bebebe,-4px -4px 8px #fff}
+    nav.tabs button.active{background:#e0e5ec;color:#4a5568;box-shadow:inset 4px 4px 8px #bebebe,inset -4px -4px 8px #fff}
+    .panel{display:none;background:#e0e5ec;border-radius:20px;padding:1.5rem;margin-bottom:1rem;box-shadow:8px 8px 16px #bebebe,-8px -8px 16px #fff}
+    .panel.active{display:block}
+    .meal-filters{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:1rem;padding:14px;background:#e0e5ec;border-radius:14px;box-shadow:inset 3px 3px 6px #bebebe,inset -3px -3px 6px #fff}
+    .meal-filters span{font-weight:600;color:#4a5568}
+    .calendar-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem}
+    .calendar-actions button{padding:8px 14px;border:none;border-radius:10px;background:#e0e5ec;color:#4a5568;font-size:12px;cursor:pointer;box-shadow:4px 4px 8px #bebebe,-4px -4px 8px #fff}
+    .calendar-actions button:first-of-type{box-shadow:inset 3px 3px 6px #bebebe,inset -3px -3px 6px #fff}
+    .calendar-week-label{margin:0 8px;align-self:center;font-size:13px;color:#718096}
+    .week-table{width:100%;border-collapse:collapse;font-size:13px}
+    .week-table th,.week-table td{padding:12px;text-align:left;border: none}
+    .week-table thead th{color:#718096;font-weight:500;background:#e0e5ec}
+    .week-table .meal-name{background:#e0e5ec;font-weight:600;width:100px;box-shadow:inset 2px 2px 4px #bebebe}
+    .week-table td{background:#e8ecf0}
+    .week-table tr td{box-shadow:inset 1px 1px 2px #d0d5dc}
+    .week-table .recipe{color:#5a67d8;font-weight:500}
+    .pdf-btn{margin-top:1rem;text-align:right}
+    .pdf-btn button{padding:8px 16px;border:none;border-radius:10px;background:#e0e5ec;color:#4a5568;cursor:pointer;box-shadow:4px 4px 8px #bebebe,-4px -4px 8px #fff}
+    .panel-intro{margin:0 0 1rem;font-size:13px;color:#718096}
+    .recipe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
+    .recipe-card{background:#e0e5ec;border-radius:16px;padding:16px;box-shadow:6px 6px 12px #bebebe,-6px -6px 12px #fff}
+    .recipe-card h3{margin:0 0 8px;font-size:14px;color:#4a5568}
+    .recipe-card .tags{display:flex;flex-wrap:wrap;gap:6px}
+    .recipe-card .tag{font-size:11px;padding:4px 10px;background:#e0e5ec;border-radius:8px;box-shadow:inset 2px 2px 4px #bebebe;color:#5a67d8}
+    .grocery-categories{display:flex;flex-direction:column;gap:12px}
+    .grocery-cat{background:#e0e5ec;border-radius:14px;padding:14px;box-shadow:inset 3px 3px 6px #bebebe,inset -3px -3px 6px #fff}
+    .grocery-cat h3{margin:0 0 8px;font-size:13px;color:#4a5568}
+    .grocery-cat ul{margin:0;padding-left:1.2rem;font-size:13px;color:#718096}
+    .household-placeholder{padding:2rem;text-align:center;color:#718096;background:#e0e5ec;border-radius:16px;box-shadow:inset 4px 4px 8px #bebebe}
+    .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:1.5rem}
+    .feature-card{background:#e0e5ec;border-radius:16px;padding:18px;box-shadow:6px 6px 12px #bebebe,-6px -6px 12px #fff}
+    .feature-card h2{font-size:14px;margin:0 0 8px;color:#4a5568}
+    .feature-card p{margin:0;font-size:13px;color:#718096;line-height:1.5}
+    .footer-strip{background:#e0e5ec;color:#4a5568;border-radius:16px;padding:18px;margin-top:1.5rem;box-shadow:inset 4px 4px 8px #bebebe,inset -4px -4px 8px #fff}
+    .footer-strip h2{font-size:14px;margin:0 0 4px}
+    .footer-strip p{margin:0;font-size:13px;opacity:0.9}
+  </style>
+</head>
+<body>
+  <div class="wrap"><header><div><h1>TableTime</h1><p class="tagline">Organiza los meals de tu familia sin estrés: calendario visual, recetas compartidas y lista de la compra inteligente.</p></div><button type="button" class="btn-primary">Crear plan semanal</button></header>
+    <nav class="tabs" role="tablist"><button type="button" role="tab" aria-selected="true" data-tab="calendar" class="active">Calendario</button><button type="button" role="tab" aria-selected="false" data-tab="recipes">Recetas</button><button type="button" role="tab" aria-selected="false" data-tab="grocery">Lista de la compra</button><button type="button" role="tab" aria-selected="false" data-tab="household">Hogar</button></nav>
+    <section id="panel-calendar" class="panel active" role="tabpanel"><div class="meal-filters"><span>Comidas en el calendario:</span><label><input type="checkbox" checked /> Desayuno</label><label><input type="checkbox" checked /> Comida</label><label><input type="checkbox" checked /> Cena</label><label><input type="checkbox" checked /> Snacks</label><button type="button" class="btn-primary">Todas</button></div><div class="calendar-actions"><button type="button">Semana</button><button type="button">Día</button><button type="button">Mes</button><button type="button">← Anterior</button><span class="calendar-week-label">Semana del 2 – 8 marzo</span><button type="button">Siguiente →</button></div><table class="week-table"><thead><tr><th></th><th>Lun 2</th><th>Mar 3</th><th>Mié 4</th><th>Jue 5</th><th>Vie 6</th><th>Sáb 7</th><th>Dom 8</th></tr></thead><tbody><tr><td class="meal-name">Desayuno</td><td class="recipe">Tostadas</td><td class="recipe">Avena</td><td class="recipe">Yogur</td><td class="recipe">Tostadas</td><td class="recipe">Avena</td><td>—</td><td>—</td></tr><tr><td class="meal-name">Comida</td><td class="recipe">Lentejas</td><td class="recipe">Ensalada</td><td class="recipe">Pasta</td><td class="recipe">Arroz</td><td class="recipe">Pollo</td><td>—</td><td>—</td></tr><tr><td class="meal-name">Cena</td><td class="recipe">Sopa</td><td class="recipe">Tortilla</td><td class="recipe">Ensalada</td><td class="recipe">Pescado</td><td class="recipe">Pizza</td><td>—</td><td>—</td></tr><tr><td class="meal-name">Snacks</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody></table><p class="pdf-btn"><button type="button">Imprimir plan / Guardar como PDF</button></p></section>
+    <section id="panel-recipes" class="panel" role="tabpanel"><p class="panel-intro">Biblioteca de recetas. Añade, edita y etiqueta.</p><div class="recipe-grid"><div class="recipe-card"><h3>Lentejas con verduras</h3><div class="tags"><span class="tag">vegetariana</span><span class="tag">económica</span></div></div><div class="recipe-card"><h3>Pasta al pesto</h3><div class="tags"><span class="tag">rápida</span><span class="tag">kid-friendly</span></div></div><div class="recipe-card"><h3>Ensalada César</h3><div class="tags"><span class="tag">rápida</span></div></div><div class="recipe-card"><h3>Pollo al horno</h3><div class="tags"><span class="tag">alta proteína</span></div></div></div></section>
+    <section id="panel-grocery" class="panel" role="tabpanel"><p class="panel-intro">Lista generada a partir del plan y manual.</p><div class="grocery-categories"><div class="grocery-cat"><h3>Verduras y frutas</h3><ul><li>Tomates</li><li>Lechuga</li><li>Zanahorias</li><li>Manzanas</li></ul></div><div class="grocery-cat"><h3>Carne y pescado</h3><ul><li>Pollo</li><li>Merluza</li></ul></div><div class="grocery-cat"><h3>Despensa</h3><ul><li>Lentejas</li><li>Arroz</li><li>Pasta</li><li>Aceite de oliva</li></ul></div></div></section>
+    <section id="panel-household" class="panel" role="tabpanel"><div class="household-placeholder"><p>Gestión del hogar y miembros. Vista previa de estilo.</p></div></section>
+    <section class="features"><div class="feature-card"><h2>1. Calendario de comidas</h2><p>Ve tu semana de un vistazo con temas como Pasta Tuesday o Kids Choice Night.</p></div><div class="feature-card"><h2>2. Biblioteca de recetas</h2><p>Guarda tus recetas favoritas e impórtalas desde cualquier web.</p></div><div class="feature-card"><h2>3. Lista de la compra</h2><p>Genera la lista para toda la semana, compartida en tiempo real.</p></div></section>
+    <div class="footer-strip"><h2>Progreso</h2><p>Calendario, recetas y lista de la compra en un solo lugar.</p></div>
+  </div>
+  <script>document.querySelectorAll('nav.tabs button').forEach(btn=>{btn.addEventListener('click',()=>{const tab=btn.dataset.tab;document.querySelectorAll('nav.tabs button').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-selected','false');});btn.classList.add('active');btn.setAttribute('aria-selected','true');document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.getElementById('panel-'+tab).classList.add('active');});});</script>
+</body>
+</html>

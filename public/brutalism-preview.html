@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TableTime · Brutalism</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:'Space Mono',monospace;font-size:14px;color:#000;background:#fff;padding:2rem 1.5rem;line-height:1.4}
+    .wrap{max-width:960px;margin:0 auto}
+    header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:1.5rem;margin-bottom:2rem;border:4px solid #000}
+    h1{font-size:2rem;margin:0;font-weight:700;text-transform:uppercase;letter-spacing:-0.02em}
+    .tagline{margin:0.5rem 0 0;max-width:40ch;color:#333}
+    .btn-primary{padding:12px 24px;border:4px solid #000;background:#fff;color:#000;font-family:'Space Mono',monospace;font-weight:700;font-size:14px;cursor:pointer;text-transform:uppercase}
+    .btn-primary:hover{background:#000;color:#fff}
+    nav.tabs{display:flex;gap:0;margin-bottom:1.5rem;max-width:28rem;border:4px solid #000}
+    nav.tabs button{flex:1;padding:12px 16px;border-right:4px solid #000;background:#fff;color:#000;font-family:'Space Mono',monospace;font-size:13px;font-weight:700;cursor:pointer;text-transform:uppercase}
+    nav.tabs button:last-child{border-right:none}
+    nav.tabs button.active{background:#000;color:#fff}
+    .panel{display:none;border:4px solid #000;padding:1.5rem;margin-bottom:1rem}
+    .panel.active{display:block}
+    .meal-filters{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:1rem;padding:12px;border:4px solid #000}
+    .meal-filters span{font-weight:700;text-transform:uppercase}
+    .calendar-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem}
+    .calendar-actions button{padding:8px 14px;border:4px solid #000;background:#fff;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase}
+    .calendar-actions button:hover,.calendar-actions button:first-of-type{background:#000;color:#fff}
+    .calendar-week-label{margin:0 12px;align-self:center;font-size:12px}
+    .week-table{width:100%;border-collapse:collapse;font-size:13px}
+    .week-table th,.week-table td{padding:12px;text-align:left;border:4px solid #000}
+    .week-table thead th{background:#000;color:#fff;font-weight:700;text-transform:uppercase}
+    .week-table .meal-name{background:#fff;font-weight:700;width:100px;text-transform:uppercase}
+    .week-table .recipe{font-weight:700}
+    .pdf-btn{margin-top:1rem;text-align:right}
+    .pdf-btn button{padding:8px 16px;border:4px solid #000;background:#fff;font-family:'Space Mono',monospace;font-weight:700;cursor:pointer;text-transform:uppercase}
+    .panel-intro{margin:0 0 1rem;font-size:13px}
+    .recipe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0}
+    .recipe-card{border:4px solid #000;padding:14px}
+    .recipe-card h3{margin:0 0 8px;font-size:14px;font-weight:700;text-transform:uppercase}
+    .recipe-card .tags{display:flex;flex-wrap:wrap;gap:6px}
+    .recipe-card .tag{font-size:10px;padding:4px 8px;border:2px solid #000;font-weight:700}
+    .grocery-categories{display:flex;flex-direction:column;gap:0}
+    .grocery-cat{border:4px solid #000;border-top:none;padding:14px}
+    .grocery-cat:first-child{border-top:4px solid #000}
+    .grocery-cat h3{margin:0 0 6px;font-size:13px;font-weight:700;text-transform:uppercase}
+    .grocery-cat ul{margin:0;padding-left:1.2rem;font-size:13px}
+    .household-placeholder{padding:2rem;text-align:center;border:4px solid #000}
+    .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0;margin-top:1.5rem;border:4px solid #000}
+    .feature-card{border:4px solid #000;border-top:none;padding:18px}
+    .feature-card:first-child{border-top:4px solid #000}
+    .feature-card:nth-child(2),.feature-card:nth-child(3){border-left:none}
+    .feature-card h2{font-size:13px;font-weight:700;margin:0 0 6px;text-transform:uppercase}
+    .feature-card p{margin:0;font-size:12px;line-height:1.5}
+    .footer-strip{background:#000;color:#fff;padding:18px;margin-top:1.5rem;border:4px solid #000}
+    .footer-strip h2{font-size:14px;font-weight:700;margin:0 0 4px;text-transform:uppercase}
+    .footer-strip p{margin:0;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap"><header><div><h1>TableTime</h1><p class="tagline">Organiza los meals de tu familia sin estrés: calendario visual, recetas compartidas y lista de la compra inteligente.</p></div><button type="button" class="btn-primary">Crear plan semanal</button></header>
+    <nav class="tabs" role="tablist"><button type="button" role="tab" aria-selected="true" data-tab="calendar" class="active">Calendario</button><button type="button" role="tab" aria-selected="false" data-tab="recipes">Recetas</button><button type="button" role="tab" aria-selected="false" data-tab="grocery">Lista</button><button type="button" role="tab" aria-selected="false" data-tab="household">Hogar</button></nav>
+    <section id="panel-calendar" class="panel active" role="tabpanel"><div class="meal-filters"><span>Comidas:</span><label><input type="checkbox" checked /> Desayuno</label><label><input type="checkbox" checked /> Comida</label><label><input type="checkbox" checked /> Cena</label><label><input type="checkbox" checked /> Snacks</label><button type="button" class="btn-primary">Todas</button></div><div class="calendar-actions"><button type="button">Semana</button><button type="button">Día</button><button type="button">Mes</button><button type="button">←</button><span class="calendar-week-label">2 – 8 marzo</span><button type="button">→</button></div><table class="week-table"><thead><tr><th></th><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th></tr></thead><tbody><tr><td class="meal-name">Desayuno</td><td class="recipe">Tostadas</td><td class="recipe">Avena</td><td class="recipe">Yogur</td><td class="recipe">Tostadas</td><td class="recipe">Avena</td><td>—</td><td>—</td></tr><tr><td class="meal-name">Comida</td><td class="recipe">Lentejas</td><td class="recipe">Ensalada</td><td class="recipe">Pasta</td><td class="recipe">Arroz</td><td class="recipe">Pollo</td><td>—</td><td>—</td></tr><tr><td class="meal-name">Cena</td><td class="recipe">Sopa</td><td class="recipe">Tortilla</td><td class="recipe">Ensalada</td><td class="recipe">Pescado</td><td class="recipe">Pizza</td><td>—</td><td>—</td></tr><tr><td class="meal-name">Snacks</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody></table><p class="pdf-btn"><button type="button">Imprimir / PDF</button></p></section>
+    <section id="panel-recipes" class="panel" role="tabpanel"><p class="panel-intro">Biblioteca de recetas.</p><div class="recipe-grid"><div class="recipe-card"><h3>Lentejas</h3><div class="tags"><span class="tag">vegetariana</span><span class="tag">económica</span></div></div><div class="recipe-card"><h3>Pasta pesto</h3><div class="tags"><span class="tag">rápida</span><span class="tag">kid-friendly</span></div></div><div class="recipe-card"><h3>Ensalada César</h3><div class="tags"><span class="tag">rápida</span></div></div><div class="recipe-card"><h3>Pollo horno</h3><div class="tags"><span class="tag">proteína</span></div></div></div></section>
+    <section id="panel-grocery" class="panel" role="tabpanel"><p class="panel-intro">Lista del plan.</p><div class="grocery-categories"><div class="grocery-cat"><h3>Verduras y frutas</h3><ul><li>Tomates</li><li>Lechuga</li><li>Zanahorias</li><li>Manzanas</li></ul></div><div class="grocery-cat"><h3>Carne y pescado</h3><ul><li>Pollo</li><li>Merluza</li></ul></div><div class="grocery-cat"><h3>Despensa</h3><ul><li>Lentejas</li><li>Arroz</li><li>Pasta</li><li>Aceite</li></ul></div></div></section>
+    <section id="panel-household" class="panel" role="tabpanel"><div class="household-placeholder"><p>Hogar. Vista previa.</p></div></section>
+    <section class="features"><div class="feature-card"><h2>1. Calendario</h2><p>Semana de un vistazo. Pasta Tuesday, Kids Choice Night.</p></div><div class="feature-card"><h2>2. Recetas</h2><p>Guarda e importa. Etiquetas: kid-friendly, rápida, proteína.</p></div><div class="feature-card"><h2>3. Lista compra</h2><p>Lista automática. Compartida en tiempo real.</p></div></section>
+    <div class="footer-strip"><h2>Progreso</h2><p>Calendario, recetas y lista en un solo lugar.</p></div>
+  </div>
+  <script>document.querySelectorAll('nav.tabs button').forEach(btn=>{btn.addEventListener('click',()=>{const tab=btn.dataset.tab;document.querySelectorAll('nav.tabs button').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-selected','false');});btn.classList.add('active');btn.setAttribute('aria-selected','true');document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.getElementById('panel-'+tab).classList.add('active');});});</script>
+</body>
+</html>

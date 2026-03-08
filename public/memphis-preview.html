@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TableTime · Vista previa Memphis / 80s postmodern</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Archivo+Black&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --memphis-pink: #E91E8C;
+      --memphis-lime: #B8E62E;
+      --memphis-turquoise: #00BCD4;
+      --memphis-yellow: #FFEB3B;
+      --memphis-purple: #9C27B0;
+      --memphis-orange: #FF9800;
+      --memphis-black: #1A1A1A;
+      --memphis-white: #FFFEF7;
+      --memphis-gray: #4A4A4A;
+      --memphis-radius: 24px;
+      --memphis-radius-sm: 16px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Fredoka', system-ui, sans-serif;
+      font-size: 15px;
+      color: var(--memphis-black);
+      background: var(--memphis-white);
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(233, 30, 140, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(0, 188, 212, 0.08) 0%, transparent 40%),
+        repeating-linear-gradient(-45deg, transparent, transparent 20px, rgba(184, 230, 46, 0.03) 20px, rgba(184, 230, 46, 0.03) 21px);
+    }
+    .wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 3rem;
+    }
+    /* Decorative stripe */
+    .stripe {
+      height: 8px;
+      background: linear-gradient(90deg, var(--memphis-pink) 0%, var(--memphis-lime) 25%, var(--memphis-turquoise) 50%, var(--memphis-yellow) 75%, var(--memphis-purple) 100%);
+      border-radius: 4px;
+      margin-bottom: 1.5rem;
+    }
+    /* Header */
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    h1 {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 2.25rem;
+      font-weight: 400;
+      margin: 0;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--memphis-pink), var(--memphis-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .tagline {
+      margin: 0.5rem 0 0;
+      max-width: 36ch;
+      color: var(--memphis-gray);
+      line-height: 1.5;
+      font-size: 0.95rem;
+    }
+    .btn-primary {
+      font-family: 'Fredoka', system-ui, sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.8rem 1.6rem;
+      border: none;
+      border-radius: var(--memphis-radius-sm);
+      background: linear-gradient(135deg, var(--memphis-pink), var(--memphis-purple));
+      color: var(--memphis-white);
+      cursor: pointer;
+      box-shadow: 4px 4px 0 var(--memphis-black);
+      transform: rotate(-1deg);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-primary:hover {
+      transform: rotate(0deg) translateY(-2px);
+      box-shadow: 6px 6px 0 var(--memphis-black);
+    }
+    /* Tabs */
+    nav.tabs {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.5rem;
+      background: var(--memphis-black);
+      border-radius: var(--memphis-radius);
+      margin-bottom: 1.5rem;
+      max-width: 30rem;
+    }
+    nav.tabs button {
+      flex: 1;
+      font-family: 'Fredoka', system-ui, sans-serif;
+      font-weight: 500;
+      font-size: 0.9rem;
+      padding: 0.65rem 1rem;
+      border: none;
+      border-radius: var(--memphis-radius-sm);
+      background: transparent;
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    }
+    nav.tabs button:hover {
+      background: rgba(255,255,255,0.15);
+      color: var(--memphis-white);
+    }
+    nav.tabs button.active {
+      background: var(--memphis-lime);
+      color: var(--memphis-black);
+      transform: scale(1.02);
+    }
+    /* Main content panel */
+    .panel {
+      display: none;
+      background: var(--memphis-white);
+      border-radius: var(--memphis-radius);
+      padding: 1.5rem;
+      border: 4px solid var(--memphis-black);
+      box-shadow: 8px 8px 0 var(--memphis-turquoise);
+      position: relative;
+      overflow: hidden;
+    }
+    .panel::before {
+      content: '';
+      position: absolute;
+      top: -20px;
+      right: -20px;
+      width: 80px;
+      height: 80px;
+      background: var(--memphis-yellow);
+      border-radius: 50%;
+      opacity: 0.4;
+    }
+    .panel::after {
+      content: '';
+      position: absolute;
+      bottom: -30px;
+      left: -30px;
+      width: 100px;
+      height: 100px;
+      background: var(--memphis-pink);
+      border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+      opacity: 0.2;
+    }
+    .panel.active { display: block; }
+    /* Calendar */
+    .meal-filters {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      background: linear-gradient(135deg, rgba(233, 30, 140, 0.1), rgba(156, 39, 176, 0.1));
+      border-radius: var(--memphis-radius-sm);
+      border: 2px dashed var(--memphis-pink);
+    }
+    .meal-filters span { font-size: 0.9rem; font-weight: 600; color: var(--memphis-black); }
+    .meal-filters label { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.9rem; color: var(--memphis-gray); }
+    .meal-filters input[type="checkbox"] { accent-color: var(--memphis-pink); }
+    .calendar-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+    .calendar-actions button {
+      font-family: 'Fredoka', system-ui, sans-serif;
+      padding: 0.5rem 1rem;
+      border-radius: var(--memphis-radius-sm);
+      border: 3px solid var(--memphis-black);
+      background: var(--memphis-white);
+      color: var(--memphis-black);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    .calendar-actions button:first-of-type {
+      background: var(--memphis-lime);
+      border-color: var(--memphis-black);
+    }
+    .week-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.85rem;
+    }
+    .week-table th, .week-table td {
+      padding: 0.65rem 0.5rem;
+      text-align: left;
+      border-bottom: 2px solid var(--memphis-black);
+    }
+    .week-table thead th {
+      font-weight: 600;
+      color: var(--memphis-black);
+      background: var(--memphis-yellow);
+    }
+    .week-table .meal-name {
+      font-weight: 600;
+      color: var(--memphis-black);
+      background: var(--memphis-turquoise);
+      width: 100px;
+      opacity: 0.9;
+    }
+    .week-table td { color: var(--memphis-gray); }
+    .week-table .recipe { color: var(--memphis-purple); font-weight: 600; }
+    /* Recipes */
+    .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+    .recipe-card {
+      background: var(--memphis-white);
+      border-radius: var(--memphis-radius-sm);
+      padding: 1rem;
+      border: 3px solid var(--memphis-black);
+      box-shadow: 4px 4px 0 var(--memphis-orange);
+      transform: rotate(0.5deg);
+    }
+    .recipe-card:nth-child(2n) { transform: rotate(-0.5deg); box-shadow: 4px 4px 0 var(--memphis-pink); }
+    .recipe-card h3 { margin: 0 0 0.5rem; font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 1.05rem; color: var(--memphis-black); }
+    .recipe-card .tags { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .recipe-card .tag {
+      font-size: 0.7rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 999px;
+      border: 2px solid var(--memphis-black);
+      background: var(--memphis-lime);
+      color: var(--memphis-black);
+      font-weight: 500;
+    }
+    /* Grocery */
+    .grocery-categories { display: flex; flex-direction: column; gap: 1rem; }
+    .grocery-cat {
+      background: var(--memphis-white);
+      border-radius: var(--memphis-radius-sm);
+      padding: 0.75rem 1rem;
+      border-left: 6px solid var(--memphis-pink);
+      border: 3px solid var(--memphis-black);
+      border-left-width: 8px;
+      border-left-color: var(--memphis-lime);
+    }
+    .grocery-cat:nth-child(2) { border-left-color: var(--memphis-turquoise); }
+    .grocery-cat:nth-child(3) { border-left-color: var(--memphis-orange); }
+    .grocery-cat h3 { margin: 0 0 0.5rem; font-size: 0.9rem; font-weight: 600; color: var(--memphis-black); }
+    .grocery-cat ul { margin: 0; padding-left: 1.25rem; color: var(--memphis-gray); font-size: 0.9rem; }
+    /* Household */
+    .household-placeholder {
+      padding: 2rem;
+      text-align: center;
+      color: var(--memphis-gray);
+      background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(184, 230, 46, 0.1) 10px, rgba(184, 230, 46, 0.1) 20px);
+      border-radius: var(--memphis-radius-sm);
+    }
+    /* Feature cards */
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-top: 2rem; }
+    .feature-card {
+      background: var(--memphis-white);
+      border-radius: var(--memphis-radius);
+      padding: 1.25rem;
+      border: 3px solid var(--memphis-black);
+      box-shadow: 5px 5px 0 var(--memphis-pink);
+    }
+    .feature-card:nth-child(2) { box-shadow: 5px 5px 0 var(--memphis-turquoise); }
+    .feature-card:nth-child(3) { box-shadow: 5px 5px 0 var(--memphis-lime); }
+    .feature-card h2 { font-family: 'Archivo Black', sans-serif; font-size: 1rem; font-weight: 400; color: var(--memphis-black); margin: 0 0 0.5rem; }
+    .feature-card p { margin: 0; font-size: 0.9rem; color: var(--memphis-gray); line-height: 1.5; }
+    /* Footer strip */
+    .footer-strip {
+      margin-top: 2rem;
+      background: var(--memphis-black);
+      color: var(--memphis-white);
+      border-radius: var(--memphis-radius);
+      padding: 1.25rem 1.5rem;
+      border: 4px solid var(--memphis-lime);
+    }
+    .footer-strip h2 { font-family: 'Archivo Black', sans-serif; font-size: 1rem; font-weight: 400; margin: 0 0 0.35rem; }
+    .footer-strip p { margin: 0; font-size: 0.85rem; opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="stripe" aria-hidden="true"></div>
+
+    <header>
+      <div>
+        <h1>TableTime</h1>
+        <p class="tagline">Organiza los meals de tu familia sin estrés: calendario visual, recetas compartidas y lista de la compra inteligente en un solo lugar.</p>
+      </div>
+      <button type="button" class="btn-primary">Crear plan semanal</button>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button type="button" role="tab" aria-selected="true" data-tab="calendar" class="active">Calendario</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="recipes">Recetas</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="grocery">Lista de la compra</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="household">Hogar</button>
+    </nav>
+
+    <!-- Calendar panel -->
+    <section id="panel-calendar" class="panel active" role="tabpanel">
+      <div class="meal-filters">
+        <span>Comidas en el calendario:</span>
+        <label><input type="checkbox" checked /> Desayuno</label>
+        <label><input type="checkbox" checked /> Comida</label>
+        <label><input type="checkbox" checked /> Cena</label>
+        <label><input type="checkbox" checked /> Snacks</label>
+        <button type="button" class="btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Todas</button>
+      </div>
+      <div class="calendar-actions">
+        <button type="button">Semana</button>
+        <button type="button">Día</button>
+        <button type="button">Mes</button>
+        <button type="button">← Anterior</button>
+        <span style="margin: 0 0.5rem; align-self: center; font-size: 0.9rem;">Semana del 2 – 8 marzo</span>
+        <button type="button">Siguiente →</button>
+      </div>
+      <table class="week-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Lun 2</th>
+            <th>Mar 3</th>
+            <th>Mié 4</th>
+            <th>Jue 5</th>
+            <th>Vie 6</th>
+            <th>Sáb 7</th>
+            <th>Dom 8</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="meal-name">Desayuno</td>
+            <td class="recipe">Tostadas</td>
+            <td class="recipe">Avena</td>
+            <td class="recipe">Yogur</td>
+            <td class="recipe">Tostadas</td>
+            <td class="recipe">Avena</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td class="meal-name">Comida</td>
+            <td class="recipe">Lentejas</td>
+            <td class="recipe">Ensalada</td>
+            <td class="recipe">Pasta</td>
+            <td class="recipe">Arroz</td>
+            <td class="recipe">Pollo</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td class="meal-name">Cena</td>
+            <td class="recipe">Sopa</td>
+            <td class="recipe">Tortilla</td>
+            <td class="recipe">Ensalada</td>
+            <td class="recipe">Pescado</td>
+            <td class="recipe">Pizza</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td class="meal-name">Snacks</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin-top: 1rem; text-align: right;">
+        <button type="button" style="padding: 0.5rem 1rem; border-radius: var(--memphis-radius-sm); border: 3px solid var(--memphis-black); background: var(--memphis-white); font-family: Fredoka, sans-serif;">Imprimir plan / Guardar como PDF</button>
+      </p>
+    </section>
+
+    <!-- Recipes panel -->
+    <section id="panel-recipes" class="panel" role="tabpanel">
+      <p style="margin: 0 0 1rem; color: var(--memphis-gray); font-size: 0.9rem;">Biblioteca de recetas. Añade, edita y etiqueta.</p>
+      <div class="recipe-grid">
+        <div class="recipe-card">
+          <h3>Lentejas con verduras</h3>
+          <div class="tags"><span class="tag">vegetariana</span><span class="tag">económica</span></div>
+        </div>
+        <div class="recipe-card">
+          <h3>Pasta al pesto</h3>
+          <div class="tags"><span class="tag">rápida</span><span class="tag">kid-friendly</span></div>
+        </div>
+        <div class="recipe-card">
+          <h3>Ensalada César</h3>
+          <div class="tags"><span class="tag">rápida</span></div>
+        </div>
+        <div class="recipe-card">
+          <h3>Pollo al horno</h3>
+          <div class="tags"><span class="tag">alta proteína</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Grocery panel -->
+    <section id="panel-grocery" class="panel" role="tabpanel">
+      <p style="margin: 0 0 1rem; color: var(--memphis-gray); font-size: 0.9rem;">Lista generada a partir del plan y manual.</p>
+      <div class="grocery-categories">
+        <div class="grocery-cat">
+          <h3>Verduras y frutas</h3>
+          <ul><li>Tomates</li><li>Lechuga</li><li>Zanahorias</li><li>Manzanas</li></ul>
+        </div>
+        <div class="grocery-cat">
+          <h3>Carne y pescado</h3>
+          <ul><li>Pollo</li><li>Merluza</li></ul>
+        </div>
+        <div class="grocery-cat">
+          <h3>Despensa</h3>
+          <ul><li>Lentejas</li><li>Arroz</li><li>Pasta</li><li>Aceite de oliva</li></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Household panel -->
+    <section id="panel-household" class="panel" role="tabpanel">
+      <div class="household-placeholder">
+        <p>Gestión del hogar y miembros. Vista previa de estilo.</p>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="feature-card">
+        <h2>1. Calendario de comidas</h2>
+        <p>Ve tu semana de un vistazo con temas como Pasta Tuesday o Kids Choice Night. Cada slot tendrá su receta asignada.</p>
+      </div>
+      <div class="feature-card">
+        <h2>2. Biblioteca de recetas</h2>
+        <p>Guarda tus recetas favoritas, impórtalas desde cualquier web y etiquétalas como kid-friendly, rápidas o alta proteína.</p>
+      </div>
+      <div class="feature-card">
+        <h2>3. Lista de la compra</h2>
+        <p>Genera automáticamente la lista de la compra para toda la semana, compartida en tiempo real con tu pareja y peques.</p>
+      </div>
+    </section>
+
+    <div class="footer-strip">
+      <h2>Progreso</h2>
+      <p>Calendario, recetas y lista de la compra en un solo lugar.</p>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('nav.tabs button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('nav.tabs button').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+        document.querySelectorAll('.panel').forEach(p => { p.classList.remove('active'); });
+        document.getElementById('panel-' + tab).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

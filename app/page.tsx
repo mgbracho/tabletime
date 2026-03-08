@@ -61,7 +61,7 @@ function getRecipeConflicts(
       );
       if (missing.length === 0) return null;
       return {
-        displayName: m.display_name?.trim() || "Un miembro",
+        displayName: m.display_name?.trim() || m.email || "Un miembro",
         missingTags: missing,
       };
     })
@@ -2650,12 +2650,12 @@ function HouseholdView() {
                 </span>
                 <input
                   type="text"
-                  value={draftNames[member.id] ?? member.display_name ?? ""}
+                  value={draftNames[member.id] ?? member.display_name ?? member.email ?? ""}
                   onChange={(e) =>
                     setDraftNames((prev) => ({ ...prev, [member.id]: e.target.value }))
                   }
                   onBlur={(e) => {
-                    const v = (draftNames[member.id] ?? member.display_name ?? "").trim() || null;
+                    const v = (draftNames[member.id] ?? member.display_name ?? member.email ?? "").trim() || null;
                     if (v !== (member.display_name ?? null)) updateMember(member.id, { display_name: v });
                     setDraftNames((prev) => {
                       const next = { ...prev };

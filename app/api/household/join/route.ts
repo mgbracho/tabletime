@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
     household_id: invite.household_id,
     user_id: user.id,
     role: "member",
+    display_name: user.email?.trim() || null,
   });
   if (insertError) {
     return NextResponse.json({ error: insertError.message }, { status: 500 });

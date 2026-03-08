@@ -7,6 +7,7 @@ export type HouseholdMember = {
   id: string;
   user_id: string | null;
   display_name: string | null;
+  email?: string | null;
   default_servings: number;
   dietary_restrictions: string[];
   is_current_user?: boolean;
@@ -31,10 +32,11 @@ export function useHouseholdProfile(householdId: string | null, currentUserId: s
     ]);
     setHouseholdNameState((hRes.data?.name as string) ?? "Mi hogar");
     const list: HouseholdMember[] = Array.isArray(membersRes?.members)
-      ? membersRes.members.map((m: { id: string; user_id?: string | null; display_name?: string | null; default_servings?: number; dietary_restrictions?: string[]; is_current_user?: boolean }) => ({
+      ? membersRes.members.map((m: { id: string; user_id?: string | null; display_name?: string | null; email?: string | null; default_servings?: number; dietary_restrictions?: string[]; is_current_user?: boolean }) => ({
           id: m.id,
           user_id: m.user_id ?? null,
           display_name: m.display_name ?? null,
+          email: m.email ?? null,
           default_servings: typeof m.default_servings === "number" ? m.default_servings : 1,
           dietary_restrictions: Array.isArray(m.dietary_restrictions) ? m.dietary_restrictions : [],
           is_current_user: m.is_current_user,

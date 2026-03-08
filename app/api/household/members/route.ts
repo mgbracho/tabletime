@@ -47,10 +47,22 @@ export async function GET(request: NextRequest) {
     .select("id, user_id, display_name, default_servings, dietary_restrictions")
     .eq("household_id", myMembership.household_id);
 
+  const userIdsWithoutName = (members ?? [])
+    .filter((m) => m.user_id && !(m.display_name?.trim()))
+    .map((m) => m.user_id as string);
+  const emailByUserId: Record<string, string> = {};
+  await Promise.all(
+    userIdsWithoutName.map(async (uid) => {
+      const { data } = await db.auth.admin.getUserById(uid);
+      if (data?.user?.email) emailByUserId[uid] = data.user.email;
+    })
+  );
+
   const list = (members ?? []).map((m) => ({
     id: m.id,
     user_id: m.user_id ?? "",
     display_name: m.display_name ?? null,
+    email: m.user_id ? emailByUserId[m.user_id] ?? null : null,
     default_servings: typeof m.default_servings === "number" ? m.default_servings : 1,
     dietary_restrictions: Array.isArray(m.dietary_restrictions) ? m.dietary_restrictions : [],
     is_current_user: m.user_id === user.id,

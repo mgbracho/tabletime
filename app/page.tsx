@@ -459,6 +459,7 @@ function getProteinsForRecipe(recipe: Recipe): Set<string> {
 
 /**
  * Genera un plan sugerido para la semana.
+ * - Solo rellena slots de las comidas en visibleMeals (por defecto todas).
  * - No sobrescribe slots ya rellenados por el usuario.
  * - En días temáticos sin recetas que coincidan, deja el slot vacío.
  * - Puntuación: días desde último uso (0–30) + variedad de ingredientes/proteínas + factor aleatorio.
@@ -467,7 +468,8 @@ function generateSuggestedPlanForWeek(
   recipes: Recipe[],
   themeDays: ThemeDays,
   currentPlan: PlanState,
-  weekStart: Date
+  weekStart: Date,
+  visibleMeals: readonly (typeof MEAL_LABELS)[number][] = MEAL_LABELS
 ): PlanState {
   if (recipes.length === 0) return {};
   const weekDays = getWeekDates(weekStart);
@@ -476,7 +478,7 @@ function generateSuggestedPlanForWeek(
 
   const slots: { dayIndex: number; meal: MealType; key: string }[] = [];
   for (let i = 0; i < weekDays.length; i++) {
-    for (const meal of MEAL_LABELS) {
+    for (const meal of visibleMeals) {
       slots.push({
         dayIndex: i,
         meal,
@@ -2058,11 +2060,12 @@ function mergeGroceryItems(items: GroceryItem[]): GroceryItem[] {
 function getGroceryItemsFromPlan(
   plan: PlanState,
   recipes: Recipe[],
-  weekStart: Date
+  weekStart: Date,
+  visibleMeals: readonly string[] = MEAL_LABELS
 ): GroceryItem[] {
   const weekDays = getWeekDates(weekStart);
   const items: GroceryItem[] = [];
-  for (const meal of MEAL_LABELS) {
+  for (const meal of visibleMeals) {
     for (const d of weekDays) {
       const key = slotKey(d.date, meal);
       const recipeId = plan[key];
@@ -2098,7 +2101,8 @@ function GroceryListView({
   const [newItem, setNewItem] = useState("");
   const [copyFeedback, setCopyFeedback] = useState(false);
   const weekStart = getWeekStart();
-  const fromPlan = getGroceryItemsFromPlan(plan, recipes, weekStart);
+  const visibleMeals = loadVisibleMeals();
+  const fromPlan = getGroceryItemsFromPlan(plan, recipes, weekStart, visibleMeals);
   const manualAsItems: GroceryItem[] = manualItems.map((m) => ({
     ...m,
     fromPlan: false,
@@ -2885,11 +2889,12 @@ export default function Home() {
   const handleCreatePlan = () => {
     setActiveTab("calendar");
     setCreatingPlan(true);
+    const visibleMeals = loadVisibleMeals();
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         setPlan((prev) => ({
           ...prev,
-          ...generateSuggestedPlanForWeek(recipes, themeDays, prev, getWeekStart()),
+          ...generateSuggestedPlanForWeek(recipes, themeDays, prev, getWeekStart(), visibleMeals),
         }));
         setCreatingPlan(false);
         setToastMessage("Plan creado — puedes arrastrar recetas para ajustarlo");

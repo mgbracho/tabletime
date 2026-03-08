@@ -18,6 +18,24 @@ type TabId = (typeof TABS)[number]["id"];
 const MEAL_LABELS = ["Desayuno", "Comida", "Cena", "Snacks"] as const;
 const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
+const CALENDAR_VISIBLE_MEALS_KEY = "tabletime-calendar-visible-meals";
+
+function loadVisibleMeals(): readonly (typeof MEAL_LABELS)[number][] {
+  if (typeof window === "undefined") return [...MEAL_LABELS];
+  try {
+    const raw = localStorage.getItem(CALENDAR_VISIBLE_MEALS_KEY);
+    if (!raw) return [...MEAL_LABELS];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [...MEAL_LABELS];
+    const valid = parsed.filter((m): m is (typeof MEAL_LABELS)[number] =>
+      typeof m === "string" && MEAL_LABELS.includes(m as (typeof MEAL_LABELS)[number])
+    );
+    return valid.length > 0 ? valid : [...MEAL_LABELS];
+  } catch {
+    return [...MEAL_LABELS];
+  }
+}
+
 /** Valores de slot que no son receta y se excluyen de la lista de la compra */
 const SLOT_STATUS_VALUES = ["leftovers", "skip", "eating_out"] as const;
 type SlotStatusValue = (typeof SLOT_STATUS_VALUES)[number];
@@ -350,7 +368,8 @@ function getMonthGrid(monthStart: Date): { date: Date; dayLabel: string; dateLab
 function printPlanToPdf(
   plan: Record<string, string>,
   recipes: { id: string; title: string }[],
-  themeDays: Record<number, Partial<Record<string, string>>>
+  themeDays: Record<number, Partial<Record<string, string>>>,
+  visibleMeals: readonly string[] = MEAL_LABELS
 ) {
   const weekStart = getWeekStart();
   const weekDays = getWeekDates(weekStart);
@@ -370,7 +389,7 @@ function printPlanToPdf(
         `<th style="padding:8px;border:1px solid #e5e7eb;font-size:12px;font-weight:600;">${escape(d.dayLabel)}<br><span style="color:#6b7280">${d.dateLabel}</span></th>`
     )
     .join("");
-  const rows = MEAL_LABELS.map((meal) => {
+  const rows = visibleMeals.map((meal) => {
     const cells = weekDays.map((d, dayIndex) => {
       const key = `${d.date.toISOString().slice(0, 10)}-${meal}`;
       const value = plan[key];
@@ -635,6 +654,7 @@ function CalendarWeekView({
   themeDays,
   onViewRecipe,
   members = [],
+  visibleMeals = [...MEAL_LABELS],
 }: {
   recipes: Recipe[];
   plan: PlanState;
@@ -642,6 +662,7 @@ function CalendarWeekView({
   themeDays: ThemeDays;
   onViewRecipe?: (recipe: Recipe) => void;
   members?: HouseholdMember[];
+  visibleMeals?: readonly (typeof MEAL_LABELS)[number][];
 }) {
   const [weekStart, setWeekStart] = useState(() => {
     const d = new Date();
@@ -942,7 +963,7 @@ function CalendarWeekView({
               {focusedDate.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" })}
             </span>
           </div>
-          {MEAL_LABELS.map((meal) => {
+          {visibleMeals.map((meal) => {
             const key = slotKey(focusedDate, meal);
             const slotValue = plan[key];
             const recipeId = isSlotStatus(slotValue) ? null : slotValue;
@@ -1047,7 +1068,7 @@ function CalendarWeekView({
               >
                 <span className="font-medium">{cell.dateLabel}</span>
                 <div className="mt-0.5 flex flex-wrap gap-0.5">
-                  {MEAL_LABELS.map((meal) => {
+                  {visibleMeals.map((meal) => {
                     const key = slotKey(cell.date, meal);
                     const v = plan[key];
                     if (!v) return null;
@@ -1078,7 +1099,7 @@ function CalendarWeekView({
             </div>
           ))}
         </div>
-        {MEAL_LABELS.map((meal) => (
+        {visibleMeals.map((meal) => (
           <div
             key={meal}
             className="grid grid-cols-8 border-b border-teal-50 last:border-b-0"
@@ -2712,6 +2733,28 @@ function SectionPlaceholder({
 }) {
   const [calendarViewingRecipe, setCalendarViewingRecipe] = useState<Recipe | null>(null);
   const [calendarViewServings, setCalendarViewServings] = useState(4);
+  const [visibleMeals, setVisibleMeals] = useState<(typeof MEAL_LABELS)[number][]>(() => [...loadVisibleMeals()]);
+
+  const setVisibleMealsAndPersist = (next: (typeof MEAL_LABELS)[number][] | ((prev: (typeof MEAL_LABELS)[number][]) => (typeof MEAL_LABELS)[number][])) => {
+    setVisibleMeals((prev) => {
+      const nextVal = typeof next === "function" ? next(prev) : next;
+      try {
+        localStorage.setItem(CALENDAR_VISIBLE_MEALS_KEY, JSON.stringify(nextVal));
+      } catch (_) {}
+      return nextVal;
+    });
+  };
+
+  const toggleMeal = (meal: (typeof MEAL_LABELS)[number]) => {
+    setVisibleMealsAndPersist((prev) => {
+      const has = prev.includes(meal);
+      if (has && prev.length <= 1) return prev;
+      if (has) return prev.filter((m) => m !== meal);
+      return [...prev, meal].sort((a, b) => MEAL_LABELS.indexOf(a) - MEAL_LABELS.indexOf(b));
+    });
+  };
+
+  const selectAllMeals = () => setVisibleMealsAndPersist([...MEAL_LABELS]);
 
   if (activeTab === "calendar") {
     return (
@@ -2720,10 +2763,33 @@ function SectionPlaceholder({
           themeDays={themeDays}
           setThemeDays={setThemeDays}
         />
+        <div className="flex flex-wrap items-center gap-4 rounded-lg border border-teal-100 bg-teal-50/40 px-3 py-2">
+          <span className="text-sm font-medium text-teal-800">Comidas en el calendario:</span>
+          <div className="flex flex-wrap items-center gap-3">
+            {MEAL_LABELS.map((meal) => (
+              <label key={meal} className="flex cursor-pointer items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={visibleMeals.includes(meal)}
+                  onChange={() => toggleMeal(meal)}
+                  className="h-4 w-4 rounded border-teal-300 text-teal-600 focus:ring-teal-500"
+                />
+                <span className="text-sm text-teal-800">{meal}</span>
+              </label>
+            ))}
+            <button
+              type="button"
+              onClick={selectAllMeals}
+              className="text-xs font-medium text-teal-600 hover:text-teal-800 hover:underline"
+            >
+              Todas
+            </button>
+          </div>
+        </div>
         <div className="flex justify-end">
           <button
             type="button"
-            onClick={() => printPlanToPdf(plan, recipes, themeDays)}
+            onClick={() => printPlanToPdf(plan, recipes, themeDays, visibleMeals)}
             className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
           >
             Imprimir plan / Guardar como PDF
@@ -2739,6 +2805,7 @@ function SectionPlaceholder({
             setCalendarViewServings(r.default_servings ?? 4);
           }}
           members={householdMembers}
+          visibleMeals={visibleMeals}
         />
         {calendarViewingRecipe && (
           <RecipeDetailModal

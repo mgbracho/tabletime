@@ -23,9 +23,12 @@ function LoginForm() {
       setError(error.message);
       return;
     }
-    router.push(searchParams.get("next") ?? "/");
+    router.push(next || "/");
     router.refresh();
   };
+
+  const next = searchParams.get("next") ?? "";
+  const isInvite = next.startsWith("/invite/");
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-teal-50 px-4">
@@ -33,6 +36,11 @@ function LoginForm() {
         <h1 className="mb-6 font-serif text-xl font-semibold text-teal-900">
           Iniciar sesión · TableTime
         </h1>
+        {isInvite && (
+          <p className="mb-4 rounded-lg bg-teal-100/80 px-3 py-2 text-sm text-teal-800">
+            Inicia sesión con tu cuenta para unirte al hogar.
+          </p>
+        )}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label htmlFor="email" className="mb-1 block text-sm font-medium text-teal-800">
@@ -74,7 +82,7 @@ function LoginForm() {
         <p className="mt-4 text-center text-sm text-teal-800">
           ¿No tienes cuenta?{" "}
           <a
-            href={searchParams.get("next") ? `/signup?next=${encodeURIComponent(searchParams.get("next")!)}` : "/signup"}
+            href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}
             className="text-teal-600 hover:underline"
           >
             Registrarse

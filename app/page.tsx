@@ -959,8 +959,8 @@ function CalendarWeekView({
         )}
       </div>
       {viewMode === "day" && (
-        <div className="min-w-[400px] rounded-xl border border-teal-100 bg-white">
-          <div className="border-b border-teal-100 px-4 py-2">
+        <div className="min-w-[400px] rounded-xl border border-teal-200 bg-white shadow-sm ring-1 ring-teal-100">
+          <div className="border-b border-teal-200 bg-gradient-to-r from-teal-50 to-teal-100/80 px-4 py-2">
             <span className="text-sm font-semibold text-teal-800">
               {focusedDate.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" })}
             </span>
@@ -1049,10 +1049,10 @@ function CalendarWeekView({
         </div>
       )}
       {viewMode === "month" && (
-        <div className="rounded-xl border border-teal-100 bg-white p-2">
-          <div className="grid grid-cols-7 gap-px text-center text-xs font-semibold text-zinc-500">
+        <div className="rounded-xl border border-teal-200 bg-white p-2 shadow-sm ring-1 ring-teal-100">
+          <div className="grid grid-cols-7 gap-px text-center text-xs font-semibold text-teal-800">
             {DAY_NAMES.map((d) => (
-              <div key={d} className="py-1">{d}</div>
+              <div key={d} className="rounded bg-teal-100/80 py-1">{d}</div>
             ))}
           </div>
           <div className="grid grid-cols-7 gap-px">
@@ -1086,27 +1086,27 @@ function CalendarWeekView({
         </div>
       )}
       {viewMode === "week" && (
-      <div className="min-w-[600px] rounded-xl border border-teal-100 bg-white">
-        <div className="grid grid-cols-8 border-b border-teal-100">
-          <div className="p-2 text-xs font-semibold text-zinc-500" />
+      <div className="min-w-[600px] rounded-xl border border-teal-200 bg-white shadow-sm ring-1 ring-teal-100">
+        <div className="grid grid-cols-8 border-b border-teal-200 bg-teal-300/20">
+          <div className="p-2 text-xs font-semibold text-teal-800" />
           {weekDays.map((d, i) => (
             <div
               key={d.date.toISOString()}
-              className="border-l border-teal-50 p-2 text-center"
+              className="border-l border-teal-200/60 p-2 text-center"
             >
               <span className="block text-xs font-medium text-teal-800">
                 {d.dayLabel}
               </span>
-              <span className="text-xs text-zinc-500">{d.dateLabel}</span>
+              <span className="text-xs text-teal-700/80">{d.dateLabel}</span>
             </div>
           ))}
         </div>
         {visibleMeals.map((meal) => (
           <div
             key={meal}
-            className="grid grid-cols-8 border-b border-teal-50 last:border-b-0"
+            className="grid grid-cols-8 border-b border-teal-100 last:border-b-0"
           >
-            <div className="flex items-center border-r border-teal-50 bg-teal-50/50 px-3 py-2 text-xs font-medium text-teal-800">
+            <div className="flex items-center border-r border-teal-100 bg-amber-50/70 px-3 py-2 text-xs font-medium text-teal-800">
               {meal}
             </div>
             {weekDays.map((d, dayIndex) => {
@@ -1650,8 +1650,8 @@ function RecipesView({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-zinc-700">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-teal-200 bg-teal-50/60 px-4 py-3">
+        <p className="text-sm font-medium text-teal-800">
           {recipes.length} receta{recipes.length !== 1 ? "s" : ""} en tu biblioteca
         </p>
         <div className="flex gap-2">
@@ -1675,7 +1675,7 @@ function RecipesView({
       {showImport && (
         <form
           onSubmit={handleImportSubmit}
-          className="rounded-xl border border-teal-100 bg-teal-50/30 p-4"
+          className="rounded-xl border-l-4 border-l-teal-400 border border-teal-200 bg-teal-300/10 p-4"
         >
           <label className="mb-2 block text-xs font-medium text-teal-800">
             Pegar URL de la receta
@@ -1723,7 +1723,7 @@ function RecipesView({
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="rounded-xl border border-teal-100 bg-teal-50/30 p-4"
+          className="rounded-xl border-l-4 border-l-teal-600 border border-teal-200 bg-teal-50/50 p-4"
         >
           <h3 className="mb-3 text-sm font-semibold text-teal-900">
             {editingId ? "Editar receta" : "Nueva receta"}
@@ -1897,10 +1897,16 @@ function RecipesView({
         </p>
       ) : (
       <ul className="grid gap-2 sm:grid-cols-2">
-        {filteredRecipes.map((r) => (
+        {filteredRecipes.map((r, idx) => (
           <li
             key={r.id}
-            className="flex items-center justify-between gap-3 rounded-lg border border-teal-100 bg-white px-4 py-3"
+            className={`flex items-center justify-between gap-3 rounded-lg border border-teal-100 px-4 py-3 shadow-sm ${
+              idx % 3 === 0
+                ? "border-l-4 border-l-teal-600 bg-teal-50/60"
+                : idx % 3 === 1
+                ? "border-l-4 border-l-teal-400 bg-teal-300/10"
+                : "border-l-4 border-l-amber-600 bg-amber-50/60"
+            }`}
           >
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
@@ -2258,8 +2264,8 @@ function GroceryListView({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-zinc-700">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-teal-200 bg-amber-50/70 px-4 py-3">
+        <p className="text-sm font-medium text-teal-800">
           Generada a partir de tu plan de esta semana. Añade lo que falte y marca al comprar.
         </p>
         {allItems.length > 0 && (
@@ -2320,9 +2326,16 @@ function GroceryListView({
         </p>
       ) : (
         <div className="space-y-4">
-          {grouped.map((group) => (
-            <div key={group.key}>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-teal-700">
+          {grouped.map((group) => {
+            const borderColor =
+              group.key === "vegetables" ? "border-l-teal-600 bg-teal-50/50"
+              : group.key === "dairy" ? "border-l-teal-400 bg-teal-300/10"
+              : group.key === "meat" ? "border-l-amber-600 bg-amber-50/50"
+              : group.key === "pantry" ? "border-l-teal-700 bg-teal-100/50"
+              : "border-l-amber-500 bg-amber-50/40";
+            return (
+            <div key={group.key} className={`rounded-xl border-l-4 ${borderColor} border border-teal-200 p-3`}>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-teal-800">
                 {group.label}
               </h3>
               <ul className="space-y-1">
@@ -2361,7 +2374,8 @@ function GroceryListView({
                 })}
               </ul>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -2405,8 +2419,8 @@ function HouseholdView() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <label className="mb-1 block text-xs font-medium text-zinc-500">Nombre del hogar</label>
+      <div className="rounded-xl border border-teal-200 bg-teal-50/50 px-4 py-3">
+        <label className="mb-1 block text-xs font-medium text-teal-800">Nombre del hogar</label>
         <input
           type="text"
           value={householdName}
@@ -2420,7 +2434,7 @@ function HouseholdView() {
         />
       </div>
 
-      <div className="rounded-xl border border-teal-100 bg-teal-50/30 p-4">
+      <div className="rounded-xl border-l-4 border-l-teal-600 border border-teal-200 bg-teal-50/60 p-4">
         <h3 className="mb-2 text-sm font-semibold text-teal-800">Añadir miembros al hogar</h3>
         <p className="mb-3 text-xs text-zinc-600">
           Pulsa «Generar enlace de invitación» y comparte el enlace con quien quieras que se una (WhatsApp, correo, etc.). Esa persona debe abrir el enlace e iniciar sesión (o registrarse); al hacerlo se unirá al hogar y aparecerá en la lista de miembros más abajo. El enlace caduca en 7 días.
@@ -2475,7 +2489,7 @@ function HouseholdView() {
         )}
       </div>
 
-      <div className="rounded-xl border border-teal-100 bg-teal-50/30 p-4">
+      <div className="rounded-xl border-l-4 border-l-teal-400 border border-teal-200 bg-teal-300/10 p-4">
         <h3 className="mb-2 text-sm font-semibold text-teal-800">Compartir plan y lista (solo lectura)</h3>
         <p className="mb-3 text-xs text-zinc-600">
           Genera un enlace para que alguien vea el plan y la lista de la compra sin poder editarlos. El enlace caduca en 30 días.
@@ -2530,7 +2544,7 @@ function HouseholdView() {
         )}
       </div>
 
-      <div>
+      <div className="rounded-xl border-l-4 border-l-amber-600 border border-teal-200 bg-amber-50/60 p-4">
         <h3 className="mb-3 text-sm font-semibold text-teal-800">Miembros del hogar</h3>
         <p className="mb-2 text-xs text-zinc-500">
           Para añadir más personas que usan la app, usa el bloque «Añadir miembros al hogar» de arriba: genera el enlace, compártelo y cuando abran el enlace e inicien sesión aparecerán aquí.
@@ -2628,7 +2642,7 @@ function HouseholdView() {
           {members.map((member) => (
             <li
               key={member.id}
-              className="flex flex-wrap gap-4 rounded-xl border border-teal-100 bg-white p-4 shadow-sm"
+              className="flex flex-wrap gap-4 rounded-xl border-l-4 border-l-teal-400 border border-teal-200 bg-teal-50/40 p-4 shadow-sm"
             >
               <div className="min-w-0 flex-1">
                 <span className="block text-xs font-medium text-zinc-500">

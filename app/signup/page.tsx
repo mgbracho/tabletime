@@ -1,11 +1,13 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextUrl = searchParams.get("next") ?? "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,7 +24,7 @@ export default function SignupPage() {
       setError(error.message);
       return;
     }
-    router.push("/");
+    router.push(nextUrl);
     router.refresh();
   };
 
@@ -73,11 +75,22 @@ export default function SignupPage() {
         </form>
         <p className="mt-4 text-center text-sm text-teal-800">
           ¿Ya tienes cuenta?{" "}
-          <a href="/login" className="text-teal-600 hover:underline">
+          <a
+            href={nextUrl !== "/" ? `/login?next=${encodeURIComponent(nextUrl)}` : "/login"}
+            className="text-teal-600 hover:underline"
+          >
             Iniciar sesión
           </a>
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Cargando…</div>}>
+      <SignupForm />
+    </Suspense>
   );
 }

@@ -37,7 +37,7 @@ function loadVisibleMeals(): readonly (typeof MEAL_LABELS)[number][] {
 }
 
 /** Valores de slot que no son receta y se excluyen de la lista de la compra */
-const SLOT_STATUS_VALUES = ["leftovers", "skip", "eating_out"] as const;
+const SLOT_STATUS_VALUES = ["leftovers", "skip"] as const;
 type SlotStatusValue = (typeof SLOT_STATUS_VALUES)[number];
 function isSlotStatus(v: string): v is SlotStatusValue {
   return SLOT_STATUS_VALUES.includes(v as SlotStatusValue);
@@ -45,7 +45,6 @@ function isSlotStatus(v: string): v is SlotStatusValue {
 const SLOT_STATUS_LABELS: Record<SlotStatusValue, string> = {
   leftovers: "Sobras",
   skip: "Saltar",
-  eating_out: "Fuera",
 };
 
 /** Devuelve miembros para los que la receta no cumple sus restricciones dietéticas. */
@@ -1028,7 +1027,7 @@ function CalendarWeekView({
                       >
                         Añadir receta
                       </button>
-                      {(["leftovers", "skip", "eating_out"] as const).map((status) => (
+                      {(["leftovers", "skip"] as const).map((status) => (
                         <button
                           key={status}
                           type="button"
@@ -1263,7 +1262,7 @@ function CalendarWeekView({
                   {recipeId ? "Cambiar receta" : "Añadir receta"}
                 </button>
                 <div className="flex flex-wrap gap-1">
-                  {(["leftovers", "skip", "eating_out"] as const).map((status) => (
+                  {(["leftovers", "skip"] as const).map((status) => (
                     <button
                       key={status}
                       type="button"
@@ -1290,7 +1289,7 @@ function CalendarWeekView({
                       setOpenSlotMenu(null);
                     }}
                   >
-                    Borrar de este hueco
+                    Eliminar receta
                   </button>
                 )}
               </div>

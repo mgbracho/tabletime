@@ -68,8 +68,9 @@ export async function POST(request: NextRequest) {
 
   const { data: members } = await db
     .from("household_members")
-    .select("household_id")
+    .select("household_id, created_at")
     .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
     .limit(1);
 
   if (members && members.length > 0) {

@@ -33,8 +33,9 @@ export async function GET(request: NextRequest) {
 
   const { data: myMembershipRows } = await db
     .from("household_members")
-    .select("household_id")
+    .select("household_id, created_at")
     .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
     .limit(1);
 
   const myMembership = myMembershipRows?.[0];
@@ -110,8 +111,9 @@ export async function POST(request: NextRequest) {
 
   const { data: myMembershipRows } = await db
     .from("household_members")
-    .select("household_id")
+    .select("household_id, created_at")
     .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
     .limit(1);
 
   const myMembership = myMembershipRows?.[0];

@@ -20,8 +20,9 @@ export function useAuth() {
     }
     const { data: members } = await supabase
       .from("household_members")
-      .select("household_id")
+      .select("household_id, created_at")
       .eq("user_id", u.id)
+      .order("created_at", { ascending: false })
       .limit(1);
     const hid = members?.[0]?.household_id ?? null;
     setHouseholdId(hid);

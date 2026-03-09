@@ -680,6 +680,7 @@ function CalendarWeekView({
   const [monthStart, setMonthStart] = useState<Date>(() => getMonthStart(new Date()));
 
   const [openSlot, setOpenSlot] = useState<{ date: Date; meal: string } | null>(null);
+  const [openSlotMenu, setOpenSlotMenu] = useState<{ date: Date; meal: string; key: string } | null>(null);
   const [swapSlot, setSwapSlot] = useState<{ date: Date; meal: string; currentRecipeId: string } | null>(null);
   const [pickerSearch, setPickerSearch] = useState("");
   const [pickerTag, setPickerTag] = useState<string | null>(null);
@@ -1114,6 +1115,7 @@ function CalendarWeekView({
               const slotValue = plan[key];
               const recipeId = isSlotStatus(slotValue) ? null : slotValue;
               const isDragOver = dragOverKey === key;
+              const hasRecipe = !!recipeId;
               return (
                 <div
                   key={key}
@@ -1121,118 +1123,55 @@ function CalendarWeekView({
                   onDragOver={(e) => handleDragOver(e, key)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, key)}
+                  onClick={() => setOpenSlotMenu({ date: d.date, meal, key })}
                 >
-                  {isSlotStatus(slotValue) ? (
-                    <div className="group relative flex w-full flex-col items-center justify-center gap-0.5">
-                      <span className="text-xs font-medium text-zinc-600">
-                        {SLOT_STATUS_LABELS[slotValue]}
+                  <div
+                    className={`group flex w-full cursor-pointer flex-col items-center justify-center gap-0.5 ${
+                      hasRecipe
+                        ? "cursor-grab active:cursor-grabbing"
+                        : ""
+                    }`}
+                    draggable={!!recipeId}
+                    onDragStart={recipeId ? (e) => handleDragStart(e, key, recipeId) : undefined}
+                    onDragEnd={recipeId ? handleDragEnd : undefined}
+                  >
+                    <div className="flex w-full items-center justify-center gap-1">
+                      <span
+                        className={`truncate px-2 text-center text-xs ${
+                          recipeId
+                            ? "font-medium text-teal-900"
+                            : isSlotStatus(slotValue)
+                              ? "font-medium text-zinc-600"
+                              : "text-zinc-400 italic"
+                        }`}
+                      >
+                        {recipeId
+                          ? getRecipeTitle(recipeId)
+                          : isSlotStatus(slotValue)
+                            ? SLOT_STATUS_LABELS[slotValue]
+                            : "Vacío"}
                       </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPlan((prev) => {
-                            const next = { ...prev };
-                            delete next[key];
-                            return next;
-                          });
-                        }}
-                        className="absolute -right-1 -top-1 rounded-full bg-zinc-200 px-1.5 text-[10px] text-zinc-600 opacity-0 transition hover:bg-zinc-300 group-hover:opacity-100"
-                        aria-label="Quitar"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ) : recipeId ? (
-                    <div
-                      className="group relative flex w-full cursor-grab flex-col items-center justify-center gap-0.5 active:cursor-grabbing"
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, key, recipeId)}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <div className="flex w-full items-center justify-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const recipe = recipes.find((r) => r.id === recipeId);
-                            if (recipe && onViewRecipe) onViewRecipe(recipe);
-                          }}
-                          className="truncate px-2 text-left text-xs font-medium text-teal-900 hover:underline focus:outline-none focus:ring-1 focus:ring-teal-400"
-                        >
-                          {getRecipeTitle(recipeId)}
-                        </button>
-                        {(() => {
-                          const recipe = recipes.find((r) => r.id === recipeId);
-                          const conflicts = recipe ? getRecipeConflicts(recipe, members) : [];
-                          if (conflicts.length === 0) return null;
-                          return (
-                            <span
-                              className="shrink-0 text-amber-500"
-                              title={conflicts.map((c) => `No apto para ${c.displayName}: falta ${c.missingTags.join(", ")}`).join("\n")}
-                              aria-label="Aviso: receta con posible conflicto dietético"
-                            >
-                              ⚠
-                            </span>
-                          );
-                        })()}
-                      </div>
-                      <div className="flex items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSwapSlot({ date: d.date, meal, currentRecipeId: recipeId });
-                          }}
-                          onDragStart={(e) => e.stopPropagation()}
-                          className="rounded bg-teal-100 px-1.5 py-0.5 text-[10px] font-medium text-teal-700 hover:bg-teal-200"
-                          aria-label="Cambiar receta"
-                        >
-                          Cambiar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => clearSlot(d.date, meal, e)}
-                          onDragStart={(e) => e.stopPropagation()}
-                          className="rounded-full bg-zinc-200 px-1.5 text-[10px] text-zinc-600 hover:bg-zinc-300"
-                          aria-label="Quitar receta"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setOpenSlot({ date: d.date, meal })}
-                        className="rounded-lg border border-dashed border-teal-200 bg-teal-50/30 px-2 py-1.5 text-xs text-teal-600 transition hover:border-teal-300 hover:bg-teal-50"
-                      >
-                        Añadir receta
-                      </button>
-                      <div className="flex flex-wrap justify-center gap-0.5">
-                        {(["leftovers", "skip", "eating_out"] as const).map((status) => (
-                          <button
-                            key={status}
-                            type="button"
-                            onClick={() =>
-                              setPlan((prev) => ({
-                                ...prev,
-                                [key]: status,
-                              }))
-                            }
-                            className="rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] text-zinc-600 hover:bg-zinc-100"
+                      {recipeId && (() => {
+                        const recipe = recipes.find((r) => r.id === recipeId);
+                        const conflicts = recipe ? getRecipeConflicts(recipe, members) : [];
+                        if (conflicts.length === 0) return null;
+                        return (
+                          <span
+                            className="shrink-0 text-amber-500"
+                            title={conflicts.map((c) => `No apto para ${c.displayName}: falta ${c.missingTags.join(", ")}`).join("\n")}
+                            aria-label="Aviso: receta con posible conflicto dietético"
                           >
-                            {SLOT_STATUS_LABELS[status]}
-                          </button>
-                        ))}
-                      </div>
-                      {themeDays[dayIndex]?.[meal] && (
-                        <span className="text-[10px] font-medium text-amber-600">
-                          {themeDays[dayIndex][meal]}
-                        </span>
-                      )}
+                            ⚠
+                          </span>
+                        );
+                      })()}
                     </div>
-                  )}
+                    {themeDays[dayIndex]?.[meal] && (
+                      <span className="text-[10px] font-medium text-amber-600">
+                        {themeDays[dayIndex][meal]}
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -1286,6 +1225,86 @@ function CalendarWeekView({
           </div>
         </div>
       )}
+
+      {openSlotMenu && (() => {
+        const { date, meal, key } = openSlotMenu;
+        const slotValue = plan[key];
+        const isStatus = isSlotStatus(slotValue);
+        const recipeId = isStatus ? null : slotValue;
+        const weekdayIndex = (date.getDay() + 6) % 7;
+        const slotTheme = themeDays[weekdayIndex]?.[meal as MealType];
+        return (
+          <div
+            className="fixed inset-0 z-40 flex items-center justify-center bg-black/30"
+            role="presentation"
+            onClick={() => setOpenSlotMenu(null)}
+          >
+            <div
+              className="mx-4 w-full max-w-xs rounded-2xl bg-white p-4 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-label="Acciones del hueco"
+            >
+              <p className="text-xs font-medium text-teal-800">
+                {date.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "short" })} · {meal}
+              </p>
+              {slotTheme && (
+                <p className="mt-0.5 text-[11px] text-amber-600">Tema: {slotTheme}</p>
+              )}
+              <div className="mt-3 space-y-2">
+                <button
+                  type="button"
+                  className="w-full rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700"
+                  onClick={() => {
+                    setOpenSlot({ date, meal });
+                    setOpenSlotMenu(null);
+                  }}
+                >
+                  {recipeId ? "Cambiar receta" : "Añadir receta"}
+                </button>
+                <div className="flex flex-wrap gap-1">
+                  {(["leftovers", "skip", "eating_out"] as const).map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100"
+                      onClick={() => {
+                        setPlan((prev) => ({ ...prev, [key]: status }));
+                        setOpenSlotMenu(null);
+                      }}
+                    >
+                      {SLOT_STATUS_LABELS[status]}
+                    </button>
+                  ))}
+                </div>
+                {(recipeId || slotValue) && (
+                  <button
+                    type="button"
+                    className="w-full rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+                    onClick={() => {
+                      setPlan((prev) => {
+                        const next = { ...prev };
+                        delete next[key];
+                        return next;
+                      });
+                      setOpenSlotMenu(null);
+                    }}
+                  >
+                    Borrar de este hueco
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                className="mt-3 w-full text-center text-xs text-zinc-500 hover:underline"
+                onClick={() => setOpenSlotMenu(null)}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {swapSlot && (() => {
         const weekdayIndex = (swapSlot.date.getDay() + 6) % 7;
@@ -2952,7 +2971,7 @@ export default function Home() {
               TableTime
             </h1>
             <p className="mt-2 max-w-xl text-sm sm:text-base text-zinc-700">
-              Organiza los meals de tu familia sin estrés: calendario visual, recetas compartidas y
+              Organiza las comidas de tu familia sin estrés: calendario visual, recetas compartidas y
               lista de la compra inteligente en un solo lugar.
             </p>
           </div>

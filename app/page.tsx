@@ -2813,10 +2813,6 @@ function SectionPlaceholder({
   if (activeTab === "calendar") {
     return (
       <div className="flex flex-col gap-4">
-        <ThemeConfig
-          themeDays={themeDays}
-          setThemeDays={setThemeDays}
-        />
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2">
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm font-medium text-teal-800">Comidas:</span>

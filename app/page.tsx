@@ -671,6 +671,7 @@ function CalendarWeekView({
   setPlan,
   themeDays,
   onViewRecipe,
+  onEditThemes,
   members = [],
   visibleMeals = [...MEAL_LABELS],
 }: {
@@ -679,6 +680,7 @@ function CalendarWeekView({
   setPlan: React.Dispatch<React.SetStateAction<PlanState>>;
   themeDays: ThemeDays;
   onViewRecipe?: (recipe: Recipe) => void;
+  onEditThemes?: () => void;
   members?: HouseholdMember[];
   visibleMeals?: readonly (typeof MEAL_LABELS)[number][];
 }) {
@@ -934,6 +936,21 @@ function CalendarWeekView({
                   onClick={() => setMoreMenuOpen(false)}
                 />
                 <div className="absolute right-0 top-full z-20 mt-1 min-w-[220px] rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
+                  {onEditThemes && (
+                    <>
+                      <button
+                        type="button"
+                        className="block w-full px-3 py-2 text-left text-sm text-amber-800 hover:bg-amber-50"
+                        onClick={() => {
+                          onEditThemes();
+                          setMoreMenuOpen(false);
+                        }}
+                      >
+                        Editar temas
+                      </button>
+                      <div className="my-1 border-t border-zinc-100" />
+                    </>
+                  )}
                   <button
                     type="button"
                     className="block w-full px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-100"
@@ -954,24 +971,6 @@ function CalendarWeekView({
                   >
                     Borrar semana actual
                   </button>
-                  <div className="my-1 border-t border-zinc-100" />
-                  <span className="block px-3 py-1 text-xs font-medium text-zinc-500">
-                    Borrar un día
-                  </span>
-                  {weekDays.map((d, i) => (
-                    <button
-                      key={d.date.toISOString()}
-                      type="button"
-                      className="block w-full px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-100"
-                      onClick={() => {
-                        setClearDayIndex(i);
-                        setClearConfirm("day");
-                        setMoreMenuOpen(false);
-                      }}
-                    >
-                      {d.dayLabel} {d.dateLabel}
-                    </button>
-                  ))}
                   <div className="my-1 border-t border-zinc-100" />
                   <button
                     type="button"
@@ -1029,7 +1028,7 @@ function CalendarWeekView({
                       : isSlotStatus(slotValue)
                         ? SLOT_STATUS_LABELS[slotValue]
                         : slotTheme
-                          ? `Tema: ${slotTheme}`
+                          ? slotTheme
                           : "Vacío"}
                   </span>
                   {recipeId && slotTheme && (
@@ -1144,7 +1143,7 @@ function CalendarWeekView({
                           : isSlotStatus(slotValue)
                             ? SLOT_STATUS_LABELS[slotValue]
                             : themeDays[dayIndex]?.[meal]
-                              ? `Tema: ${themeDays[dayIndex][meal]}`
+                              ? themeDays[dayIndex][meal]
                               : "Vacío"}
                       </span>
                       {recipeId && (() => {
@@ -2817,13 +2816,6 @@ function SectionPlaceholder({
               </button>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setThemeConfigOpen(true)}
-            className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50"
-          >
-            Editar temas
-          </button>
         </div>
         <CalendarWeekView
           recipes={recipes}
@@ -2834,6 +2826,7 @@ function SectionPlaceholder({
             setCalendarViewingRecipe(r);
             setCalendarViewServings(r.default_servings ?? 4);
           }}
+          onEditThemes={() => setThemeConfigOpen(true)}
           members={householdMembers}
           visibleMeals={visibleMeals}
         />

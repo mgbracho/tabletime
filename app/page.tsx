@@ -1019,16 +1019,20 @@ function CalendarWeekView({
                         ? "font-medium text-teal-900"
                         : isSlotStatus(slotValue)
                           ? "font-medium text-zinc-600"
-                          : "text-zinc-400 italic"
+                          : slotTheme
+                            ? "text-amber-700"
+                            : "text-zinc-400 italic"
                     }`}
                   >
                     {recipeId
                       ? getRecipeTitle(recipeId)
                       : isSlotStatus(slotValue)
                         ? SLOT_STATUS_LABELS[slotValue]
-                        : "Vacío"}
+                        : slotTheme
+                          ? `Tema: ${slotTheme}`
+                          : "Vacío"}
                   </span>
-                  {slotTheme && (
+                  {recipeId && slotTheme && (
                     <span className="mt-0.5 block text-xs text-amber-600">Tema: {slotTheme}</span>
                   )}
                 </button>
@@ -1130,14 +1134,18 @@ function CalendarWeekView({
                             ? "font-medium text-teal-900"
                             : isSlotStatus(slotValue)
                               ? "font-medium text-zinc-600"
-                              : "text-zinc-400 italic"
+                              : themeDays[dayIndex]?.[meal]
+                                ? "text-amber-700"
+                                : "text-zinc-400 italic"
                         }`}
                       >
                         {recipeId
                           ? getRecipeTitle(recipeId)
                           : isSlotStatus(slotValue)
                             ? SLOT_STATUS_LABELS[slotValue]
-                            : "Vacío"}
+                            : themeDays[dayIndex]?.[meal]
+                              ? `Tema: ${themeDays[dayIndex][meal]}`
+                              : "Vacío"}
                       </span>
                       {recipeId && (() => {
                         const recipe = recipes.find((r) => r.id === recipeId);
@@ -1154,7 +1162,7 @@ function CalendarWeekView({
                         );
                       })()}
                     </div>
-                    {themeDays[dayIndex]?.[meal] && (
+                    {recipeId && themeDays[dayIndex]?.[meal] && (
                       <span className="text-[10px] font-medium text-amber-600">
                         {themeDays[dayIndex][meal]}
                       </span>
@@ -2803,7 +2811,7 @@ function SectionPlaceholder({
               <button
                 type="button"
                 onClick={selectAllMeals}
-                className="text-xs font-medium text-teal-600 hover:text-teal-800 hover:underline"
+                className="rounded border border-teal-200 px-2 py-0.5 text-xs font-medium text-teal-700 hover:bg-teal-50"
               >
                 Todas
               </button>

@@ -1007,34 +1007,55 @@ function CalendarWeekView({
                 className="flex items-center gap-3 border-b border-teal-50 px-4 py-3 last:border-b-0"
               >
                 <span className="w-24 shrink-0 text-sm font-medium text-teal-800">{meal}</span>
-                <button
-                  type="button"
-                  onClick={() => setOpenSlotMenu({ date: new Date(focusedDate), meal, key })}
-                  className="min-h-[44px] flex-1 rounded-lg border border-teal-50 px-3 py-2 text-left hover:bg-teal-50"
-                >
-                  <span
-                    className={`block text-sm ${
-                      recipeId
-                        ? "font-medium text-teal-900"
-                        : isSlotStatus(slotValue)
-                          ? "font-medium text-zinc-600"
+                <div className="min-h-[44px] flex-1 flex items-center gap-2 rounded-lg border border-teal-50 px-3 py-2 hover:bg-teal-50/50">
+                  {recipeId ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const recipe = recipes.find((r) => r.id === recipeId);
+                          if (recipe && onViewRecipe) onViewRecipe(recipe);
+                        }}
+                        className="flex-1 text-left text-sm font-medium text-teal-900 hover:underline focus:outline-none focus:ring-1 focus:ring-teal-400 rounded"
+                      >
+                        {getRecipeTitle(recipeId)}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOpenSlotMenu({ date: new Date(focusedDate), meal, key })}
+                        className="shrink-0 rounded p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                        aria-label="Opciones del hueco"
+                      >
+                        ⋯
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setOpenSlotMenu({ date: new Date(focusedDate), meal, key })}
+                      className="flex-1 text-left"
+                    >
+                      <span
+                        className={`block text-sm ${
+                          isSlotStatus(slotValue)
+                            ? "font-medium text-zinc-600"
+                            : slotTheme
+                              ? "text-amber-700"
+                              : "text-zinc-400 italic"
+                        }`}
+                      >
+                        {isSlotStatus(slotValue)
+                          ? SLOT_STATUS_LABELS[slotValue]
                           : slotTheme
-                            ? "text-amber-700"
-                            : "text-zinc-400 italic"
-                    }`}
-                  >
-                    {recipeId
-                      ? getRecipeTitle(recipeId)
-                      : isSlotStatus(slotValue)
-                        ? SLOT_STATUS_LABELS[slotValue]
-                        : slotTheme
-                          ? slotTheme
-                          : "Vacío"}
-                  </span>
-                  {recipeId && slotTheme && (
-                    <span className="mt-0.5 block text-xs text-amber-600">Tema: {slotTheme}</span>
+                            ? slotTheme
+                            : "Vacío"}
+                      </span>
+                    </button>
                   )}
-                </button>
+                </div>
+                {recipeId && slotTheme ? (
+                  <span className="text-xs text-amber-600">Tema: {slotTheme}</span>
+                ) : null}
               </div>
             );
           })}
@@ -1114,7 +1135,14 @@ function CalendarWeekView({
                   onDragOver={(e) => handleDragOver(e, key)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, key)}
-                  onClick={() => setOpenSlotMenu({ date: d.date, meal, key })}
+                  onClick={() => {
+                    if (recipeId) {
+                      const recipe = recipes.find((r) => r.id === recipeId);
+                      if (recipe && onViewRecipe) onViewRecipe(recipe);
+                    } else {
+                      setOpenSlotMenu({ date: d.date, meal, key });
+                    }
+                  }}
                 >
                   <div
                     className={`group flex w-full cursor-pointer flex-col items-center justify-center gap-0.5 ${
@@ -1138,14 +1166,41 @@ function CalendarWeekView({
                                 : "text-zinc-400 italic"
                         }`}
                       >
-                        {recipeId
-                          ? getRecipeTitle(recipeId)
-                          : isSlotStatus(slotValue)
-                            ? SLOT_STATUS_LABELS[slotValue]
-                            : themeDays[dayIndex]?.[meal]
-                              ? themeDays[dayIndex][meal]
-                              : "Vacío"}
+                        {recipeId ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const recipe = recipes.find((r) => r.id === recipeId);
+                              if (recipe && onViewRecipe) onViewRecipe(recipe);
+                            }}
+                            className="hover:underline focus:outline-none focus:ring-1 focus:ring-teal-400 rounded"
+                          >
+                            {getRecipeTitle(recipeId)}
+                          </button>
+                        ) : (
+                          <>
+                            {isSlotStatus(slotValue)
+                              ? SLOT_STATUS_LABELS[slotValue]
+                              : themeDays[dayIndex]?.[meal]
+                                ? themeDays[dayIndex][meal]
+                                : "Vacío"}
+                          </>
+                        )}
                       </span>
+                      {recipeId && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenSlotMenu({ date: d.date, meal, key });
+                          }}
+                          className="shrink-0 rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 text-xs leading-none"
+                          aria-label="Opciones del hueco"
+                        >
+                          ⋯
+                        </button>
+                      )}
                       {recipeId && (() => {
                         const recipe = recipes.find((r) => r.id === recipeId);
                         const conflicts = recipe ? getRecipeConflicts(recipe, members) : [];

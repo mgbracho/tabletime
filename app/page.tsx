@@ -763,7 +763,7 @@ function CalendarWeekView({
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
   const [clearConfirm, setClearConfirm] = useState<"day" | "week" | null>(null);
   const [clearDayIndex, setClearDayIndex] = useState<number | null>(null);
-  const [clearMenuOpen, setClearMenuOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const handleDragStart = (e: React.DragEvent, sourceKey: string, recipeId: string) => {
     e.dataTransfer.setData("application/slot-key", sourceKey);
     e.dataTransfer.setData("application/recipe-id", recipeId);
@@ -918,61 +918,75 @@ function CalendarWeekView({
           )}
         </div>
         {viewMode === "week" && (
-          <>
-        <button
-          type="button"
-          onClick={copyFromPreviousWeek}
-          className="rounded-lg bg-amber-100 px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-200"
-        >
-          Copiar semana anterior
-        </button>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setClearMenuOpen((o) => !o)}
-            className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
-          >
-            Borrar ▼
-          </button>
-          {clearMenuOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                aria-hidden
-                onClick={() => setClearMenuOpen(false)}
-              />
-              <div className="absolute right-0 top-full z-20 mt-1 min-w-[180px] rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
-                <button
-                  type="button"
-                  className="block w-full px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-100"
-                  onClick={() => {
-                    setClearConfirm("week");
-                    setClearMenuOpen(false);
-                  }}
-                >
-                  Borrar semana actual
-                </button>
-                <div className="my-1 border-t border-zinc-100" />
-                <span className="block px-3 py-1 text-xs font-medium text-zinc-500">Borrar un día</span>
-                {weekDays.map((d, i) => (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMoreMenuOpen((o) => !o)}
+              className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
+            >
+              Más ▾
+            </button>
+            {moreMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  aria-hidden
+                  onClick={() => setMoreMenuOpen(false)}
+                />
+                <div className="absolute right-0 top-full z-20 mt-1 min-w-[220px] rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
                   <button
-                    key={d.date.toISOString()}
                     type="button"
                     className="block w-full px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-100"
                     onClick={() => {
-                      setClearDayIndex(i);
-                      setClearConfirm("day");
-                      setClearMenuOpen(false);
+                      copyFromPreviousWeek();
+                      setMoreMenuOpen(false);
                     }}
                   >
-                    {d.dayLabel} {d.dateLabel}
+                    Copiar semana anterior
                   </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-          </>
+                  <button
+                    type="button"
+                    className="block w-full px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50"
+                    onClick={() => {
+                      setClearConfirm("week");
+                      setMoreMenuOpen(false);
+                    }}
+                  >
+                    Borrar semana actual
+                  </button>
+                  <div className="my-1 border-t border-zinc-100" />
+                  <span className="block px-3 py-1 text-xs font-medium text-zinc-500">
+                    Borrar un día
+                  </span>
+                  {weekDays.map((d, i) => (
+                    <button
+                      key={d.date.toISOString()}
+                      type="button"
+                      className="block w-full px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-100"
+                      onClick={() => {
+                        setClearDayIndex(i);
+                        setClearConfirm("day");
+                        setMoreMenuOpen(false);
+                      }}
+                    >
+                      {d.dayLabel} {d.dateLabel}
+                    </button>
+                  ))}
+                  <div className="my-1 border-t border-zinc-100" />
+                  <button
+                    type="button"
+                    className="block w-full px-3 py-2 text-left text-sm text-teal-700 hover:bg-teal-50"
+                    onClick={() => {
+                      printPlanToPdf(plan, recipes, themeDays, visibleMeals);
+                      setMoreMenuOpen(false);
+                    }}
+                  >
+                    Imprimir / PDF
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         )}
       </div>
       {viewMode === "day" && (
@@ -994,72 +1008,30 @@ function CalendarWeekView({
                 className="flex items-center gap-3 border-b border-teal-50 px-4 py-3 last:border-b-0"
               >
                 <span className="w-24 shrink-0 text-sm font-medium text-teal-800">{meal}</span>
-                <div className="min-h-[44px] flex-1">
-                  {isSlotStatus(slotValue) ? (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-zinc-600">{SLOT_STATUS_LABELS[slotValue]}</span>
-                      <button
-                        type="button"
-                        onClick={() => setPlan((prev) => { const next = { ...prev }; delete next[key]; return next; })}
-                        className="rounded-full bg-zinc-200 px-2 py-0.5 text-xs text-zinc-600 hover:bg-zinc-300"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ) : recipeId ? (
-                    <div className="flex items-center justify-between gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const recipe = recipes.find((r) => r.id === recipeId);
-                          if (recipe && onViewRecipe) onViewRecipe(recipe);
-                        }}
-                        className="text-left text-sm font-medium text-teal-900 hover:underline"
-                      >
-                        {getRecipeTitle(recipeId)}
-                      </button>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setSwapSlot({ date: new Date(focusedDate), meal, currentRecipeId: recipeId })}
-                          className="rounded bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700 hover:bg-teal-200"
-                        >
-                          Cambiar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPlan((prev) => { const next = { ...prev }; delete next[key]; return next; })}
-                          className="rounded-full bg-zinc-200 px-2 py-0.5 text-xs text-zinc-600 hover:bg-zinc-300"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setOpenSlot({ date: new Date(focusedDate), meal })}
-                        className="rounded-lg border border-dashed border-teal-200 bg-teal-50/30 px-3 py-1.5 text-sm text-teal-600 hover:bg-teal-50"
-                      >
-                        Añadir receta
-                      </button>
-                      {(["leftovers", "skip"] as const).map((status) => (
-                        <button
-                          key={status}
-                          type="button"
-                          onClick={() => setPlan((prev) => ({ ...prev, [key]: status }))}
-                          className="rounded border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100"
-                        >
-                          {SLOT_STATUS_LABELS[status]}
-                        </button>
-                      ))}
-                      {slotTheme && (
-                        <span className="text-xs text-amber-600">Tema: {slotTheme}</span>
-                      )}
-                    </div>
+                <button
+                  type="button"
+                  onClick={() => setOpenSlotMenu({ date: new Date(focusedDate), meal, key })}
+                  className="min-h-[44px] flex-1 rounded-lg border border-teal-50 px-3 py-2 text-left hover:bg-teal-50"
+                >
+                  <span
+                    className={`block text-sm ${
+                      recipeId
+                        ? "font-medium text-teal-900"
+                        : isSlotStatus(slotValue)
+                          ? "font-medium text-zinc-600"
+                          : "text-zinc-400 italic"
+                    }`}
+                  >
+                    {recipeId
+                      ? getRecipeTitle(recipeId)
+                      : isSlotStatus(slotValue)
+                        ? SLOT_STATUS_LABELS[slotValue]
+                        : "Vacío"}
+                  </span>
+                  {slotTheme && (
+                    <span className="mt-0.5 block text-xs text-amber-600">Tema: {slotTheme}</span>
                   )}
-                </div>
+                </button>
               </div>
             );
           })}
@@ -2843,15 +2815,6 @@ function SectionPlaceholder({
             className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50"
           >
             Editar temas
-          </button>
-        </div>
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => printPlanToPdf(plan, recipes, themeDays, visibleMeals)}
-            className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
-          >
-            Imprimir plan / Guardar como PDF
           </button>
         </div>
         <CalendarWeekView

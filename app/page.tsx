@@ -580,26 +580,43 @@ type ThemeDays = Record<number, Partial<Record<MealType, string>>>;
 function ThemeConfig({
   themeDays,
   setThemeDays,
+  open,
+  onClose,
 }: {
   themeDays: ThemeDays;
   setThemeDays: React.Dispatch<React.SetStateAction<ThemeDays>>;
+  open: boolean;
+  onClose: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  if (!open) return null;
   return (
-    <div className="mb-4 rounded-xl border border-amber-100 bg-amber-50/50">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-amber-900"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      role="dialog"
+      aria-modal
+      aria-label="Editar temas de la semana"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
       >
-        <span>Temas de la semana</span>
-        <span className="text-amber-600">{open ? "▼" : "▶"}</span>
-      </button>
-      {open && (
-        <div className="border-t border-amber-100 px-4 py-3">
-          <p className="mb-3 text-xs text-amber-800">
-            Asigna temas por día y comida. Puedes tener uno para el desayuno y otro para la cena, por ejemplo. Las recetas que coincidan aparecerán primero al elegir.
-          </p>
+        <div className="flex items-center justify-between border-b border-amber-100 px-4 py-3">
+          <div>
+            <h2 className="text-sm font-semibold text-amber-900">Temas de la semana</h2>
+            <p className="mt-0.5 text-xs text-amber-700">
+              Asigna un tema por día y comida. Las recetas que coincidan aparecerán primero al elegir.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="rounded-full border border-amber-200 px-2 py-1 text-xs text-amber-700 hover:bg-amber-50"
+            onClick={onClose}
+          >
+            Cerrar
+          </button>
+        </div>
+        <div className="max-h-[70vh] overflow-auto px-4 py-3">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[500px] text-left text-sm">
               <thead>
@@ -643,7 +660,7 @@ function ThemeConfig({
             </table>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -2770,6 +2787,7 @@ function SectionPlaceholder({
   const [calendarViewingRecipe, setCalendarViewingRecipe] = useState<Recipe | null>(null);
   const [calendarViewServings, setCalendarViewServings] = useState(4);
   const [visibleMeals, setVisibleMeals] = useState<(typeof MEAL_LABELS)[number][]>(() => [...loadVisibleMeals()]);
+  const [themeConfigOpen, setThemeConfigOpen] = useState(false);
 
   const setVisibleMealsAndPersist = (next: (typeof MEAL_LABELS)[number][] | ((prev: (typeof MEAL_LABELS)[number][]) => (typeof MEAL_LABELS)[number][])) => {
     setVisibleMeals((prev) => {
@@ -2799,28 +2817,37 @@ function SectionPlaceholder({
           themeDays={themeDays}
           setThemeDays={setThemeDays}
         />
-        <div className="flex flex-wrap items-center gap-4 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2">
-          <span className="text-sm font-medium text-teal-800">Comidas en el calendario:</span>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2">
           <div className="flex flex-wrap items-center gap-3">
-            {MEAL_LABELS.map((meal) => (
-              <label key={meal} className="flex cursor-pointer items-center gap-1.5">
-                <input
-                  type="checkbox"
-                  checked={visibleMeals.includes(meal)}
-                  onChange={() => toggleMeal(meal)}
-                  className="h-4 w-4 rounded border-teal-300 text-teal-600 focus:ring-teal-500"
-                />
-                <span className="text-sm text-teal-800">{meal}</span>
-              </label>
-            ))}
-            <button
-              type="button"
-              onClick={selectAllMeals}
-              className="text-xs font-medium text-teal-600 hover:text-teal-800 hover:underline"
-            >
-              Todas
-            </button>
+            <span className="text-sm font-medium text-teal-800">Comidas:</span>
+            <div className="flex flex-wrap items-center gap-3">
+              {MEAL_LABELS.map((meal) => (
+                <label key={meal} className="flex cursor-pointer items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={visibleMeals.includes(meal)}
+                    onChange={() => toggleMeal(meal)}
+                    className="h-4 w-4 rounded border-teal-300 text-teal-600 focus:ring-teal-500"
+                  />
+                  <span className="text-sm text-teal-800">{meal}</span>
+                </label>
+              ))}
+              <button
+                type="button"
+                onClick={selectAllMeals}
+                className="text-xs font-medium text-teal-600 hover:text-teal-800 hover:underline"
+              >
+                Todas
+              </button>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={() => setThemeConfigOpen(true)}
+            className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50"
+          >
+            Editar temas
+          </button>
         </div>
         <div className="flex justify-end">
           <button
@@ -2855,6 +2882,12 @@ function SectionPlaceholder({
             }}
           />
         )}
+        <ThemeConfig
+          themeDays={themeDays}
+          setThemeDays={setThemeDays}
+          open={themeConfigOpen}
+          onClose={() => setThemeConfigOpen(false)}
+        />
       </div>
     );
   }

@@ -4,7 +4,7 @@ import { useTableTimeData } from "@/lib/sync/use-tabletime-data";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useHouseholdProfile } from "@/lib/hooks/use-household-profile";
 import type { HouseholdMember } from "@/lib/hooks/use-household-profile";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const TABS = [
   { id: "calendar", label: "Calendario" },
@@ -703,6 +703,14 @@ function CalendarWeekView({
   const [pickerSearch, setPickerSearch] = useState("");
   const [pickerTag, setPickerTag] = useState<string | null>(null);
 
+  // En pantallas pequeñas, empezamos en vista Día para que sea más legible.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.innerWidth < 768) {
+      setViewMode("day");
+    }
+  }, []);
+
   const weekDays = getWeekDates(weekStart);
   const weekTitle =
     weekDays[0].date.getDate() +
@@ -989,7 +997,7 @@ function CalendarWeekView({
         )}
       </div>
       {viewMode === "day" && (
-        <div className="min-w-[400px] rounded-xl border border-teal-200 bg-white shadow-sm ring-1 ring-teal-100">
+        <div className="w-full max-w-md rounded-xl border border-teal-200 bg-white shadow-sm ring-1 ring-teal-100">
           <div className="border-b border-teal-200 bg-gradient-to-r from-teal-50 to-teal-100/80 px-4 py-2">
             <span className="text-sm font-semibold text-teal-800">
               {focusedDate.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" })}
@@ -1099,7 +1107,8 @@ function CalendarWeekView({
         </div>
       )}
       {viewMode === "week" && (
-      <div className="min-w-[600px] rounded-xl border border-teal-200 bg-white shadow-sm ring-1 ring-teal-100">
+      <div className="w-full overflow-x-auto">
+      <div className="min-w-[600px] md:min-w-[700px] rounded-xl border border-teal-200 bg-white shadow-sm ring-1 ring-teal-100">
         <div className="grid grid-cols-8 border-b border-teal-200 bg-teal-300/20">
           <div className="p-2 text-xs font-semibold text-teal-800" />
           {weekDays.map((d, i) => (
@@ -1228,6 +1237,7 @@ function CalendarWeekView({
           </div>
         ))}
       </div>
+      </div>
       )}
 
       {clearConfirm && (
@@ -1285,7 +1295,7 @@ function CalendarWeekView({
         const slotTheme = themeDays[weekdayIndex]?.[meal as MealType];
         return (
           <div
-            className="fixed inset-0 z-40 flex items-center justify-center bg-black/30"
+            className="fixed inset-0 z-40 flex items-end justify-center bg-black/30 md:items-center"
             role="presentation"
             onClick={() => setOpenSlotMenu(null)}
           >

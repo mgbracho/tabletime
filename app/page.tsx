@@ -1167,7 +1167,7 @@ function CalendarWeekView({
                   >
                     <div className="flex w-full items-center justify-center gap-1">
                       <span
-                        className={`truncate px-2 text-center text-xs ${
+                        className={`px-2 text-center text-xs leading-snug ${
                           recipeId
                             ? "font-medium text-teal-900"
                             : isSlotStatus(slotValue)

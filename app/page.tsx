@@ -3078,48 +3078,6 @@ export default function Home() {
           />
         </section>
 
-        <section className="grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border-l-4 border-l-teal-600 bg-teal-50/90 p-5 shadow-md ring-1 ring-teal-200/60">
-            <h2 className="text-sm font-semibold text-teal-800">
-              1. Calendario de comidas
-            </h2>
-            <p className="mt-2 text-sm text-teal-800/80">
-              Ve tu semana de un vistazo con temas como <span className="font-medium">Pasta Tuesday</span> o{" "}
-              <span className="font-medium">Kids Choice Night</span>. Cada slot tendrá su receta asignada.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border-l-4 border-l-teal-400 bg-teal-300/10 p-5 shadow-md ring-1 ring-teal-200/60">
-            <h2 className="text-sm font-semibold text-teal-800">
-              2. Biblioteca de recetas
-            </h2>
-            <p className="mt-2 text-sm text-teal-800/80">
-              Guarda tus recetas favoritas, impórtalas desde cualquier web y etiquétalas como
-              <span className="font-medium"> kid-friendly</span>,{" "}
-              <span className="font-medium">rápidas</span> o{" "}
-              <span className="font-medium">alta proteína</span>.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border-l-4 border-l-amber-600 bg-amber-50/90 p-5 shadow-md ring-1 ring-amber-200/60">
-            <h2 className="text-sm font-semibold text-teal-800">
-              3. Lista de la compra
-            </h2>
-            <p className="mt-2 text-sm text-teal-800/80">
-              Genera automáticamente la lista de la compra para toda la semana, compartida en tiempo
-              real con tu pareja y peques.
-            </p>
-          </div>
-        </section>
-
-        <section className="rounded-2xl bg-gradient-to-r from-teal-600 to-teal-700 px-6 py-5 text-white">
-          <h2 className="text-sm font-semibold">Progreso</h2>
-          <p className="mt-2 text-sm text-white/90">
-            <span className="font-medium">Calendario</span>,{" "}
-            <span className="font-medium">Recetas</span> y{" "}
-            <span className="font-medium">Lista de la compra</span> ya están conectados: planifica la semana, añade recetas con ingredientes y genera la lista al instante.
-          </p>
-        </section>
       </main>
 
       {toastMessage && (

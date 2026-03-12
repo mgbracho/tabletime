@@ -1140,7 +1140,7 @@ function CalendarWeekView({
               mealIndex % 2 === 0 ? "bg-teal-25/40" : "bg-white"
             }`}
           >
-            <div className="flex items-center border-r border-teal-50 bg-teal-50/70 px-3 py-1.5 text-[11px] font-medium text-teal-900">
+            <div className="flex items-center border-r border-teal-50 bg-teal-50/70 px-2 py-1.5 text-[11px] font-medium text-teal-900">
               {meal}
             </div>
             {weekDays.map((d, dayIndex) => {
@@ -1153,7 +1153,7 @@ function CalendarWeekView({
               return (
                 <div
                   key={key}
-                  className={`flex min-h-[40px] items-center justify-center border-l border-teal-50 px-2 py-1.5 transition-colors ${
+                  className={`flex min-h-[40px] items-center justify-center border-l border-teal-50 px-1.5 py-1.5 transition-colors ${
                     isDragOver
                       ? "bg-teal-100 ring-1 ring-teal-300"
                       : isTodayColumn

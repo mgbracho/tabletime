@@ -1111,8 +1111,8 @@ function CalendarWeekView({
       )}
       {viewMode === "week" && (
       <div className="w-full overflow-x-auto">
-      <div className="min-w-[600px] md:min-w-[700px] rounded-2xl border border-teal-100 bg-white/95 shadow-sm ring-1 ring-teal-50">
-        <div className="grid grid-cols-8 border-b border-teal-100 bg-gradient-to-r from-teal-50/80 via-teal-50 to-teal-50/80">
+      <div className="min-w-[560px] md:min-w-[640px] rounded-2xl border border-teal-100 bg-white/95 shadow-sm ring-1 ring-teal-50">
+        <div className="grid [grid-template-columns:auto_repeat(7,minmax(0,1fr))] border-b border-teal-100 bg-gradient-to-r from-teal-50/80 via-teal-50 to-teal-50/80">
           <div className="p-2 text-[11px] font-semibold uppercase tracking-wide text-teal-700" />
           {weekDays.map((d) => {
             const isTodayHeader = d.date.toDateString() === today.toDateString();
@@ -1136,7 +1136,7 @@ function CalendarWeekView({
         {visibleMeals.map((meal, mealIndex) => (
           <div
             key={meal}
-            className={`grid grid-cols-8 border-b border-teal-50 last:border-b-0 ${
+            className={`grid [grid-template-columns:auto_repeat(7,minmax(0,1fr))] border-b border-teal-50 last:border-b-0 ${
               mealIndex % 2 === 0 ? "bg-teal-25/40" : "bg-white"
             }`}
           >

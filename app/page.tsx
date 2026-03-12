@@ -712,6 +712,7 @@ function CalendarWeekView({
   }, []);
 
   const weekDays = getWeekDates(weekStart);
+  const today = new Date();
   const weekTitle =
     weekDays[0].date.getDate() +
     " – " +
@@ -1110,27 +1111,36 @@ function CalendarWeekView({
       )}
       {viewMode === "week" && (
       <div className="w-full overflow-x-auto">
-      <div className="min-w-[600px] md:min-w-[700px] rounded-xl border border-teal-200 bg-white shadow-sm ring-1 ring-teal-100">
-        <div className="grid grid-cols-8 border-b border-teal-200 bg-teal-300/20">
-          <div className="p-2 text-xs font-semibold text-teal-800" />
-          {weekDays.map((d, i) => (
-            <div
-              key={d.date.toISOString()}
-              className="border-l border-teal-200/60 p-2 text-center"
-            >
-              <span className="block text-xs font-medium text-teal-800">
-                {d.dayLabel}
-              </span>
-              <span className="text-xs text-teal-700/80">{d.dateLabel}</span>
-            </div>
-          ))}
+      <div className="min-w-[600px] md:min-w-[700px] rounded-2xl border border-teal-100 bg-white/95 shadow-sm ring-1 ring-teal-50">
+        <div className="grid grid-cols-8 border-b border-teal-100 bg-gradient-to-r from-teal-50/80 via-teal-50 to-teal-50/80">
+          <div className="p-2 text-[11px] font-semibold uppercase tracking-wide text-teal-700" />
+          {weekDays.map((d) => {
+            const isTodayHeader = d.date.toDateString() === today.toDateString();
+            return (
+              <div
+                key={d.date.toISOString()}
+                className={`border-l border-teal-100 px-2 py-2 text-center text-xs ${
+                  isTodayHeader ? "bg-white shadow-sm" : ""
+                }`}
+              >
+                <span className="block text-[11px] font-medium text-teal-800">
+                  {d.dayLabel}
+                </span>
+                <span className={`text-xs ${isTodayHeader ? "text-teal-900 font-semibold" : "text-teal-700/80"}`}>
+                  {d.dateLabel}
+                </span>
+              </div>
+            );
+          })}
         </div>
-        {visibleMeals.map((meal) => (
+        {visibleMeals.map((meal, mealIndex) => (
           <div
             key={meal}
-            className="grid grid-cols-8 border-b border-teal-100 last:border-b-0"
+            className={`grid grid-cols-8 border-b border-teal-50 last:border-b-0 ${
+              mealIndex % 2 === 0 ? "bg-teal-25/40" : "bg-white"
+            }`}
           >
-            <div className="flex items-center border-r border-teal-100 bg-amber-50/70 px-3 py-2 text-xs font-medium text-teal-800">
+            <div className="flex items-center border-r border-teal-50 bg-teal-50/70 px-3 py-2 text-xs font-medium text-teal-900">
               {meal}
             </div>
             {weekDays.map((d, dayIndex) => {
@@ -1139,10 +1149,17 @@ function CalendarWeekView({
               const recipeId = isSlotStatus(slotValue) ? null : slotValue;
               const isDragOver = dragOverKey === key;
               const hasRecipe = !!recipeId;
+              const isTodayColumn = d.date.toDateString() === today.toDateString();
               return (
                 <div
                   key={key}
-                  className={`flex min-h-[52px] items-center justify-center border-l border-teal-50 p-2 ${isDragOver ? "bg-teal-100 ring-1 ring-teal-300" : ""}`}
+                  className={`flex min-h-[52px] items-center justify-center border-l border-teal-50 p-2 transition-colors ${
+                    isDragOver
+                      ? "bg-teal-100 ring-1 ring-teal-300"
+                      : isTodayColumn
+                        ? "bg-teal-50/70"
+                        : "bg-white/0 hover:bg-teal-50/60"
+                  }`}
                   onDragOver={(e) => handleDragOver(e, key)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, key)}

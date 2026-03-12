@@ -2857,29 +2857,32 @@ function SectionPlaceholder({
   if (activeTab === "calendar") {
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm font-medium text-teal-800">Comidas:</span>
-            <div className="flex flex-wrap items-center gap-3">
-              {MEAL_LABELS.map((meal) => (
-                <label key={meal} className="flex cursor-pointer items-center gap-1.5">
-                  <input
-                    type="checkbox"
-                    checked={visibleMeals.includes(meal)}
-                    onChange={() => toggleMeal(meal)}
-                    className="h-4 w-4 rounded border-teal-300 text-teal-600 focus:ring-teal-500"
-                  />
-                  <span className="text-sm text-teal-800">{meal}</span>
-                </label>
-              ))}
-              <button
-                type="button"
-                onClick={selectAllMeals}
-                className="rounded border border-teal-200 px-2 py-0.5 text-xs font-medium text-teal-700 hover:bg-teal-50"
-              >
-                Todas
-              </button>
-            </div>
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2">
+          <div className="flex w-full gap-2 overflow-x-auto pb-1">
+            {MEAL_LABELS.map((meal) => {
+              const isActive = visibleMeals.includes(meal);
+              return (
+                <button
+                  key={meal}
+                  type="button"
+                  onClick={() => toggleMeal(meal)}
+                  className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition ${
+                    isActive
+                      ? "bg-teal-600 text-white shadow-sm"
+                      : "bg-white/70 text-teal-800 border border-teal-200 hover:bg-teal-50"
+                  }`}
+                >
+                  {meal}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={selectAllMeals}
+              className="whitespace-nowrap rounded-full border border-teal-200 bg-white/70 px-3 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50"
+            >
+              Todas
+            </button>
           </div>
         </div>
         <CalendarWeekView

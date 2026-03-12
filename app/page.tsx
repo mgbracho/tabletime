@@ -829,21 +829,23 @@ function CalendarWeekView({
   return (
     <div className="overflow-x-auto">
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-zinc-500">Vista:</span>
-        {(["week", "day", "month"] as const).map((mode) => (
-          <button
-            key={mode}
-            type="button"
-            onClick={() => setViewMode(mode)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-              viewMode === mode
-                ? "bg-teal-600 text-white"
-                : "border border-teal-200 text-teal-700 hover:bg-teal-50"
-            }`}
-          >
-            {mode === "week" ? "Semana" : mode === "day" ? "Día" : "Mes"}
-          </button>
-        ))}
+        <span className="text-xs font-medium text-zinc-500">Vista</span>
+        <div className="inline-flex rounded-full bg-teal-50 p-0.5">
+          {(["week", "day", "month"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setViewMode(mode)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                viewMode === mode
+                  ? "bg-white text-teal-900 shadow-sm"
+                  : "text-teal-700 hover:bg-teal-100"
+              }`}
+            >
+              {mode === "week" ? "Semana" : mode === "day" ? "Día" : "Mes"}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -2855,7 +2857,7 @@ function SectionPlaceholder({
   if (activeTab === "calendar") {
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-teal-100 bg-white px-3 py-2 shadow-sm">
           <div className="flex w-full gap-2 overflow-x-auto pb-1">
             {MEAL_LABELS.map((meal) => {
               const isActive = visibleMeals.includes(meal);

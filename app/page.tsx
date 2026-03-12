@@ -2852,8 +2852,6 @@ function SectionPlaceholder({
     });
   };
 
-  const selectAllMeals = () => setVisibleMealsAndPersist([...MEAL_LABELS]);
-
   if (activeTab === "calendar") {
     return (
       <div className="flex flex-col gap-4">
@@ -2876,13 +2874,6 @@ function SectionPlaceholder({
                 </button>
               );
             })}
-            <button
-              type="button"
-              onClick={selectAllMeals}
-              className="whitespace-nowrap rounded-full border border-teal-200 bg-white/70 px-3 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50"
-            >
-              Todas
-            </button>
           </div>
         </div>
         <CalendarWeekView

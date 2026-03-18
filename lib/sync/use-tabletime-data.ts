@@ -129,6 +129,51 @@ export function useTableTimeData() {
   const ignoreThemeDaysRealtimeUntil = useRef<number>(0);
   const ignorePlanSlotsRealtimeUntil = useRef<number>(0);
   const ignoreGroceryCheckedRealtimeUntil = useRef<number>(0);
+  const lastPersistSignature = useRef<string>("");
+
+  const signatureForPersist = useCallback((payload: {
+    recipes: Recipe[];
+    plan: PlanState;
+    manualGroceryItems: { id: string; label: string }[];
+    groceryCheckedIds: string[];
+    themeDays: ThemeDays;
+  }) => {
+    const recipesSig = [...payload.recipes]
+      .map((r) => ({
+        id: r.id,
+        title: r.title ?? "",
+        ingredients: r.ingredients ?? "",
+        instructions: r.instructions ?? "",
+        tags: Array.isArray(r.tags) ? [...r.tags].sort() : [],
+        default_servings: r.default_servings ?? 0,
+        is_favorite: r.is_favorite === true,
+        rating: r.rating ?? null,
+        family_approved: r.family_approved === true,
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+
+    const planSig = Object.entries(payload.plan)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => [k, v]);
+
+    const manualSig = [...payload.manualGroceryItems]
+      .map((m) => ({ id: m.id, label: m.label ?? "" }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+
+    const checkedSig = [...payload.groceryCheckedIds].sort();
+
+    const themeSig = Object.entries(payload.themeDays)
+      .map(([dayStr, meals]) => {
+        const dayIndex = parseInt(dayStr, 10);
+        const entries = Object.entries(meals ?? {})
+          .filter(([, t]) => typeof t === "string" && t.trim().length > 0)
+          .sort(([a], [b]) => a.localeCompare(b));
+        return [dayIndex, entries];
+      })
+      .sort(([a], [b]) => (a as number) - (b as number));
+
+    return JSON.stringify([recipesSig, planSig, manualSig, checkedSig, themeSig]);
+  }, []);
 
   const loadFromSupabase = useCallback(async (hid: string): Promise<{
     recipes: Recipe[];
@@ -301,6 +346,14 @@ export function useTableTimeData() {
       if (hid) {
         setSyncError(null);
         const supabase = createClient();
+
+        const signature = signatureForPersist(payload);
+        if (signature === lastPersistSignature.current) {
+          return;
+        }
+        lastPersistSignature.current = signature;
+
+        const slotStatuses = ["leftovers", "skip", "eating_out"] as const;
         const recipeIds = new Set(payload.recipes.map((r) => r.id));
         const { error: recipesError } = await supabase.from("recipes").upsert(
           payload.recipes.map((r) => ({
@@ -327,11 +380,10 @@ export function useTableTimeData() {
         if (idsToDelete.length > 0) {
           await supabase.from("recipes").delete().in("id", idsToDelete);
         }
-        ignorePlanSlotsRealtimeUntil.current = Date.now() + 2000;
-        await supabase.from("plan_slots").delete().eq("household_id", hid);
-        const slotStatuses = ["leftovers", "skip", "eating_out"] as const;
+
+        // plan_slots: sync incremental (no full delete/insert)
         const planEntries = Object.entries(payload.plan);
-        const slotsToInsert = planEntries
+        const desiredSlots = planEntries
           .map(([slot_key, value]) => {
             const isStatus = slotStatuses.includes(value as (typeof slotStatuses)[number]);
             return {
@@ -342,56 +394,107 @@ export function useTableTimeData() {
             };
           })
           .filter((s) => s.slot_status !== "recipe" || s.recipe_id != null);
-        if (slotsToInsert.length > 0) {
-          await supabase.from("plan_slots").insert(slotsToInsert);
+
+        const { data: existingSlots } = await supabase
+          .from("plan_slots")
+          .select("slot_key")
+          .eq("household_id", hid);
+        const existingSlotKeys = new Set((existingSlots ?? []).map((s) => s.slot_key));
+        const desiredSlotKeys = new Set(desiredSlots.map((s) => s.slot_key));
+
+        const slotKeysToDelete = [...existingSlotKeys].filter((k) => !desiredSlotKeys.has(k));
+        ignorePlanSlotsRealtimeUntil.current = Date.now() + 2000;
+        if (slotKeysToDelete.length > 0) {
+          await supabase.from("plan_slots").delete().eq("household_id", hid).in("slot_key", slotKeysToDelete);
         }
-        const existingManual = await supabase.from("grocery_items").select("id").eq("household_id", hid).eq("source", "manual");
-        const existingIds = new Set((existingManual.data ?? []).map((r) => r.id));
-        for (const m of payload.manualGroceryItems) {
-          if (existingIds.has(m.id)) {
-            await supabase.from("grocery_items").update({ label: m.label }).eq("id", m.id);
-          } else {
-            await supabase.from("grocery_items").insert({
+        if (desiredSlots.length > 0) {
+          await supabase.from("plan_slots").upsert(desiredSlots, { onConflict: "household_id,slot_key" });
+        }
+
+        // grocery_items (manual): upsert + delete diff
+        const { data: existingManual } = await supabase
+          .from("grocery_items")
+          .select("id")
+          .eq("household_id", hid)
+          .eq("source", "manual");
+        const existingManualIds = new Set((existingManual ?? []).map((r) => r.id));
+        const desiredManualIds = new Set(payload.manualGroceryItems.map((m) => m.id));
+        const manualIdsToDelete = [...existingManualIds].filter((id) => !desiredManualIds.has(id));
+        if (manualIdsToDelete.length > 0) {
+          await supabase.from("grocery_items").delete().eq("household_id", hid).in("id", manualIdsToDelete);
+        }
+        if (payload.manualGroceryItems.length > 0) {
+          await supabase.from("grocery_items").upsert(
+            payload.manualGroceryItems.map((m) => ({
               id: m.id,
               household_id: hid,
               label: m.label,
               source: "manual",
               checked: false,
-            });
-          }
-        }
-        const toDelete = [...existingIds].filter((id) => !payload.manualGroceryItems.some((m) => m.id === id));
-        if (toDelete.length > 0) {
-          await supabase.from("grocery_items").delete().in("id", toDelete);
-        }
-        await supabase.from("grocery_checked").delete().eq("household_id", hid);
-        ignoreGroceryCheckedRealtimeUntil.current = Date.now() + 2000;
-        if (payload.groceryCheckedIds.length > 0) {
-          await supabase.from("grocery_checked").insert(
-            payload.groceryCheckedIds.map((item_key) => ({ household_id: hid, item_key }))
+            })),
+            { onConflict: "id" }
           );
         }
-        await supabase.from("theme_days").delete().eq("household_id", hid);
-        ignoreThemeDaysRealtimeUntil.current = Date.now() + 2000;
-        const themeRows: { household_id: string; day_index: number; meal_type: string; theme: string }[] = [];
+
+        // grocery_checked: insert/delete diff (no full delete)
+        const { data: existingChecked } = await supabase
+          .from("grocery_checked")
+          .select("item_key")
+          .eq("household_id", hid);
+        const existingCheckedSet = new Set((existingChecked ?? []).map((c) => c.item_key));
+        const desiredCheckedSet = new Set(payload.groceryCheckedIds);
+        const checkedToInsert = [...desiredCheckedSet].filter((k) => !existingCheckedSet.has(k));
+        const checkedToDelete = [...existingCheckedSet].filter((k) => !desiredCheckedSet.has(k));
+        ignoreGroceryCheckedRealtimeUntil.current = Date.now() + 2000;
+        if (checkedToDelete.length > 0) {
+          await supabase.from("grocery_checked").delete().eq("household_id", hid).in("item_key", checkedToDelete);
+        }
+        if (checkedToInsert.length > 0) {
+          await supabase.from("grocery_checked").insert(checkedToInsert.map((item_key) => ({ household_id: hid, item_key })));
+        }
+
+        // theme_days: upsert + delete diff (no full delete)
+        const desiredThemeRows: { household_id: string; day_index: number; meal_type: string; theme: string }[] = [];
         for (const [dayStr, dayThemes] of Object.entries(payload.themeDays)) {
           const dayIndex = parseInt(dayStr, 10);
           if (isNaN(dayIndex) || dayIndex < 0 || dayIndex > 6) continue;
           for (const [meal, theme] of Object.entries(dayThemes ?? {})) {
-            if (theme && MEAL_TYPES.includes(meal as MealType)) {
-              themeRows.push({ household_id: hid, day_index: dayIndex, meal_type: meal, theme });
+            const t = typeof theme === "string" ? theme.trim() : "";
+            if (t && MEAL_TYPES.includes(meal as MealType)) {
+              desiredThemeRows.push({ household_id: hid, day_index: dayIndex, meal_type: meal, theme: t });
             }
           }
         }
-        if (themeRows.length > 0) {
-          await supabase.from("theme_days").insert(themeRows);
+        const { data: existingThemes } = await supabase
+          .from("theme_days")
+          .select("day_index, meal_type")
+          .eq("household_id", hid);
+        const existingThemeKeys = new Set((existingThemes ?? []).map((t) => `${t.day_index}:${t.meal_type}`));
+        const desiredThemeKeys = new Set(desiredThemeRows.map((t) => `${t.day_index}:${t.meal_type}`));
+        const themeKeysToDelete = [...existingThemeKeys].filter((k) => !desiredThemeKeys.has(k));
+        ignoreThemeDaysRealtimeUntil.current = Date.now() + 2000;
+        for (const key of themeKeysToDelete) {
+          const [dayStr, mealType] = key.split(":");
+          const day_index = parseInt(dayStr, 10);
+          if (!isNaN(day_index) && mealType) {
+            await supabase
+              .from("theme_days")
+              .delete()
+              .eq("household_id", hid)
+              .eq("day_index", day_index)
+              .eq("meal_type", mealType);
+          }
         }
+        if (desiredThemeRows.length > 0) {
+          await supabase.from("theme_days").upsert(desiredThemeRows, { onConflict: "household_id,day_index,meal_type" });
+        }
+
         saveToStorage(payload);
       } else {
         saveToStorage(payload);
       }
     },
-    [householdId]
+    [householdId, signatureForPersist]
   );
 
   useEffect(() => {
@@ -564,7 +667,7 @@ export function useTableTimeData() {
       )
       .on(
         "postgres_changes",
-        { event: "DELETE", schema: "public", table: "grocery_checked" },
+        { event: "DELETE", schema: "public", table: "grocery_checked", filter: `household_id=eq.${hid}` },
         handleGroceryCheckedDelete
       )
       .on(
@@ -579,7 +682,7 @@ export function useTableTimeData() {
       )
       .on(
         "postgres_changes",
-        { event: "DELETE", schema: "public", table: "grocery_items" },
+        { event: "DELETE", schema: "public", table: "grocery_items", filter: `household_id=eq.${hid}` },
         handleGroceryItemsDelete
       )
       .on(
@@ -594,7 +697,7 @@ export function useTableTimeData() {
       )
       .on(
         "postgres_changes",
-        { event: "DELETE", schema: "public", table: "recipes" },
+        { event: "DELETE", schema: "public", table: "recipes", filter: `household_id=eq.${hid}` },
         handleRecipesDelete
       )
       .on(
@@ -609,7 +712,7 @@ export function useTableTimeData() {
       )
       .on(
         "postgres_changes",
-        { event: "DELETE", schema: "public", table: "plan_slots" },
+        { event: "DELETE", schema: "public", table: "plan_slots", filter: `household_id=eq.${hid}` },
         handlePlanSlotsDelete
       )
       .on(
@@ -619,7 +722,7 @@ export function useTableTimeData() {
       )
       .on(
         "postgres_changes",
-        { event: "DELETE", schema: "public", table: "theme_days" },
+        { event: "DELETE", schema: "public", table: "theme_days", filter: `household_id=eq.${hid}` },
         handleThemeDaysDelete
       )
       .subscribe();

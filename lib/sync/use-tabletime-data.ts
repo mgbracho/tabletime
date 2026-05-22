@@ -80,23 +80,8 @@ function loadFromStorage(): {
   }
 }
 
-const INITIAL_RECIPES: Recipe[] = [
-  { id: "1", title: "Pasta con tomate", ingredients: "400g pasta\n1 bote tomate triturado\n2 dientes de ajo\nAceite de oliva\nAlbahaca", tags: ["rápida", "vegetariana"], default_servings: 4 },
-  { id: "2", title: "Tacos de pollo", ingredients: "500g pechuga de pollo\nTortillas de maíz\nLechuga\nTomate\nQueso rallado\nCrema ácida", tags: ["kid-friendly", "alta proteína"], default_servings: 4 },
-  { id: "3", title: "Sopa de verduras", ingredients: "Zanahoria\nApio\nCebolla\nCalabacín\nCaldo de verduras\nFideos finos", tags: ["vegetariana", "económica"], default_servings: 4 },
-  { id: "4", title: "Ensalada César", ingredients: "Lechuga romana\nPollo a la plancha\nPan tostado\nParmesano\nSalsa César", tags: ["rápida", "alta proteína"], default_servings: 4 },
-  { id: "5", title: "Arroz con pollo", ingredients: "300g arroz\n400g pollo\n1 cebolla\nPimiento\nGuisantes\nAzafrán", tags: ["kid-friendly", "económica"], default_servings: 4 },
-  { id: "6", title: "Huevos revueltos", ingredients: "6 huevos\nMantequilla\nSal y pimienta", tags: ["rápida", "económica"], default_servings: 4 },
-  { id: "7", title: "Pizza casera", ingredients: "Masa de pizza\nTomate frito\nMozzarella\nAlbahaca\nOregano", tags: ["kid-friendly"], default_servings: 4 },
-  { id: "8", title: "Pescado al horno", ingredients: "4 filetes de merluza\nLimón\nAjo\nAceite de oliva\nPerejil", tags: ["alta proteína", "sin gluten"], default_servings: 4 },
-  { id: "9", title: "Lentejas con chorizo", ingredients: "300g lentejas\n1 chorizo\n1 cebolla\n2 zanahorias\n2 dientes de ajo\nCaldo de verduras\nPimentón", tags: ["económica", "kid-friendly"], default_servings: 4 },
-  { id: "10", title: "Tortilla de patatas", ingredients: "6 huevos\n4 patatas\n1 cebolla\nAceite de oliva\nSal", tags: ["rápida", "vegetariana"], default_servings: 4 },
-  { id: "11", title: "Pollo al limón", ingredients: "4 muslos de pollo\n2 limones\nAjo\nRomero\nAceite de oliva\nSal y pimienta", tags: ["alta proteína", "sin gluten"], default_servings: 4 },
-  { id: "12", title: "Crema de calabacín", ingredients: "2 calabacines\n1 patata\n1 cebolla\nCaldo de verduras\nNata líquida\nSal y nuez moscada", tags: ["vegetariana", "rápida"], default_servings: 4 },
-  { id: "13", title: "Hamburguesas caseras", ingredients: "500g carne picada\n1 cebolla\n1 huevo\nPan rallado\n4 panecillos\nLechuga\nTomate\nQueso en lonchas", tags: ["kid-friendly", "alta proteína"], default_servings: 4 },
-  { id: "14", title: "Paella de marisco", ingredients: "300g arroz\n200g gambas\n200g mejillones\n1 calamar\n1 pimiento rojo\nAzafrán\nGuisantes\nAceite de oliva", tags: ["alta proteína"], default_servings: 4 },
-  { id: "15", title: "Ensalada de quinoa", ingredients: "200g quinoa\n1 aguacate\n1 pepino\nTomate cherry\nLima\nAceite de oliva\nPerejil", tags: ["vegetariana", "rápida", "sin gluten"], default_servings: 4 },
-];
+const INITIAL_RECIPES: Recipe[] = [];
+const EXAMPLE_IDS = new Set(["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"]);
 
 function saveToStorage(payload: {
   recipes: Recipe[];
@@ -204,6 +189,12 @@ export function useTableTimeData() {
       rating: typeof r.rating === "number" && r.rating >= 1 && r.rating <= 5 ? r.rating : undefined,
       family_approved: r.family_approved === true,
     }));
+
+    const exampleIdsToDelete = recipes.filter((r) => EXAMPLE_IDS.has(r.id)).map((r) => r.id);
+    if (exampleIdsToDelete.length > 0) {
+      void supabase.from("recipes").delete().in("id", exampleIdsToDelete).eq("household_id", hid);
+      recipes = recipes.filter((r) => !EXAMPLE_IDS.has(r.id));
+    }
 
     const plan: PlanState = {};
     for (const s of slotsRes.data ?? []) {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Recipe } from "@/lib/sync/use-tabletime-data";
 import { SUGGESTED_TAGS } from "@/lib/constants";
-import { filterRecipes, isExample } from "@/lib/utils/recipes";
+import { filterRecipes } from "@/lib/utils/recipes";
 import { RecipeDetailModal } from "@/components/RecipeDetailModal";
 
 export function RecipesView({
@@ -213,7 +213,7 @@ export function RecipesView({
               </div>
               <div className="flex shrink-0 gap-1">
                 <button type="button" onClick={() => startEdit(r)} className="rounded-full p-1.5 text-zinc-400 hover:bg-teal-50 hover:text-teal-600" aria-label="Editar receta">✎</button>
-                {!isExample(r.id) && <button type="button" onClick={() => onRemoveRecipe(r.id)} className="rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600" aria-label="Eliminar receta">✕</button>}
+                <button type="button" onClick={() => onRemoveRecipe(r.id)} className="rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600" aria-label="Eliminar receta">✕</button>
               </div>
             </li>
           ))}

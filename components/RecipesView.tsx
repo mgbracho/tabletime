@@ -13,7 +13,7 @@ export function RecipesView({
   onUpdateRecipe,
 }: {
   recipes: Recipe[];
-  onAddRecipe: (title: string, ingredients?: string, instructions?: string, tags?: string[], default_servings?: number) => void;
+  onAddRecipe: (title: string, ingredients?: string, instructions?: string, tags?: string[], default_servings?: number, image_url?: string) => void;
   onRemoveRecipe: (id: string) => void;
   onUpdateRecipe: (id: string, updates: Partial<Recipe>) => void;
 }) {
@@ -30,6 +30,7 @@ export function RecipesView({
   const [onlyFamilyApproved, setOnlyFamilyApproved] = useState(false);
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
   const [viewServings, setViewServings] = useState(4);
+  const [newImageUrl, setNewImageUrl] = useState("");
   const [showImport, setShowImport] = useState(false);
   const [importUrl, setImportUrl] = useState("");
   const [importLoading, setImportLoading] = useState(false);
@@ -39,6 +40,7 @@ export function RecipesView({
     e.preventDefault();
     const title = newTitle.trim();
     if (!title) return;
+    const imageUrl = newImageUrl.trim() || undefined;
     if (editingId) {
       onUpdateRecipe(editingId, {
         title,
@@ -46,12 +48,13 @@ export function RecipesView({
         instructions: newInstructions.trim() || undefined,
         tags: newTags.length > 0 ? newTags : undefined,
         default_servings: newServings,
+        image_url: imageUrl,
       });
       setEditingId(null);
     } else {
-      onAddRecipe(title, newIngredients.trim() || undefined, newInstructions.trim() || undefined, newTags.length > 0 ? newTags : undefined, newServings);
+      onAddRecipe(title, newIngredients.trim() || undefined, newInstructions.trim() || undefined, newTags.length > 0 ? newTags : undefined, newServings, imageUrl);
     }
-    setNewTitle(""); setNewIngredients(""); setNewInstructions(""); setNewTags([]); setNewServings(4); setShowForm(false);
+    setNewTitle(""); setNewIngredients(""); setNewInstructions(""); setNewTags([]); setNewServings(4); setNewImageUrl(""); setShowForm(false);
   };
 
   const startEdit = (r: Recipe) => {
@@ -61,6 +64,7 @@ export function RecipesView({
     setNewInstructions(r.instructions ?? "");
     setNewTags(r.tags ?? []);
     setNewServings(r.default_servings ?? 4);
+    setNewImageUrl(r.image_url ?? "");
     setShowForm(true);
   };
 
@@ -80,6 +84,7 @@ export function RecipesView({
       const data = await res.json();
       if (!res.ok) { setImportError(data.error ?? "Error al importar"); return; }
       setNewTitle(data.title ?? ""); setNewIngredients(data.ingredients ?? ""); setNewInstructions(data.instructions ?? "");
+      setNewImageUrl(data.image_url ?? "");
       setShowImport(false); setImportUrl(""); setShowForm(true);
     } catch {
       setImportError("No se pudo conectar. Verifica la URL.");
@@ -155,9 +160,17 @@ export function RecipesView({
           />
           <label className="mb-2 block text-xs font-medium text-teal-800">Raciones por defecto</label>
           <input type="number" min={1} max={24} value={newServings} onChange={(e) => setNewServings(Math.max(1, Math.min(24, parseInt(e.target.value, 10) || 4)))} className="mb-3 w-20 rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400" />
+          <label className="mb-2 block text-xs font-medium text-teal-800">Foto (URL, opcional)</label>
+          {newImageUrl && (
+            <div className="mb-2 flex items-center gap-3">
+              <img src={newImageUrl} alt="Vista previa" className="h-16 w-16 rounded-lg object-cover" onError={() => setNewImageUrl("")} />
+              <button type="button" onClick={() => setNewImageUrl("")} className="text-xs text-zinc-400 hover:text-zinc-600">Quitar foto</button>
+            </div>
+          )}
+          <input type="url" value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)} placeholder="https://ejemplo.com/foto.jpg" className="mb-3 w-full rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400" />
           <div className="flex gap-2">
             <button type="submit" className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">Guardar</button>
-            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setNewTitle(""); setNewIngredients(""); setNewInstructions(""); setNewTags([]); setNewServings(4); }} className="rounded-lg border border-teal-200 px-4 py-2 text-sm text-teal-700 hover:bg-teal-50">Cancelar</button>
+            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setNewTitle(""); setNewIngredients(""); setNewInstructions(""); setNewTags([]); setNewServings(4); setNewImageUrl(""); }} className="rounded-lg border border-teal-200 px-4 py-2 text-sm text-teal-700 hover:bg-teal-50">Cancelar</button>
           </div>
         </form>
       )}
@@ -187,6 +200,9 @@ export function RecipesView({
         <ul className="grid gap-2 sm:grid-cols-2">
           {filteredRecipes.map((r, idx) => (
             <li key={r.id} className={`flex items-center justify-between gap-3 rounded-lg border border-teal-100 px-4 py-3 shadow-sm ${idx % 3 === 0 ? "border-l-4 border-l-teal-600 bg-teal-50/60" : idx % 3 === 1 ? "border-l-4 border-l-teal-400 bg-teal-300/10" : "border-l-4 border-l-amber-600 bg-amber-50/60"}`}>
+              {r.image_url && (
+                <img src={r.image_url} alt={r.title} className="h-14 w-14 shrink-0 rounded-lg object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+              )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={() => handleRecipePatch(r.id, { is_favorite: !r.is_favorite })} className="shrink-0 rounded p-0.5 text-lg leading-none transition hover:scale-110" aria-label={r.is_favorite ? "Quitar de favoritos" : "Añadir a favoritos"}>

@@ -43,7 +43,7 @@ function SectionPlaceholder({
   recipes: Recipe[];
   plan: PlanState;
   setPlan: React.Dispatch<React.SetStateAction<PlanState>>;
-  onAddRecipe: (title: string, ingredients?: string, instructions?: string, tags?: string[]) => void;
+  onAddRecipe: (title: string, ingredients?: string, instructions?: string, tags?: string[], default_servings?: number, image_url?: string) => void;
   onRemoveRecipe: (id: string) => void;
   onUpdateRecipe: (id: string, updates: Partial<Recipe>) => void;
   manualGroceryItems: { id: string; label: string }[];

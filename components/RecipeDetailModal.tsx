@@ -30,6 +30,16 @@ export function RecipeDetailModal({
         role="dialog"
         aria-label="Ver receta"
       >
+        {recipe.image_url && (
+          <div className="h-44 w-full overflow-hidden">
+            <img
+              src={recipe.image_url}
+              alt={recipe.title}
+              className="h-full w-full object-cover"
+              onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }}
+            />
+          </div>
+        )}
         <div className="border-b border-teal-100 px-4 py-4">
           <div className="flex items-start justify-between gap-4">
             <h2 className="text-lg font-semibold text-teal-900">{recipe.title}</h2>

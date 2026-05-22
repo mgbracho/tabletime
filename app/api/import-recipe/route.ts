@@ -1,11 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 
+type ImageObject = { url?: string };
 type RecipeSchema = {
   "@type"?: string;
   name?: string;
   recipeIngredient?: string[];
   recipeInstructions?: Array<{ text?: string } | string>;
+  image?: string | string[] | ImageObject | ImageObject[];
 };
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function extractImageUrl(image: RecipeSchema["image"]): string | undefined {
+  if (!image) return undefined;
+  if (typeof image === "string") return image || undefined;
+  if (Array.isArray(image)) {
+    const first = image[0];
+    if (typeof first === "string") return first || undefined;
+    if (first && typeof first === "object" && "url" in first) return first.url || undefined;
+    return undefined;
+  }
+  if (typeof image === "object" && "url" in image) return image.url || undefined;
+  return undefined;
+}
 
 function isRecipe(item: unknown): item is RecipeSchema {
   if (!item || typeof item !== "object") return false;
@@ -29,6 +60,7 @@ function extractRecipeFromJsonLd(html: string): {
   title: string;
   ingredients: string;
   instructions?: string;
+  image_url?: string;
 } | null {
   const scriptMatches = html.matchAll(
     /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
@@ -41,13 +73,13 @@ function extractRecipeFromJsonLd(html: string): {
         if (isRecipe(item)) {
           const recipe = item;
           const ingredients = Array.isArray(recipe.recipeIngredient)
-            ? recipe.recipeIngredient.join("\n")
+            ? recipe.recipeIngredient.map(stripHtml).join("\n")
             : "";
           let instructions = "";
           if (Array.isArray(recipe.recipeInstructions)) {
             instructions = recipe.recipeInstructions
               .map((step) =>
-                typeof step === "string" ? step : (step as { text?: string }).text
+                stripHtml(typeof step === "string" ? step : ((step as { text?: string }).text ?? ""))
               )
               .filter(Boolean)
               .join("\n\n");
@@ -56,6 +88,7 @@ function extractRecipeFromJsonLd(html: string): {
             title: recipe.name?.trim() ?? "Receta importada",
             ingredients,
             instructions: instructions || undefined,
+            image_url: extractImageUrl(recipe.image),
           };
         }
       }
@@ -66,14 +99,17 @@ function extractRecipeFromJsonLd(html: string): {
   return null;
 }
 
-function extractRecipeFromMeta(html: string): { title: string } | null {
+function extractRecipeFromMeta(html: string): { title: string; image_url?: string } | null {
   const titleMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i)
     ?? html.match(/<title[^>]*>([^<]+)<\/title>/i);
   if (titleMatch) {
     const title = titleMatch[1]
       .replace(/\s*[-|]\s*.*$/, "")
       .trim();
-    if (title.length > 2) return { title };
+    if (title.length > 2) {
+      const imageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
+      return { title, image_url: imageMatch?.[1] };
+    }
   }
   return null;
 }
@@ -123,6 +159,7 @@ export async function POST(request: NextRequest) {
         title: meta.title,
         ingredients: "",
         instructions: undefined,
+        image_url: meta.image_url,
       });
     }
 

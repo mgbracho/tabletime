@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, DM_Sans, Libre_Baskerville } from "next/font/google";
 import { AuthHeader } from "@/components/AuthHeader";
+import { LanguageProvider } from "@/lib/i18n";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -41,10 +42,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${dmSans.variable} ${libreBaskerville.variable} antialiased`}
       >
-        <div className="relative min-h-screen">
-          <AuthHeader />
-          {children}
-        </div>
+        <LanguageProvider>
+          <div className="relative min-h-screen">
+            <AuthHeader />
+            {children}
+          </div>
+        </LanguageProvider>
       </body>
     </html>
   );

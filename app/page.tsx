@@ -6,6 +6,7 @@ import type { Recipe, PlanState, ThemeDays } from "@/lib/sync/use-tabletime-data
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useHouseholdProfile } from "@/lib/hooks/use-household-profile";
 import type { HouseholdMember } from "@/lib/hooks/use-household-profile";
+import { useLanguage } from "@/lib/i18n";
 import {
   TABS,
   type TabId,
@@ -78,6 +79,8 @@ function SectionPlaceholder({
     });
   };
 
+  const { t } = useLanguage();
+
   if (activeTab === "calendar") {
     return (
       <div className="flex flex-col gap-4">
@@ -94,7 +97,7 @@ function SectionPlaceholder({
                     : "bg-white/70 text-teal-800 border border-teal-200 hover:bg-teal-50"
                 }`}
               >
-                {meal}
+                {t(`meal.${meal}`)}
               </button>
             ))}
           </div>
@@ -173,6 +176,7 @@ export default function Home() {
 
   const { user, householdId } = useAuth();
   const { members: householdMembers } = useHouseholdProfile(householdId, user?.id ?? null);
+  const { t } = useLanguage();
 
   const [creatingPlan, setCreatingPlan] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -188,7 +192,7 @@ export default function Home() {
           ...generateSuggestedPlanForWeek(recipes, themeDays, prev, getWeekStart(), visibleMeals),
         }));
         setCreatingPlan(false);
-        setToastMessage("Plan creado — puedes arrastrar recetas para ajustarlo");
+        setToastMessage(t("plan.created"));
         setTimeout(() => setToastMessage(null), 3000);
       });
     });
@@ -197,7 +201,7 @@ export default function Home() {
   if (!hasHydrated || syncLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-teal-50 via-white to-teal-50/60">
-        <p className="text-zinc-500">Cargando…</p>
+        <p className="text-zinc-500">{t("app.loading")}</p>
       </div>
     );
   }
@@ -206,17 +210,17 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-teal-50 via-white to-teal-50/60 px-4 py-10 font-sans text-zinc-900">
       {syncError && (
         <div className="mx-auto max-w-5xl rounded-lg bg-red-50 px-4 py-2 text-sm text-red-800 ring-1 ring-red-200">
-          Error al guardar en la nube: {syncError}
+          {t("app.syncError", { error: syncError })}
         </div>
       )}
       {cloudUnavailable && (
         <div className="mx-auto max-w-5xl rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-800 ring-1 ring-amber-200">
-          No se pudo conectar con la nube. Las recetas se guardan solo en este dispositivo.
-          {ensureError && <span className="mt-1 block font-medium">Motivo: {ensureError}</span>}
+          {t("app.cloudUnavailable")}
+          {ensureError && <span className="mt-1 block font-medium">{t("app.cloudUnavailableReason", { reason: ensureError })}</span>}
         </div>
       )}
       {isRemote && !syncError && (
-        <div className="mx-auto max-w-5xl text-right text-xs text-teal-700">Sincronizado con la nube</div>
+        <div className="mx-auto max-w-5xl text-right text-xs text-teal-700">{t("app.syncedCloud")}</div>
       )}
       <main className="mx-auto flex max-w-5xl flex-col gap-10">
         <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
@@ -230,7 +234,7 @@ export default function Home() {
               disabled={creatingPlan}
               className="rounded-full bg-teal-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-700 disabled:opacity-70"
             >
-              {creatingPlan ? "Creando tu plan..." : "Crear plan semanal"}
+              {creatingPlan ? t("plan.creating") : t("plan.create")}
             </button>
           </div>
         </header>
@@ -245,7 +249,7 @@ export default function Home() {
               }`}
               type="button"
             >
-              {tab.label}
+              {t(`tab.${tab.id}`)}
             </button>
           ))}
         </nav>

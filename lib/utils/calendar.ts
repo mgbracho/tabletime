@@ -1,5 +1,5 @@
 import type { Recipe, PlanState, ThemeDays } from "@/lib/sync/use-tabletime-data";
-import { MEAL_LABELS, MealType, DAY_NAMES, isSlotStatus, SLOT_STATUS_LABELS } from "@/lib/constants";
+import { MEAL_LABELS, MealType, DAY_NAMES, isSlotStatus, SLOT_STATUS_LABELS, type SlotStatusValue } from "@/lib/constants";
 
 export function slotKey(date: Date, meal: string): string {
   return `${date.toISOString().slice(0, 10)}-${meal}`;
@@ -52,12 +52,31 @@ export function getMonthGrid(
   });
 }
 
+export interface PrintPlanOptions {
+  locale?: string;
+  title?: string;
+  formatWeekOf?: (week: string) => string;
+  getStatusLabel?: (s: string) => string;
+  getMealLabel?: (m: string) => string;
+  getDayLabel?: (index: number) => string;
+}
+
 export function printPlanToPdf(
   plan: Record<string, string>,
   recipes: { id: string; title: string }[],
   themeDays: Record<number, Partial<Record<string, string>>>,
-  visibleMeals: readonly string[] = MEAL_LABELS
+  visibleMeals: readonly string[] = MEAL_LABELS,
+  options: PrintPlanOptions = {}
 ) {
+  const {
+    locale = "es",
+    title = "Plan semanal - TableTime",
+    formatWeekOf = (week) => `Semana del ${week}`,
+    getStatusLabel = (s) => SLOT_STATUS_LABELS[s as SlotStatusValue] ?? s,
+    getMealLabel = (m) => m,
+    getDayLabel,
+  } = options;
+
   const weekStart = getWeekStart();
   const weekDays = getWeekDates(weekStart);
   const weekTitle =
@@ -65,15 +84,17 @@ export function printPlanToPdf(
     " – " +
     weekDays[6].date.getDate() +
     " " +
-    weekDays[0].date.toLocaleDateString("es", { month: "long" });
+    weekDays[0].date.toLocaleDateString(locale, { month: "long" });
   const getRecipeTitle = (id: string) => recipes.find((r) => r.id === id)?.title ?? id;
   const escape = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
   const thCells = weekDays
     .map(
-      (d) =>
-        `<th style="padding:8px;border:1px solid #e5e7eb;font-size:12px;font-weight:600;">${escape(d.dayLabel)}<br><span style="color:#6b7280">${d.dateLabel}</span></th>`
+      (d, i) => {
+        const dayLabel = getDayLabel ? getDayLabel(i) : d.dayLabel;
+        return `<th style="padding:8px;border:1px solid #e5e7eb;font-size:12px;font-weight:600;">${escape(dayLabel)}<br><span style="color:#6b7280">${d.dateLabel}</span></th>`;
+      }
     )
     .join("");
 
@@ -85,18 +106,19 @@ export function printPlanToPdf(
         const theme = themeDays[dayIndex]?.[meal];
         let content = "—";
         if (value) {
-          content = isSlotStatus(value) ? SLOT_STATUS_LABELS[value] : getRecipeTitle(value);
+          content = isSlotStatus(value) ? getStatusLabel(value) : getRecipeTitle(value);
         }
         return `<td style="padding:8px;border:1px solid #e5e7eb;font-size:11px;vertical-align:top;">${escape(content)}${theme ? `<br><span style="color:#b45309;font-size:10px">${escape(theme)}</span>` : ""}</td>`;
       });
-      return `<tr><td style="padding:8px;border:1px solid #e5e7eb;font-size:11px;font-weight:600;background:#f0fdfa;">${escape(meal)}</td>${cells.join("")}</tr>`;
+      const mealLabel = getMealLabel(meal);
+      return `<tr><td style="padding:8px;border:1px solid #e5e7eb;font-size:11px;font-weight:600;background:#f0fdfa;">${escape(mealLabel)}</td>${cells.join("")}</tr>`;
     })
     .join("");
 
   const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Plan semanal - TableTime</title>
+<html><head><meta charset="utf-8"><title>${escape(title)}</title>
 <style>body{font-family:system-ui,sans-serif;padding:24px;font-size:14px}h1{font-size:1.1rem;margin:0 0 4px}p{margin:0 0 16px;color:#555}table{border-collapse:collapse;width:100%;max-width:800px}</style>
-</head><body><h1>Plan semanal - TableTime</h1><p>Semana del ${escape(weekTitle)}</p><table><thead><tr><th style="padding:8px;border:1px solid #e5e7eb"></th>${thCells}</tr></thead><tbody>${rows}</tbody></table></body></html>`;
+</head><body><h1>${escape(title)}</h1><p>${escape(formatWeekOf(weekTitle))}</p><table><thead><tr><th style="padding:8px;border:1px solid #e5e7eb"></th>${thCells}</tr></thead><tbody>${rows}</tbody></table></body></html>`;
 
   const iframe = document.createElement("iframe");
   iframe.style.cssText = "position:absolute;width:0;height:0;border:0;visibility:hidden";

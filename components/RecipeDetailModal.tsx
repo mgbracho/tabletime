@@ -1,6 +1,7 @@
 "use client";
 
 import type { Recipe } from "@/lib/sync/use-tabletime-data";
+import { useLanguage } from "@/lib/i18n";
 import { scaleIngredientLines } from "@/lib/utils/recipes";
 
 export function RecipeDetailModal({
@@ -18,6 +19,8 @@ export function RecipeDetailModal({
   onEdit?: (recipe: Recipe) => void;
   onUpdateRecipe?: (id: string, patch: Partial<Recipe>) => void;
 }) {
+  const { t } = useLanguage();
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
@@ -28,7 +31,7 @@ export function RecipeDetailModal({
         className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
-        aria-label="Ver receta"
+        aria-label={t("modal.viewRecipe")}
       >
         {recipe.image_url && (
           <div className="h-44 w-full overflow-hidden">
@@ -47,7 +50,7 @@ export function RecipeDetailModal({
               type="button"
               onClick={onClose}
               className="shrink-0 rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-              aria-label="Cerrar"
+              aria-label={t("modal.close")}
             >
               ✕
             </button>
@@ -58,20 +61,20 @@ export function RecipeDetailModal({
                 type="button"
                 onClick={() => onUpdateRecipe(recipe.id, { is_favorite: !recipe.is_favorite })}
                 className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm transition hover:bg-amber-50"
-                aria-label={recipe.is_favorite ? "Quitar de favoritos" : "Añadir a favoritos"}
+                aria-label={recipe.is_favorite ? t("modal.removeFavorite") : t("modal.addFavorite")}
               >
                 <span className={recipe.is_favorite ? "text-amber-500" : "text-zinc-300"}>♥</span>
-                <span className="text-xs text-zinc-600">Favorita</span>
+                <span className="text-xs text-zinc-600">{t("modal.favorite")}</span>
               </button>
               <div className="flex items-center gap-0.5">
-                <span className="mr-1 text-xs text-zinc-500">Valoración:</span>
+                <span className="mr-1 text-xs text-zinc-500">{t("modal.rating")}</span>
                 {[1, 2, 3, 4, 5].map((n) => (
                   <button
                     key={n}
                     type="button"
                     onClick={() => onUpdateRecipe(recipe.id, { rating: recipe.rating === n ? null : n })}
                     className="rounded p-0.5 text-lg leading-none transition hover:scale-110"
-                    aria-label={`${n} estrella${n > 1 ? "s" : ""}`}
+                    aria-label={n === 1 ? t("modal.starN", { n }) : t("modal.starsN", { n })}
                   >
                     <span className={recipe.rating != null && n <= recipe.rating ? "text-amber-400" : "text-zinc-300"}>★</span>
                   </button>
@@ -90,15 +93,15 @@ export function RecipeDetailModal({
           )}
           {recipe.tags && recipe.tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {recipe.tags.map((t) => (
-                <span key={t} className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700">
-                  {t}
+              {recipe.tags.map((tg) => (
+                <span key={tg} className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700">
+                  {tg}
                 </span>
               ))}
             </div>
           )}
           <div className="mt-3 flex items-center gap-2">
-            <span className="text-xs font-medium text-zinc-500">Raciones:</span>
+            <span className="text-xs font-medium text-zinc-500">{t("modal.servings")}</span>
             {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
               <button
                 key={n}
@@ -117,7 +120,9 @@ export function RecipeDetailModal({
           {recipe.ingredients && (
             <section className="mb-4">
               <h3 className="mb-2 text-sm font-semibold text-teal-800">
-                Ingredientes{viewServings !== (recipe.default_servings ?? 4) ? ` (para ${viewServings} raciones)` : ""}
+                {viewServings !== (recipe.default_servings ?? 4)
+                  ? t("modal.ingredientsFor", { n: viewServings })
+                  : t("modal.ingredients")}
               </h3>
               <ul className="space-y-1 text-sm text-zinc-700">
                 {scaleIngredientLines(recipe.ingredients, recipe.default_servings ?? 4, viewServings)
@@ -135,7 +140,7 @@ export function RecipeDetailModal({
           )}
           {recipe.instructions && (
             <section>
-              <h3 className="mb-2 text-sm font-semibold text-teal-800">Pasos</h3>
+              <h3 className="mb-2 text-sm font-semibold text-teal-800">{t("modal.steps")}</h3>
               <ol className="list-inside list-decimal space-y-2 text-sm text-zinc-700">
                 {recipe.instructions
                   .split(/\n+/)
@@ -148,9 +153,7 @@ export function RecipeDetailModal({
             </section>
           )}
           {!recipe.ingredients && !recipe.instructions && (
-            <p className="text-sm text-zinc-500">
-              Sin ingredientes ni pasos. Haz clic en Editar para añadirlos.
-            </p>
+            <p className="text-sm text-zinc-500">{t("modal.noContent")}</p>
           )}
         </div>
         <div className="flex justify-end gap-2 border-t border-teal-100 px-4 py-3">
@@ -160,7 +163,7 @@ export function RecipeDetailModal({
               onClick={() => { onClose(); onEdit(recipe); }}
               className="rounded-lg border border-teal-200 px-4 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50"
             >
-              Editar
+              {t("modal.edit")}
             </button>
           )}
           <button
@@ -168,7 +171,7 @@ export function RecipeDetailModal({
             onClick={onClose}
             className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
           >
-            Cerrar
+            {t("modal.close")}
           </button>
         </div>
       </div>

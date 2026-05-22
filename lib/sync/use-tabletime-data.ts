@@ -115,6 +115,7 @@ export function useTableTimeData() {
   const ignoreThemeDaysRealtimeUntil = useRef<number>(0);
   const ignorePlanSlotsRealtimeUntil = useRef<number>(0);
   const ignoreGroceryCheckedRealtimeUntil = useRef<number>(0);
+  const ignoreRecipesRealtimeUntil = useRef<number>(0);
   const lastPersistSignature = useRef<string>("");
 
   const signatureForPersist = useCallback((payload: {
@@ -131,10 +132,11 @@ export function useTableTimeData() {
         ingredients: r.ingredients ?? "",
         instructions: r.instructions ?? "",
         tags: Array.isArray(r.tags) ? [...r.tags].sort() : [],
-        default_servings: r.default_servings ?? 0,
+        default_servings: r.default_servings ?? 4,
         is_favorite: r.is_favorite === true,
         rating: r.rating ?? null,
         family_approved: r.family_approved === true,
+        image_url: r.image_url ?? null,
       }))
       .sort((a, b) => a.id.localeCompare(b.id));
 
@@ -355,6 +357,7 @@ export function useTableTimeData() {
 
         const slotStatuses = ["leftovers", "skip", "eating_out"] as const;
         const recipeIds = new Set(payload.recipes.map((r) => r.id));
+        ignoreRecipesRealtimeUntil.current = Date.now() + 3000;
         const { error: recipesError } = await supabase.from("recipes").upsert(
           payload.recipes.map((r) => ({
             id: r.id,
@@ -507,7 +510,7 @@ export function useTableTimeData() {
       groceryCheckedIds: [...groceryCheckedIds],
       themeDays,
     };
-    const timer = setTimeout(() => persist(payload), 500);
+    const timer = setTimeout(() => persist(payload), 1500);
     return () => clearTimeout(timer);
   }, [hasHydrated, syncLoading, recipes, plan, manualGroceryItems, groceryCheckedIds, themeDays, persist]);
 
@@ -550,42 +553,35 @@ export function useTableTimeData() {
       }
     };
 
-    const handleRecipesInsert = (payload: { new: { id: string; title: string; ingredients: string | null; instructions: string | null; tags: string[]; default_servings?: number; is_favorite?: boolean; rating?: number | null; family_approved?: boolean } }) => {
+    type RecipeRow = { id: string; title: string; ingredients: string | null; instructions: string | null; tags: string[]; default_servings?: number; is_favorite?: boolean; rating?: number | null; family_approved?: boolean; image_url?: string | null };
+    const mapRecipeRow = (r: RecipeRow): Recipe => ({
+      id: r.id,
+      title: r.title,
+      ingredients: r.ingredients ?? undefined,
+      instructions: r.instructions ?? undefined,
+      tags: Array.isArray(r.tags) ? r.tags : [],
+      default_servings: r.default_servings,
+      is_favorite: r.is_favorite === true,
+      rating: typeof r.rating === "number" && r.rating >= 1 && r.rating <= 5 ? r.rating : undefined,
+      family_approved: r.family_approved === true,
+      image_url: typeof r.image_url === "string" && r.image_url ? r.image_url : undefined,
+    });
+
+    const handleRecipesInsert = (payload: { new: RecipeRow }) => {
+      if (Date.now() < ignoreRecipesRealtimeUntil.current) return;
       setRecipes((prev) => {
         if (prev.some((r) => r.id === payload.new.id)) return prev;
-        return [...prev, {
-          id: payload.new.id,
-          title: payload.new.title,
-          ingredients: payload.new.ingredients ?? undefined,
-          instructions: payload.new.instructions ?? undefined,
-          tags: Array.isArray(payload.new.tags) ? payload.new.tags : [],
-          default_servings: payload.new.default_servings,
-          is_favorite: payload.new.is_favorite === true,
-          rating: typeof payload.new.rating === "number" && payload.new.rating >= 1 && payload.new.rating <= 5 ? payload.new.rating : undefined,
-          family_approved: payload.new.family_approved === true,
-        }];
+        return [...prev, mapRecipeRow(payload.new)];
       });
     };
-    const handleRecipesUpdate = (payload: { new: { id: string; title: string; ingredients: string | null; instructions: string | null; tags: string[]; default_servings?: number; is_favorite?: boolean; rating?: number | null; family_approved?: boolean } }) => {
+    const handleRecipesUpdate = (payload: { new: RecipeRow }) => {
+      if (Date.now() < ignoreRecipesRealtimeUntil.current) return;
       setRecipes((prev) =>
-        prev.map((r) =>
-          r.id === payload.new.id
-            ? {
-                id: payload.new.id,
-                title: payload.new.title,
-                ingredients: payload.new.ingredients ?? undefined,
-                instructions: payload.new.instructions ?? undefined,
-                tags: Array.isArray(payload.new.tags) ? payload.new.tags : [],
-                default_servings: payload.new.default_servings,
-                is_favorite: payload.new.is_favorite === true,
-                rating: typeof payload.new.rating === "number" && payload.new.rating >= 1 && payload.new.rating <= 5 ? payload.new.rating : undefined,
-                family_approved: payload.new.family_approved === true,
-              }
-            : r
-        )
+        prev.map((r) => r.id === payload.new.id ? mapRecipeRow(payload.new) : r)
       );
     };
     const handleRecipesDelete = (payload: { old: { household_id: string; id: string } }) => {
+      if (Date.now() < ignoreRecipesRealtimeUntil.current) return;
       if (payload.old.household_id === hid) {
         setRecipes((prev) => prev.filter((r) => r.id !== payload.old.id));
         setPlan((prev) => {

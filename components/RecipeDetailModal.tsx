@@ -1,0 +1,167 @@
+"use client";
+
+import type { Recipe } from "@/lib/sync/use-tabletime-data";
+import { scaleIngredientLines } from "@/lib/utils/recipes";
+
+export function RecipeDetailModal({
+  recipe,
+  viewServings,
+  setViewServings,
+  onClose,
+  onEdit,
+  onUpdateRecipe,
+}: {
+  recipe: Recipe;
+  viewServings: number;
+  setViewServings: (n: number) => void;
+  onClose: () => void;
+  onEdit?: (recipe: Recipe) => void;
+  onUpdateRecipe?: (id: string, patch: Partial<Recipe>) => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label="Ver receta"
+      >
+        <div className="border-b border-teal-100 px-4 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <h2 className="text-lg font-semibold text-teal-900">{recipe.title}</h2>
+            <button
+              type="button"
+              onClick={onClose}
+              className="shrink-0 rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+          </div>
+          {onUpdateRecipe && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => onUpdateRecipe(recipe.id, { is_favorite: !recipe.is_favorite })}
+                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm transition hover:bg-amber-50"
+                aria-label={recipe.is_favorite ? "Quitar de favoritos" : "Añadir a favoritos"}
+              >
+                <span className={recipe.is_favorite ? "text-amber-500" : "text-zinc-300"}>♥</span>
+                <span className="text-xs text-zinc-600">Favorita</span>
+              </button>
+              <div className="flex items-center gap-0.5">
+                <span className="mr-1 text-xs text-zinc-500">Valoración:</span>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => onUpdateRecipe(recipe.id, { rating: recipe.rating === n ? null : n })}
+                    className="rounded p-0.5 text-lg leading-none transition hover:scale-110"
+                    aria-label={`${n} estrella${n > 1 ? "s" : ""}`}
+                  >
+                    <span className={recipe.rating != null && n <= recipe.rating ? "text-amber-400" : "text-zinc-300"}>★</span>
+                  </button>
+                ))}
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-teal-50">
+                <input
+                  type="checkbox"
+                  checked={recipe.family_approved === true}
+                  onChange={(e) => onUpdateRecipe(recipe.id, { family_approved: e.target.checked })}
+                  className="h-4 w-4 rounded border-teal-300 text-teal-600 focus:ring-teal-400"
+                />
+                <span className="text-xs font-medium text-teal-800">Family approved</span>
+              </label>
+            </div>
+          )}
+          {recipe.tags && recipe.tags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {recipe.tags.map((t) => (
+                <span key={t} className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700">
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-xs font-medium text-zinc-500">Raciones:</span>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setViewServings(n)}
+                className={`rounded-lg px-2.5 py-1 text-xs font-medium transition ${
+                  viewServings === n ? "bg-teal-600 text-white" : "bg-teal-100 text-teal-700 hover:bg-teal-200"
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="max-h-[60vh] overflow-y-auto px-4 py-4">
+          {recipe.ingredients && (
+            <section className="mb-4">
+              <h3 className="mb-2 text-sm font-semibold text-teal-800">
+                Ingredientes{viewServings !== (recipe.default_servings ?? 4) ? ` (para ${viewServings} raciones)` : ""}
+              </h3>
+              <ul className="space-y-1 text-sm text-zinc-700">
+                {scaleIngredientLines(recipe.ingredients, recipe.default_servings ?? 4, viewServings)
+                  .split("\n")
+                  .map((line) => line.trim())
+                  .filter(Boolean)
+                  .map((line, i) => (
+                    <li key={i} className="flex flex-wrap">
+                      <span className="mr-2 text-teal-500">•</span>
+                      {line}
+                    </li>
+                  ))}
+              </ul>
+            </section>
+          )}
+          {recipe.instructions && (
+            <section>
+              <h3 className="mb-2 text-sm font-semibold text-teal-800">Pasos</h3>
+              <ol className="list-inside list-decimal space-y-2 text-sm text-zinc-700">
+                {recipe.instructions
+                  .split(/\n+/)
+                  .map((step) => step.trim())
+                  .filter(Boolean)
+                  .map((step, i) => (
+                    <li key={i}>{step}</li>
+                  ))}
+              </ol>
+            </section>
+          )}
+          {!recipe.ingredients && !recipe.instructions && (
+            <p className="text-sm text-zinc-500">
+              Sin ingredientes ni pasos. Haz clic en Editar para añadirlos.
+            </p>
+          )}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-teal-100 px-4 py-3">
+          {onEdit && (
+            <button
+              type="button"
+              onClick={() => { onClose(); onEdit(recipe); }}
+              className="rounded-lg border border-teal-200 px-4 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50"
+            >
+              Editar
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

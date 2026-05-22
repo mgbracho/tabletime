@@ -25,7 +25,7 @@ export function RecipeDetailModal({
       role="presentation"
     >
       <div
-        className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl"
+        className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label="Ver receta"
@@ -113,7 +113,7 @@ export function RecipeDetailModal({
             ))}
           </div>
         </div>
-        <div className="max-h-[60vh] overflow-y-auto px-4 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
           {recipe.ingredients && (
             <section className="mb-4">
               <h3 className="mb-2 text-sm font-semibold text-teal-800">

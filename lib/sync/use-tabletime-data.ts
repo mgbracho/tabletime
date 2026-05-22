@@ -299,17 +299,21 @@ export function useTableTimeData() {
   useEffect(() => {
     if (authLoading) return;
 
+    let ignore = false;
+
     const init = async () => {
       let hid = householdId;
       if (user && !hid) {
         hid = await ensureHousehold() ?? null;
       }
+      if (ignore) return;
 
       if (hid) {
         setCloudUnavailable(false);
         effectiveHouseholdId.current = hid;
         setRealtimeHouseholdId(hid);
         const mergedPayload = await loadFromSupabase(hid);
+        if (ignore) return;
         if (mergedPayload) {
           await persist(mergedPayload);
         }
@@ -327,11 +331,14 @@ export function useTableTimeData() {
           setRecipes(INITIAL_RECIPES);
         }
       }
-      setHasHydrated(true);
-      setSyncLoading(false);
+      if (!ignore) {
+        setHasHydrated(true);
+        setSyncLoading(false);
+      }
     };
 
     init();
+    return () => { ignore = true; };
   }, [authLoading, user, householdId, ensureHousehold, loadFromSupabase]);
 
   const persist = useCallback(
@@ -728,6 +735,7 @@ export function useTableTimeData() {
       .subscribe();
 
     return () => {
+      void channel.unsubscribe();
       supabase.removeChannel(channel as RealtimeChannel);
     };
   }, [hid]);

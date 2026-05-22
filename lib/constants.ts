@@ -1,7 +1,7 @@
 export const TABS = [
   { id: "calendar", label: "Calendario" },
   { id: "recipes", label: "Recetas" },
-  { id: "grocery", label: "Lista de la compra" },
+  { id: "grocery", label: "Compra" },
   { id: "household", label: "Hogar" },
 ] as const;
 

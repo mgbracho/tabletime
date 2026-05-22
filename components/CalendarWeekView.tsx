@@ -231,8 +231,8 @@ export function CalendarWeekView({
                     </>
                   ) : (
                     <button type="button" onClick={() => setOpenSlotMenu({ date: new Date(focusedDate), meal, key })} className="flex-1 text-left">
-                      <span className={`block text-sm ${isSlotStatus(slotValue) ? "font-medium text-zinc-600" : slotTheme ? "text-amber-700" : "text-zinc-400 italic"}`}>
-                        {isSlotStatus(slotValue) ? SLOT_STATUS_LABELS[slotValue] : slotTheme ? slotTheme : "Vacío"}
+                      <span className={`block text-sm ${isSlotStatus(slotValue) ? "font-medium text-zinc-600" : slotTheme ? "text-amber-700" : "text-zinc-300"}`}>
+                        {isSlotStatus(slotValue) ? SLOT_STATUS_LABELS[slotValue] : slotTheme ? slotTheme : "+"}
                       </span>
                     </button>
                   )}
@@ -306,13 +306,13 @@ export function CalendarWeekView({
                     >
                       <div className={`group flex w-full cursor-pointer flex-col items-center justify-center gap-0.5 ${recipeId ? "cursor-grab active:cursor-grabbing" : ""}`} draggable={!!recipeId} onDragStart={recipeId ? (e) => handleDragStart(e, key, recipeId) : undefined} onDragEnd={recipeId ? handleDragEnd : undefined}>
                         <div className="flex w-full items-center justify-center gap-1">
-                          <span className={`px-2 text-center text-xs leading-snug ${recipeId ? "font-medium text-teal-900" : isSlotStatus(slotValue) ? "font-medium text-zinc-600" : themeDays[dayIndex]?.[meal] ? "text-amber-700" : "text-zinc-400 italic"}`}>
+                          <span className={`px-2 text-center text-xs leading-snug ${recipeId ? "font-medium text-teal-900" : isSlotStatus(slotValue) ? "font-medium text-zinc-600" : themeDays[dayIndex]?.[meal] ? "text-amber-700" : "text-zinc-300"}`}>
                             {recipeId ? (
                               <button type="button" onClick={(e) => { e.stopPropagation(); const recipe = recipes.find((r) => r.id === recipeId); if (recipe && onViewRecipe) onViewRecipe(recipe); }} className="hover:underline focus:outline-none focus:ring-1 focus:ring-teal-400 rounded">
                                 {getRecipeTitle(recipeId)}
                               </button>
                             ) : (
-                              isSlotStatus(slotValue) ? SLOT_STATUS_LABELS[slotValue] : themeDays[dayIndex]?.[meal] ? themeDays[dayIndex][meal] : "Vacío"
+                              isSlotStatus(slotValue) ? SLOT_STATUS_LABELS[slotValue] : themeDays[dayIndex]?.[meal] ? themeDays[dayIndex][meal] : "+"
                             )}
                           </span>
                           {recipeId && (

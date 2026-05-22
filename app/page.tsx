@@ -222,9 +222,6 @@ export default function Home() {
         <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <h1 className="font-serif text-3xl font-semibold tracking-tight text-teal-900 sm:text-4xl">TableTime</h1>
-            <p className="mt-2 max-w-xl text-sm sm:text-base text-zinc-700">
-              Organiza las comidas de tu familia sin estrés: calendario visual, recetas compartidas y lista de la compra inteligente en un solo lugar.
-            </p>
           </div>
           <div className="flex gap-3">
             <button

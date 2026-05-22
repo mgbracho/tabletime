@@ -537,7 +537,10 @@ export function useTableTimeData() {
     };
     const handleGroceryItemsInsert = (payload: { new: { id: string; label: string; source: string } }) => {
       if (payload.new.source === "manual") {
-        setManualGroceryItems((prev) => [...prev, { id: payload.new.id, label: payload.new.label }]);
+        setManualGroceryItems((prev) => {
+          if (prev.some((i) => i.id === payload.new.id)) return prev;
+          return [...prev, { id: payload.new.id, label: payload.new.label }];
+        });
       }
     };
     const handleGroceryItemsUpdate = (payload: { new: { id: string; label: string; source: string } }) => {

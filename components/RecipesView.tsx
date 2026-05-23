@@ -301,23 +301,25 @@ export function RecipesView({
                   {r.ingredients && <p className="mt-1 text-xs text-zinc-500 line-clamp-2">{r.ingredients}</p>}
                 </div>
                 <div className="flex shrink-0 flex-col gap-1">
-                  {/* Translate button */}
-                  <button
-                    type="button"
-                    onClick={() => handleTranslate(r)}
-                    disabled={tState === "loading"}
-                    title={t("rec.translate", { lang: langLabel })}
-                    aria-label={t("rec.translate", { lang: langLabel })}
-                    className={`rounded-full p-1.5 text-xs transition ${
-                      tState === "done"
-                        ? "text-teal-600 bg-teal-50"
-                        : tState === "error"
-                          ? "text-red-500 bg-red-50"
-                          : "text-zinc-400 hover:bg-teal-50 hover:text-teal-600"
-                    }`}
-                  >
-                    {tState === "loading" ? "⏳" : tState === "done" ? "✓" : tState === "error" ? "✕" : "🌐"}
-                  </button>
+                  {/* Translate button — hidden when UI language is already Spanish */}
+                  {targetLang !== "ES" && (
+                    <button
+                      type="button"
+                      onClick={() => handleTranslate(r)}
+                      disabled={tState === "loading"}
+                      title={t("rec.translate", { lang: langLabel })}
+                      aria-label={t("rec.translate", { lang: langLabel })}
+                      className={`rounded-full p-1.5 text-xs transition ${
+                        tState === "done"
+                          ? "text-teal-600 bg-teal-50"
+                          : tState === "error"
+                            ? "text-red-500 bg-red-50"
+                            : "text-zinc-400 hover:bg-teal-50 hover:text-teal-600"
+                      }`}
+                    >
+                      {tState === "loading" ? "⏳" : tState === "done" ? "✓" : tState === "error" ? "✕" : "🌐"}
+                    </button>
+                  )}
                   <button type="button" onClick={() => startEdit(r)} className="rounded-full p-1.5 text-zinc-400 hover:bg-teal-50 hover:text-teal-600" aria-label={t("rec.editAria")}>✎</button>
                   <button type="button" onClick={() => onRemoveRecipe(r.id)} className="rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600" aria-label={t("rec.deleteAria")}>✕</button>
                 </div>
@@ -335,7 +337,7 @@ export function RecipesView({
           onClose={() => setViewingRecipe(null)}
           onEdit={(r) => startEdit(r)}
           onUpdateRecipe={handleRecipePatch}
-          onTranslate={handleTranslate}
+          onTranslate={targetLang !== "ES" ? handleTranslate : undefined}
           translateState={translateState}
           langLabel={langLabel}
         />

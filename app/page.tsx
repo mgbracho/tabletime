@@ -159,7 +159,7 @@ function SectionPlaceholder({
               onUpdateRecipe(id, patch);
               setCalendarViewingRecipe((prev) => (prev && prev.id === id ? { ...prev, ...patch } : null));
             }}
-            onTranslate={handleCalendarTranslate}
+            onTranslate={lang.toUpperCase() !== "ES" ? handleCalendarTranslate : undefined}
             translateState={calTranslateState}
             langLabel={langLabel}
           />

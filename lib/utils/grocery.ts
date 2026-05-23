@@ -234,32 +234,95 @@ export function parseCountFromLabel(label: string): { baseLabel: string; count: 
   return { baseLabel: label, count: 1 };
 }
 
+/**
+ * Parse a numeric quantity string (integer, decimal with . or ,, simple fraction).
+ * Returns null when unparseable.
+ */
+function parseQtyString(s: string): number | null {
+  const clean = s.replace(",", ".").trim();
+  if (!clean) return null;
+  if (clean.includes("/")) {
+    const parts = clean.split("/");
+    if (parts.length !== 2) return null;
+    const a = parseFloat(parts[0].trim());
+    const b = parseFloat(parts[1].trim());
+    if (isNaN(a) || isNaN(b) || b === 0) return null;
+    return a / b;
+  }
+  const n = parseFloat(clean);
+  return isNaN(n) ? null : n;
+}
+
+/** Format a quantity number for display: integers as whole numbers, decimals up to 2 places. */
+function formatQty(n: number): string {
+  // Round first to handle floating-point imprecision (e.g. 1/3 * 3 ≈ 1.0)
+  const rounded = Math.round(n * 10000) / 10000;
+  if (Number.isInteger(rounded)) return String(rounded);
+  return parseFloat(rounded.toFixed(2)).toString();
+}
+
 export function mergeGroceryItems(items: GroceryItem[]): GroceryItem[] {
-  const byKey = new Map<string, { label: string; count: number; fromPlan: boolean }>();
+  type Merged = {
+    label: string;        // cleaned display label (shorter preferred)
+    sumQty: number | null; // running sum of leading numeric quantities; null = can't sum
+    qtyRest: string;       // unit + ingredient part after the leading number
+    count: number;         // number of recipe-slot occurrences
+    fromPlan: boolean;
+  };
+
+  const byKey = new Map<string, Merged>();
 
   for (const item of items) {
-    const { baseLabel, count: itemCount } = parseCountFromLabel(item.label);
+    const { baseLabel } = parseCountFromLabel(item.label);
     const cleanedLabel = cleanDisplayLabel(baseLabel);
     const key = normalizeIngredientForGrouping(baseLabel);
 
+    // Attempt to parse the leading numeric quantity from the cleaned label.
+    // Apply unicode-fraction normalisation first so "½" is treated as "1/2".
+    const labelForQty = replaceUnicodeFractions(cleanedLabel);
+    // Match an integer / decimal / simple-fraction token at the start.
+    // Reject range tokens (e.g. "2-3") so we don't mangle them.
+    const qtyMatch = labelForQty.match(/^([\d.,\/]+)\s*/);
+    let parsedQty: number | null = null;
+    let qtyRest = labelForQty; // default: full label (unicode-replaced)
+    if (qtyMatch && !/[-–]/.test(qtyMatch[1])) {
+      parsedQty = parseQtyString(qtyMatch[1]);
+      qtyRest = labelForQty.slice(qtyMatch[0].length);
+    }
+
     const existing = byKey.get(key);
     if (existing) {
-      existing.count += itemCount;
-      // Prefer the shorter cleaned label as the representative (tends to be cleaner)
-      if (cleanedLabel.length < existing.label.length) {
-        existing.label = cleanedLabel;
+      existing.count += 1;
+      // Sum quantities only when both sides are numeric and the unit+name part matches.
+      if (parsedQty !== null && existing.sumQty !== null && existing.qtyRest === qtyRest) {
+        existing.sumQty += parsedQty;
+      } else {
+        existing.sumQty = null; // mixed units or non-numeric → fall back to (×N)
       }
+      if (cleanedLabel.length < existing.label.length) existing.label = cleanedLabel;
       existing.fromPlan = existing.fromPlan || item.fromPlan;
     } else {
-      byKey.set(key, { label: cleanedLabel, count: itemCount, fromPlan: item.fromPlan });
+      byKey.set(key, { label: cleanedLabel, sumQty: parsedQty, qtyRest, count: 1, fromPlan: item.fromPlan });
     }
   }
 
-  return Array.from(byKey.entries()).map(([key, { label, count, fromPlan }]) => ({
-    id: `merged-${key.replace(/\s+/g, "-")}`,
-    label: count > 1 ? `${label} (×${count})` : label,
-    fromPlan,
-  }));
+  return Array.from(byKey.entries()).map(([key, { label, sumQty, qtyRest, count, fromPlan }]) => {
+    let displayLabel: string;
+    if (count > 1 && sumQty !== null) {
+      // Quantities could be summed: show "3 unidad Ajo" instead of "1 unidad Ajo (×3)"
+      displayLabel = `${formatQty(sumQty)} ${qtyRest}`.trim();
+    } else if (count > 1) {
+      // Mixed units or no quantity — show occurrence count as fallback
+      displayLabel = `${label} (×${count})`;
+    } else {
+      displayLabel = label;
+    }
+    return {
+      id: `merged-${key.replace(/\s+/g, "-")}`,
+      label: displayLabel,
+      fromPlan,
+    };
+  });
 }
 
 // ─── Build grocery items from the weekly plan ──────────────────────────────

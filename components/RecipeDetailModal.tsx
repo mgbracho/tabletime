@@ -164,35 +164,46 @@ export function RecipeDetailModal({
           )}
         </div>
         <div className="flex items-center justify-between gap-2 border-t border-teal-100 px-4 py-3">
-          {/* Translate button — shown when onTranslate is provided */}
-          {onTranslate ? (
-            <button
-              type="button"
-              onClick={() => onTranslate(recipe)}
-              disabled={tState === "loading"}
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition ${
-                tState === "done"
-                  ? "border-teal-200 bg-teal-50 text-teal-700"
-                  : tState === "error"
-                    ? "border-red-200 bg-red-50 text-red-700"
-                    : "border-teal-200 text-teal-700 hover:bg-teal-50"
-              }`}
-              title={t("rec.translate", { lang: langLabel ?? "" })}
-            >
-              <span>{tState === "loading" ? "⏳" : tState === "done" ? "✓" : tState === "error" ? "✕" : "🌐"}</span>
-              <span>
-                {tState === "loading"
-                  ? t("rec.translating")
-                  : tState === "done"
-                    ? t("rec.translateDone")
+          {/* Left side: source URL + translate button (both can appear together) */}
+          <div className="flex flex-wrap items-center gap-2">
+            {recipe.source_url && (
+              <a
+                href={recipe.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-lg border border-teal-200 px-3 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50"
+              >
+                <span>🔗</span>
+                <span>{t("modal.viewSource")}</span>
+              </a>
+            )}
+            {onTranslate && (
+              <button
+                type="button"
+                onClick={() => onTranslate(recipe)}
+                disabled={tState === "loading"}
+                className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                  tState === "done"
+                    ? "border-teal-200 bg-teal-50 text-teal-700"
                     : tState === "error"
-                      ? t("rec.translateError")
-                      : t("rec.translate", { lang: langLabel ?? "" })}
-              </span>
-            </button>
-          ) : (
-            <div />
-          )}
+                      ? "border-red-200 bg-red-50 text-red-700"
+                      : "border-teal-200 text-teal-700 hover:bg-teal-50"
+                }`}
+                title={t("rec.translate", { lang: langLabel ?? "" })}
+              >
+                <span>{tState === "loading" ? "⏳" : tState === "done" ? "✓" : tState === "error" ? "✕" : "🌐"}</span>
+                <span>
+                  {tState === "loading"
+                    ? t("rec.translating")
+                    : tState === "done"
+                      ? t("rec.translateDone")
+                      : tState === "error"
+                        ? t("rec.translateError")
+                        : t("rec.translate", { lang: langLabel ?? "" })}
+                </span>
+              </button>
+            )}
+          </div>
           <div className="flex gap-2">
             {onEdit && (
               <button

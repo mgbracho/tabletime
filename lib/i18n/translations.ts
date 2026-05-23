@@ -165,6 +165,8 @@ const es: TranslationRecord = {
   "modal.removeFavorite": "Quitar de favoritos",
   "modal.starN": "{n} estrella",
   "modal.starsN": "{n} estrellas",
+  "modal.viewSource": "Ver receta original",
+  "rec.sourceUrl": "Ver receta original",
 
   // Household view
   "hh.loading": "Cargando perfiles…",
@@ -364,6 +366,8 @@ const en: TranslationRecord = {
   "modal.removeFavorite": "Remove from favorites",
   "modal.starN": "{n} star",
   "modal.starsN": "{n} stars",
+  "modal.viewSource": "View original recipe",
+  "rec.sourceUrl": "View original recipe",
 
   "hh.loading": "Loading profiles…",
   "hh.signIn": "Sign in to view and edit your household profiles.",
@@ -560,6 +564,8 @@ const de: TranslationRecord = {
   "modal.removeFavorite": "Aus Favoriten entfernen",
   "modal.starN": "{n} Stern",
   "modal.starsN": "{n} Sterne",
+  "modal.viewSource": "Originalrezept ansehen",
+  "rec.sourceUrl": "Originalrezept ansehen",
 
   "hh.loading": "Profile laden…",
   "hh.signIn": "Anmelden, um Haushaltsprofile anzuzeigen und zu bearbeiten.",

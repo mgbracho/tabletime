@@ -21,7 +21,7 @@ export function RecipesView({
   onUpdateRecipe,
 }: {
   recipes: Recipe[];
-  onAddRecipe: (title: string, ingredients?: string, instructions?: string, tags?: string[], default_servings?: number, image_url?: string, lang?: string) => void;
+  onAddRecipe: (title: string, ingredients?: string, instructions?: string, tags?: string[], default_servings?: number, image_url?: string, lang?: string, source_url?: string) => void;
   onRemoveRecipe: (id: string) => void;
   onUpdateRecipe: (id: string, updates: Partial<Recipe>) => void;
 }) {
@@ -42,7 +42,8 @@ export function RecipesView({
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
   const [viewServings, setViewServings] = useState(4);
   const [newImageUrl, setNewImageUrl] = useState("");
-  const [newLang, setNewLang] = useState("");   // language detected during URL import
+  const [newLang, setNewLang] = useState("");       // language detected during URL import
+  const [newSourceUrl, setNewSourceUrl] = useState(""); // original URL from import
   const [showImport, setShowImport] = useState(false);
   const [importUrl, setImportUrl] = useState("");
   const [importLoading, setImportLoading] = useState(false);
@@ -75,10 +76,11 @@ export function RecipesView({
         newServings,
         imageUrl,
         newLang || undefined,
+        newSourceUrl || undefined,
       );
     }
     setNewTitle(""); setNewIngredients(""); setNewInstructions(""); setNewTags([]);
-    setNewServings(4); setNewImageUrl(""); setNewLang(""); setShowForm(false);
+    setNewServings(4); setNewImageUrl(""); setNewLang(""); setNewSourceUrl(""); setShowForm(false);
   };
 
   const startEdit = (r: Recipe) => {
@@ -89,7 +91,8 @@ export function RecipesView({
     setNewTags(r.tags ?? []);
     setNewServings(r.default_servings ?? 4);
     setNewImageUrl(r.image_url ?? "");
-    setNewLang("");  // editing an existing recipe — don't carry over any import lang
+    setNewLang("");
+    setNewSourceUrl("");
     setShowForm(true);
   };
 
@@ -117,7 +120,8 @@ export function RecipesView({
       setNewIngredients(data.ingredients ?? "");
       setNewInstructions(data.instructions ?? "");
       setNewImageUrl(data.image_url ?? "");
-      setNewLang(data.lang ?? "");   // store detected/target language
+      setNewLang(data.lang ?? "");
+      setNewSourceUrl(data.source_url ?? "");
       setShowImport(false); setImportUrl(""); setShowForm(true);
     } catch {
       setImportError(t("rec.cannotConnect"));
@@ -246,7 +250,7 @@ export function RecipesView({
           <input type="url" value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)} placeholder="https://ejemplo.com/foto.jpg" className="mb-3 w-full rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400" />
           <div className="flex gap-2">
             <button type="submit" className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">{t("rec.save")}</button>
-            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setNewTitle(""); setNewIngredients(""); setNewInstructions(""); setNewTags([]); setNewServings(4); setNewImageUrl(""); setNewLang(""); }} className="rounded-lg border border-teal-200 px-4 py-2 text-sm text-teal-700 hover:bg-teal-50">{t("rec.cancel")}</button>
+            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setNewTitle(""); setNewIngredients(""); setNewInstructions(""); setNewTags([]); setNewServings(4); setNewImageUrl(""); setNewLang(""); setNewSourceUrl(""); }} className="rounded-lg border border-teal-200 px-4 py-2 text-sm text-teal-700 hover:bg-teal-50">{t("rec.cancel")}</button>
           </div>
         </form>
       )}
@@ -309,6 +313,19 @@ export function RecipesView({
                   {r.ingredients && <p className="mt-1 text-xs text-zinc-500 line-clamp-2">{r.ingredients}</p>}
                 </div>
                 <div className="flex shrink-0 flex-col gap-1">
+                  {/* Source URL link */}
+                  {r.source_url && (
+                    <a
+                      href={r.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={t("rec.sourceUrl")}
+                      aria-label={t("rec.sourceUrl")}
+                      className="rounded-full p-1.5 text-zinc-400 hover:bg-teal-50 hover:text-teal-600"
+                    >
+                      🔗
+                    </a>
+                  )}
                   {/* Translate button — hidden when recipe is already in the current UI language */}
                   {!alreadyInLang && (
                     <button

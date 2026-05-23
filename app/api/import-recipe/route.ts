@@ -245,17 +245,17 @@ export async function POST(request: NextRequest) {
     const html = await res.text();
     const recipe = extractRecipeFromJsonLd(html, targetLang);
     if (recipe) {
-      return NextResponse.json(await translateRecipeFields(recipe, targetLang));
+      const translated = await translateRecipeFields(recipe, targetLang);
+      return NextResponse.json({ ...translated, source_url: url });
     }
 
     const meta = extractRecipeFromMeta(html);
     if (meta) {
-      return NextResponse.json(
-        await translateRecipeFields(
-          { title: meta.title, ingredients: "", instructions: undefined, image_url: meta.image_url },
-          targetLang
-        )
+      const translated = await translateRecipeFields(
+        { title: meta.title, ingredients: "", instructions: undefined, image_url: meta.image_url },
+        targetLang
       );
+      return NextResponse.json({ ...translated, source_url: url });
     }
 
     return NextResponse.json(

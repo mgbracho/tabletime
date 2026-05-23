@@ -264,6 +264,11 @@ export function mergeGroceryItems(items: GroceryItem[]): GroceryItem[] {
 
 // ─── Build grocery items from the weekly plan ──────────────────────────────
 
+/**
+ * Returns raw (un-merged) ingredient lines from the weekly plan.
+ * Callers should merge these together with any manual items using
+ * mergeGroceryItems so the merge happens only once.
+ */
 export function getGroceryItemsFromPlan(
   plan: PlanState,
   recipes: Recipe[],
@@ -288,5 +293,7 @@ export function getGroceryItemsFromPlan(
         });
     }
   }
-  return mergeGroceryItems(items);
+  // Return raw items — do NOT merge here; GroceryListView merges once
+  // together with manual items so there is only a single merge pass.
+  return items;
 }

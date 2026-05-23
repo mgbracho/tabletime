@@ -21,7 +21,7 @@ export function RecipesView({
   onUpdateRecipe,
 }: {
   recipes: Recipe[];
-  onAddRecipe: (title: string, ingredients?: string, instructions?: string, tags?: string[], default_servings?: number, image_url?: string) => void;
+  onAddRecipe: (title: string, ingredients?: string, instructions?: string, tags?: string[], default_servings?: number, image_url?: string, lang?: string) => void;
   onRemoveRecipe: (id: string) => void;
   onUpdateRecipe: (id: string, updates: Partial<Recipe>) => void;
 }) {
@@ -42,6 +42,7 @@ export function RecipesView({
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
   const [viewServings, setViewServings] = useState(4);
   const [newImageUrl, setNewImageUrl] = useState("");
+  const [newLang, setNewLang] = useState("");   // language detected during URL import
   const [showImport, setShowImport] = useState(false);
   const [importUrl, setImportUrl] = useState("");
   const [importLoading, setImportLoading] = useState(false);
@@ -72,11 +73,12 @@ export function RecipesView({
         newInstructions.trim() || undefined,
         newTags.length > 0 ? newTags : undefined,
         newServings,
-        imageUrl
+        imageUrl,
+        newLang || undefined,
       );
     }
     setNewTitle(""); setNewIngredients(""); setNewInstructions(""); setNewTags([]);
-    setNewServings(4); setNewImageUrl(""); setShowForm(false);
+    setNewServings(4); setNewImageUrl(""); setNewLang(""); setShowForm(false);
   };
 
   const startEdit = (r: Recipe) => {
@@ -87,6 +89,7 @@ export function RecipesView({
     setNewTags(r.tags ?? []);
     setNewServings(r.default_servings ?? 4);
     setNewImageUrl(r.image_url ?? "");
+    setNewLang("");  // editing an existing recipe — don't carry over any import lang
     setShowForm(true);
   };
 
@@ -114,6 +117,7 @@ export function RecipesView({
       setNewIngredients(data.ingredients ?? "");
       setNewInstructions(data.instructions ?? "");
       setNewImageUrl(data.image_url ?? "");
+      setNewLang(data.lang ?? "");   // store detected/target language
       setShowImport(false); setImportUrl(""); setShowForm(true);
     } catch {
       setImportError(t("rec.cannotConnect"));
@@ -141,6 +145,7 @@ export function RecipesView({
         title: data.title ?? r.title,
         ingredients: data.ingredients ?? r.ingredients,
         instructions: data.instructions ?? r.instructions,
+        lang: data.lang ?? undefined,
       });
       setTranslateState((prev) => ({ ...prev, [r.id]: "done" }));
       // Clear feedback after 2s
@@ -241,7 +246,7 @@ export function RecipesView({
           <input type="url" value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)} placeholder="https://ejemplo.com/foto.jpg" className="mb-3 w-full rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400" />
           <div className="flex gap-2">
             <button type="submit" className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">{t("rec.save")}</button>
-            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setNewTitle(""); setNewIngredients(""); setNewInstructions(""); setNewTags([]); setNewServings(4); setNewImageUrl(""); }} className="rounded-lg border border-teal-200 px-4 py-2 text-sm text-teal-700 hover:bg-teal-50">{t("rec.cancel")}</button>
+            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setNewTitle(""); setNewIngredients(""); setNewInstructions(""); setNewTags([]); setNewServings(4); setNewImageUrl(""); setNewLang(""); }} className="rounded-lg border border-teal-200 px-4 py-2 text-sm text-teal-700 hover:bg-teal-50">{t("rec.cancel")}</button>
           </div>
         </form>
       )}
@@ -271,6 +276,9 @@ export function RecipesView({
         <ul className="grid gap-2 sm:grid-cols-2">
           {filteredRecipes.map((r, idx) => {
             const tState = translateState[r.id];
+            // Hide translate button if recipe is already in the current UI language
+            const alreadyInLang = r.lang != null &&
+              r.lang.toUpperCase().split("-")[0] === targetLang.split("-")[0];
             return (
               <li key={r.id} className={`flex items-center justify-between gap-3 rounded-lg border border-teal-100 px-4 py-3 shadow-sm ${idx % 3 === 0 ? "border-l-4 border-l-teal-600 bg-teal-50/60" : idx % 3 === 1 ? "border-l-4 border-l-teal-400 bg-teal-300/10" : "border-l-4 border-l-amber-600 bg-amber-50/60"}`}>
                 {r.image_url && (
@@ -301,8 +309,8 @@ export function RecipesView({
                   {r.ingredients && <p className="mt-1 text-xs text-zinc-500 line-clamp-2">{r.ingredients}</p>}
                 </div>
                 <div className="flex shrink-0 flex-col gap-1">
-                  {/* Translate button — hidden when UI language is already Spanish */}
-                  {targetLang !== "ES" && (
+                  {/* Translate button — hidden when recipe is already in the current UI language */}
+                  {!alreadyInLang && (
                     <button
                       type="button"
                       onClick={() => handleTranslate(r)}
@@ -337,7 +345,12 @@ export function RecipesView({
           onClose={() => setViewingRecipe(null)}
           onEdit={(r) => startEdit(r)}
           onUpdateRecipe={handleRecipePatch}
-          onTranslate={targetLang !== "ES" ? handleTranslate : undefined}
+          onTranslate={
+            viewingRecipe?.lang != null &&
+            viewingRecipe.lang.toUpperCase().split("-")[0] === targetLang.split("-")[0]
+              ? undefined
+              : handleTranslate
+          }
           translateState={translateState}
           langLabel={langLabel}
         />

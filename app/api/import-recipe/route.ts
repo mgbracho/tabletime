@@ -55,12 +55,15 @@ async function translateTexts(
   }
 }
 
-/** Translates recipe fields to targetLang. Skips if already in that language. */
+type RecipeFields = { title: string; ingredients: string; instructions?: string; image_url?: string; lang?: string };
+
+/** Translates recipe fields to targetLang. Skips if already in that language.
+ *  Always returns `lang` when the source language can be detected via DeepL. */
 export async function translateRecipeFields(
   recipe: { title: string; ingredients: string; instructions?: string; image_url?: string },
   targetLang: string,
   force = false
-): Promise<typeof recipe> {
+): Promise<RecipeFields> {
   if (!DEEPL_API_KEY) return recipe;
 
   const ingredientLines = recipe.ingredients.split("\n").filter(Boolean);
@@ -70,10 +73,12 @@ export async function translateRecipeFields(
   const result = await translateTexts(texts, targetLang);
   if (!result) return recipe;
 
-  // Skip if already in target language (unless forced)
-  const detectedBase = result.sourceLang.toUpperCase().split("-")[0];
+  // Normalise to base language code (e.g. "EN-US" → "EN")
   const targetBase = targetLang.toUpperCase().split("-")[0];
-  if (!force && detectedBase === targetBase) return recipe;
+  const detectedBase = result.sourceLang.toUpperCase().split("-")[0];
+
+  // Already in target language — no translation needed, but we know the lang
+  if (!force && detectedBase === targetBase) return { ...recipe, lang: targetBase };
 
   const { translated } = result;
   return {
@@ -84,6 +89,7 @@ export async function translateRecipeFields(
       instructionSteps.length > 0
         ? translated.slice(1 + ingredientLines.length).join("\n\n")
         : recipe.instructions,
+    lang: targetBase,
   };
 }
 

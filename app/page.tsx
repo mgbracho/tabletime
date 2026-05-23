@@ -44,7 +44,7 @@ function SectionPlaceholder({
   recipes: Recipe[];
   plan: PlanState;
   setPlan: React.Dispatch<React.SetStateAction<PlanState>>;
-  onAddRecipe: (title: string, ingredients?: string, instructions?: string, tags?: string[], default_servings?: number, image_url?: string) => void;
+  onAddRecipe: (title: string, ingredients?: string, instructions?: string, tags?: string[], default_servings?: number, image_url?: string, lang?: string) => void;
   onRemoveRecipe: (id: string) => void;
   onUpdateRecipe: (id: string, updates: Partial<Recipe>) => void;
   manualGroceryItems: { id: string; label: string }[];
@@ -86,10 +86,11 @@ function SectionPlaceholder({
         title: data.title ?? recipe.title,
         ingredients: data.ingredients ?? recipe.ingredients,
         instructions: data.instructions ?? recipe.instructions,
+        lang: data.lang ?? undefined,
       });
       setCalendarViewingRecipe((prev) =>
         prev && prev.id === id
-          ? { ...prev, title: data.title ?? prev.title, ingredients: data.ingredients ?? prev.ingredients, instructions: data.instructions ?? prev.instructions }
+          ? { ...prev, title: data.title ?? prev.title, ingredients: data.ingredients ?? prev.ingredients, instructions: data.instructions ?? prev.instructions, lang: data.lang ?? prev.lang }
           : prev
       );
       setCalTranslateState((prev) => ({ ...prev, [id]: "done" }));
@@ -159,7 +160,12 @@ function SectionPlaceholder({
               onUpdateRecipe(id, patch);
               setCalendarViewingRecipe((prev) => (prev && prev.id === id ? { ...prev, ...patch } : null));
             }}
-            onTranslate={lang.toUpperCase() !== "ES" ? handleCalendarTranslate : undefined}
+            onTranslate={
+              calendarViewingRecipe?.lang != null &&
+              calendarViewingRecipe.lang.toUpperCase().split("-")[0] === lang.toUpperCase().split("-")[0]
+                ? undefined
+                : handleCalendarTranslate
+            }
             translateState={calTranslateState}
             langLabel={langLabel}
           />

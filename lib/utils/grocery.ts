@@ -104,14 +104,127 @@ export function getGroceryCategory(label: string): string {
   return "other";
 }
 
-export function normalizeIngredientForGrouping(label: string): string {
-  let s = label.trim().toLowerCase();
-  s = s.replace(/\s*\(\d+\)\s*$/, "").trim();
-  const match = s.match(
-    /^(\d+([.,]\d+)?\s*(g|kg|ml|l|oz|lb|cups?|tbsp|tsp|dientes?|unidades?|bote|cucharada|cucharadita)?\s*[-–]?\s*)?(.+)$/
-  );
-  return match ? match[4].trim() : s;
+// ─── Unicode fraction normalisation ────────────────────────────────────────
+const UNICODE_FRACTIONS: Record<string, string> = {
+  "½": "1/2", "⅓": "1/3", "⅔": "2/3", "¼": "1/4", "¾": "3/4",
+  "⅛": "1/8", "⅜": "3/8", "⅝": "5/8", "⅞": "7/8",
+};
+
+function replaceUnicodeFractions(s: string): string {
+  for (const [ch, rep] of Object.entries(UNICODE_FRACTIONS)) {
+    s = s.split(ch).join(rep);
+  }
+  return s;
 }
+
+// Unit words that sit between the numeric quantity and the ingredient name.
+// Each alternative must be followed by whitespace or end-of-string so we
+// don't accidentally clip ingredient names that happen to start with a unit
+// prefix (e.g. "granos" should not be stripped as "gr").
+// Note: "unidad(?:es)?" correctly matches "unidad", "unidade", "unidades".
+const UNIT_ALTS = [
+  // weight
+  "gramos?", "kilogramos?", "kg", "mg", "g(?=[\\s])",
+  // volume
+  "mililitros?", "ml", "cl", "dl", "litros?", "l(?=[\\s])",
+  "oz", "libras?",
+  // generic count
+  "unidad(?:es)?", "unid\\.", "ud\\.", "units?", "pieces?", "st[üu]ck",
+  // ES measure words
+  "tazas?", "cucharadas?(?:\\s*soperas?)?", "cucharaditas?",
+  "dientes?", "latas?", "botes?", "paquetes?",
+  "pu[nñ]ados?", "rebanadas?", "rodajas?", "trozos?",
+  "manojos?", "ramas?", "pizcas?", "pellizcos?",
+  // EN measure words
+  "cups?", "tbsp\\.?", "tsp\\.?", "tablespoons?", "teaspoons?",
+  "cloves?", "slices?", "cans?", "jars?", "bunches?",
+  "sprigs?", "handfuls?", "pinch(?:es)?", "fillets?",
+  // DE measure words
+  "EL\\.?", "TL\\.?", "Msp\\.?", "Prise",
+].join("|");
+
+// Require the unit word to be followed by a space or end-of-string so that
+// "granola" (starts with 'gr') or "unidad" + another letter is safe.
+const UNIT_WORD_RE = new RegExp(`^(${UNIT_ALTS})(?=[\\s]|$)`, "i");
+
+// ─── Core normalisation ────────────────────────────────────────────────────
+
+/**
+ * Reduce an ingredient label to a plain lowercase key suitable for grouping.
+ *
+ * Pipeline:
+ *  1. Replace Unicode fractions (½ → 1/2).
+ *  2. Remove trailing recipe-count suffix "(N)".
+ *  3. Remove ALL parenthetical notes: "(picados)", "(480 ml)", "(es)", …
+ *  4. Strip leading numeric quantity (int / decimal / fraction / range).
+ *  5. If a number was found, strip leading unit word(s) in a loop.
+ *  6. Strip "de / del / de la / de los" connectors.
+ *  7. Strip "para …" usage qualifiers.
+ *  8. Lowercase + normalise diacritics.
+ */
+export function normalizeIngredientForGrouping(label: string): string {
+  let s = replaceUnicodeFractions(label.trim());
+
+  // 2. Remove trailing recipe-count suffix, e.g. "(4)"
+  s = s.replace(/\s*\(\d+\)\s*$/, "").trim();
+
+  // 3. Remove ALL parenthetical notes, e.g. "(picados)", "(480 ml)", "(es)"
+  s = s.replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim();
+
+  // 4. Strip leading numeric quantity: integer, decimal, fraction, or range
+  let hadNumber = false;
+  s = s.replace(/^\d+([.,]\d+)?(\s*[-–]\s*\d+([.,]\d+)?)?(\s*\/\s*\d+)?\s*/, (m) => {
+    hadNumber = m.length > 0;
+    return "";
+  });
+  s = s.trim();
+
+  // 5. Strip leading unit word(s) — only when a number was found
+  if (hadNumber) {
+    let prev = "";
+    while (prev !== s) {
+      prev = s;
+      s = s.replace(UNIT_WORD_RE, "").trim();
+    }
+  }
+
+  // 6. Strip "de / del / de la / de los / de las / de el" connector at start
+  s = s.replace(/^de\s+(la\s+|los\s+|las\s+|el\s+)?/i, "").trim();
+  s = s.replace(/^del\s+/i, "").trim();
+
+  // 7. Strip trailing usage qualifier: "para la salsa", "para el aderezo", …
+  s = s.replace(/\s+para\s+.*/i, "").trim();
+
+  // 8. Lowercase + normalise diacritics
+  s = s.toLowerCase()
+    .replace(/[áàâä]/g, "a")
+    .replace(/[éèêë]/g, "e")
+    .replace(/[íìîï]/g, "i")
+    .replace(/[óòôö]/g, "o")
+    .replace(/[úùûü]/g, "u")
+    .replace(/ñ/g, "n")
+    .replace(/ß/g, "ss")
+    .replace(/ç/g, "c");
+
+  return s.trim() || label.trim().toLowerCase();
+}
+
+// ─── Clean label for display ───────────────────────────────────────────────
+
+/**
+ * Remove parenthetical notes and "para …" qualifiers from a label so the
+ * displayed ingredient name is clean. Keeps the leading quantity+unit.
+ */
+function cleanDisplayLabel(label: string): string {
+  let s = label.trim();
+  // Remove ALL parenthetical notes
+  s = s.replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim();
+  // Remove "para …" usage qualifier
+  s = s.replace(/\s+para\s+.*/i, "").trim();
+  return s;
+}
+
+// ─── Merge helpers ─────────────────────────────────────────────────────────
 
 export function parseCountFromLabel(label: string): { baseLabel: string; count: number } {
   const m = label.match(/\s*\((\d+)\)\s*$/);
@@ -123,24 +236,33 @@ export function parseCountFromLabel(label: string): { baseLabel: string; count: 
 
 export function mergeGroceryItems(items: GroceryItem[]): GroceryItem[] {
   const byKey = new Map<string, { label: string; count: number; fromPlan: boolean }>();
+
   for (const item of items) {
     const { baseLabel, count: itemCount } = parseCountFromLabel(item.label);
+    const cleanedLabel = cleanDisplayLabel(baseLabel);
     const key = normalizeIngredientForGrouping(baseLabel);
+
     const existing = byKey.get(key);
     if (existing) {
       existing.count += itemCount;
-      if (baseLabel.length > existing.label.length) existing.label = baseLabel;
+      // Prefer the shorter cleaned label as the representative (tends to be cleaner)
+      if (cleanedLabel.length < existing.label.length) {
+        existing.label = cleanedLabel;
+      }
       existing.fromPlan = existing.fromPlan || item.fromPlan;
     } else {
-      byKey.set(key, { label: baseLabel, count: itemCount, fromPlan: item.fromPlan });
+      byKey.set(key, { label: cleanedLabel, count: itemCount, fromPlan: item.fromPlan });
     }
   }
+
   return Array.from(byKey.entries()).map(([key, { label, count, fromPlan }]) => ({
     id: `merged-${key.replace(/\s+/g, "-")}`,
-    label: count > 1 ? `${label} (${count})` : label,
+    label: count > 1 ? `${label} (×${count})` : label,
     fromPlan,
   }));
 }
+
+// ─── Build grocery items from the weekly plan ──────────────────────────────
 
 export function getGroceryItemsFromPlan(
   plan: PlanState,

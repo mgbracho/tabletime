@@ -7,6 +7,13 @@ import { SUGGESTED_TAGS } from "@/lib/constants";
 import { filterRecipes } from "@/lib/utils/recipes";
 import { RecipeDetailModal } from "@/components/RecipeDetailModal";
 
+// Human-readable language names for the translate button label
+const LANG_NAMES: Record<string, string> = {
+  ES: "Español",
+  EN: "English",
+  DE: "Deutsch",
+};
+
 export function RecipesView({
   recipes,
   onAddRecipe,
@@ -18,7 +25,9 @@ export function RecipesView({
   onRemoveRecipe: (id: string) => void;
   onUpdateRecipe: (id: string, updates: Partial<Recipe>) => void;
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const targetLang = lang.toUpperCase();
+
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
@@ -38,6 +47,9 @@ export function RecipesView({
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
 
+  // Track per-recipe translate state: null | "loading" | "done" | "error"
+  const [translateState, setTranslateState] = useState<Record<string, "loading" | "done" | "error">>({});
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const title = newTitle.trim();
@@ -54,9 +66,17 @@ export function RecipesView({
       });
       setEditingId(null);
     } else {
-      onAddRecipe(title, newIngredients.trim() || undefined, newInstructions.trim() || undefined, newTags.length > 0 ? newTags : undefined, newServings, imageUrl);
+      onAddRecipe(
+        title,
+        newIngredients.trim() || undefined,
+        newInstructions.trim() || undefined,
+        newTags.length > 0 ? newTags : undefined,
+        newServings,
+        imageUrl
+      );
     }
-    setNewTitle(""); setNewIngredients(""); setNewInstructions(""); setNewTags([]); setNewServings(4); setNewImageUrl(""); setShowForm(false);
+    setNewTitle(""); setNewIngredients(""); setNewInstructions(""); setNewTags([]);
+    setNewServings(4); setNewImageUrl(""); setShowForm(false);
   };
 
   const startEdit = (r: Recipe) => {
@@ -82,10 +102,17 @@ export function RecipesView({
     setImportLoading(true);
     setImportError(null);
     try {
-      const res = await fetch("/api/import-recipe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) });
+      const res = await fetch("/api/import-recipe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // Pass current UI language so import translates to the right language
+        body: JSON.stringify({ url, targetLang }),
+      });
       const data = await res.json();
       if (!res.ok) { setImportError(data.error ?? t("rec.cannotConnect")); return; }
-      setNewTitle(data.title ?? ""); setNewIngredients(data.ingredients ?? ""); setNewInstructions(data.instructions ?? "");
+      setNewTitle(data.title ?? "");
+      setNewIngredients(data.ingredients ?? "");
+      setNewInstructions(data.instructions ?? "");
       setNewImageUrl(data.image_url ?? "");
       setShowImport(false); setImportUrl(""); setShowForm(true);
     } catch {
@@ -95,11 +122,46 @@ export function RecipesView({
     }
   };
 
+  const handleTranslate = async (r: Recipe) => {
+    setTranslateState((prev) => ({ ...prev, [r.id]: "loading" }));
+    try {
+      const res = await fetch("/api/translate-recipe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: r.title,
+          ingredients: r.ingredients ?? "",
+          instructions: r.instructions,
+          targetLang,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "error");
+      handleRecipePatch(r.id, {
+        title: data.title ?? r.title,
+        ingredients: data.ingredients ?? r.ingredients,
+        instructions: data.instructions ?? r.instructions,
+      });
+      setTranslateState((prev) => ({ ...prev, [r.id]: "done" }));
+      // Clear feedback after 2s
+      setTimeout(() => setTranslateState((prev) => {
+        const next = { ...prev }; delete next[r.id]; return next;
+      }), 2000);
+    } catch {
+      setTranslateState((prev) => ({ ...prev, [r.id]: "error" }));
+      setTimeout(() => setTranslateState((prev) => {
+        const next = { ...prev }; delete next[r.id]; return next;
+      }), 3000);
+    }
+  };
+
   const allTags = Array.from(new Set(recipes.flatMap((r) => r.tags ?? []))).sort();
   const filteredRecipes = filterRecipes(recipes, search, activeTag, {
     onlyFavorites: onlyFavorites || undefined,
     onlyFamilyApproved: onlyFamilyApproved || undefined,
   });
+
+  const langLabel = LANG_NAMES[targetLang] ?? targetLang;
 
   return (
     <div className="flex flex-col gap-4">
@@ -122,7 +184,14 @@ export function RecipesView({
           <label className="mb-2 block text-xs font-medium text-teal-800">{t("rec.pasteUrl")}</label>
           <p className="mb-3 text-xs text-zinc-600">{t("rec.urlDesc")}</p>
           <div className="flex gap-2">
-            <input type="url" value={importUrl} onChange={(e) => { setImportUrl(e.target.value); setImportError(null); }} placeholder={t("rec.urlPlaceholder")} className="flex-1 rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400" disabled={importLoading} />
+            <input
+              type="url"
+              value={importUrl}
+              onChange={(e) => { setImportUrl(e.target.value); setImportError(null); }}
+              placeholder={t("rec.urlPlaceholder")}
+              className="flex-1 rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
+              disabled={importLoading}
+            />
             <button type="submit" disabled={importLoading || !importUrl.trim()} className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-700 disabled:opacity-50">
               {importLoading ? t("rec.importing") : t("rec.import")}
             </button>
@@ -200,41 +269,61 @@ export function RecipesView({
         </p>
       ) : (
         <ul className="grid gap-2 sm:grid-cols-2">
-          {filteredRecipes.map((r, idx) => (
-            <li key={r.id} className={`flex items-center justify-between gap-3 rounded-lg border border-teal-100 px-4 py-3 shadow-sm ${idx % 3 === 0 ? "border-l-4 border-l-teal-600 bg-teal-50/60" : idx % 3 === 1 ? "border-l-4 border-l-teal-400 bg-teal-300/10" : "border-l-4 border-l-amber-600 bg-amber-50/60"}`}>
-              {r.image_url && (
-                <img src={r.image_url} alt={r.title} className="h-14 w-14 shrink-0 rounded-lg object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => handleRecipePatch(r.id, { is_favorite: !r.is_favorite })} className="shrink-0 rounded p-0.5 text-lg leading-none transition hover:scale-110" aria-label={r.is_favorite ? t("rec.removeFavorite") : t("rec.addFavorite")}>
-                    <span className={r.is_favorite ? "text-amber-500" : "text-zinc-300"}>♥</span>
-                  </button>
-                  <button type="button" onClick={() => { setViewingRecipe(r); setViewServings(r.default_servings ?? 4); }} className="text-left">
-                    <span className="font-medium text-teal-900 hover:underline">{r.title}</span>
-                  </button>
-                  {r.family_approved && <span className="shrink-0 rounded bg-teal-100 px-1.5 py-0.5 text-[10px] font-medium text-teal-700">Family approved</span>}
-                </div>
-                <div className="mt-1 flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <button key={n} type="button" onClick={(e) => { e.stopPropagation(); handleRecipePatch(r.id, { rating: r.rating === n ? null : n }); }} className="rounded p-0 text-amber-400/80 hover:text-amber-500" aria-label={n === 1 ? t("modal.starN", { n }) : t("modal.starsN", { n })}>
-                      <span className={r.rating != null && n <= r.rating ? "text-amber-400" : "text-zinc-300"}>★</span>
-                    </button>
-                  ))}
-                </div>
-                {r.tags && r.tags.length > 0 && (
-                  <div className="mt-1.5 flex flex-wrap gap-1">
-                    {r.tags.map((tg) => <span key={tg} className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-medium text-teal-700">{tg}</span>)}
-                  </div>
+          {filteredRecipes.map((r, idx) => {
+            const tState = translateState[r.id];
+            return (
+              <li key={r.id} className={`flex items-center justify-between gap-3 rounded-lg border border-teal-100 px-4 py-3 shadow-sm ${idx % 3 === 0 ? "border-l-4 border-l-teal-600 bg-teal-50/60" : idx % 3 === 1 ? "border-l-4 border-l-teal-400 bg-teal-300/10" : "border-l-4 border-l-amber-600 bg-amber-50/60"}`}>
+                {r.image_url && (
+                  <img src={r.image_url} alt={r.title} className="h-14 w-14 shrink-0 rounded-lg object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
                 )}
-                {r.ingredients && <p className="mt-1 text-xs text-zinc-500 line-clamp-2">{r.ingredients}</p>}
-              </div>
-              <div className="flex shrink-0 gap-1">
-                <button type="button" onClick={() => startEdit(r)} className="rounded-full p-1.5 text-zinc-400 hover:bg-teal-50 hover:text-teal-600" aria-label={t("rec.editAria")}>✎</button>
-                <button type="button" onClick={() => onRemoveRecipe(r.id)} className="rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600" aria-label={t("rec.deleteAria")}>✕</button>
-              </div>
-            </li>
-          ))}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => handleRecipePatch(r.id, { is_favorite: !r.is_favorite })} className="shrink-0 rounded p-0.5 text-lg leading-none transition hover:scale-110" aria-label={r.is_favorite ? t("rec.removeFavorite") : t("rec.addFavorite")}>
+                      <span className={r.is_favorite ? "text-amber-500" : "text-zinc-300"}>♥</span>
+                    </button>
+                    <button type="button" onClick={() => { setViewingRecipe(r); setViewServings(r.default_servings ?? 4); }} className="text-left">
+                      <span className="font-medium text-teal-900 hover:underline">{r.title}</span>
+                    </button>
+                    {r.family_approved && <span className="shrink-0 rounded bg-teal-100 px-1.5 py-0.5 text-[10px] font-medium text-teal-700">Family approved</span>}
+                  </div>
+                  <div className="mt-1 flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button key={n} type="button" onClick={(e) => { e.stopPropagation(); handleRecipePatch(r.id, { rating: r.rating === n ? null : n }); }} className="rounded p-0 text-amber-400/80 hover:text-amber-500" aria-label={n === 1 ? t("modal.starN", { n }) : t("modal.starsN", { n })}>
+                        <span className={r.rating != null && n <= r.rating ? "text-amber-400" : "text-zinc-300"}>★</span>
+                      </button>
+                    ))}
+                  </div>
+                  {r.tags && r.tags.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {r.tags.map((tg) => <span key={tg} className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-medium text-teal-700">{tg}</span>)}
+                    </div>
+                  )}
+                  {r.ingredients && <p className="mt-1 text-xs text-zinc-500 line-clamp-2">{r.ingredients}</p>}
+                </div>
+                <div className="flex shrink-0 flex-col gap-1">
+                  {/* Translate button */}
+                  <button
+                    type="button"
+                    onClick={() => handleTranslate(r)}
+                    disabled={tState === "loading"}
+                    title={t("rec.translate", { lang: langLabel })}
+                    aria-label={t("rec.translate", { lang: langLabel })}
+                    className={`rounded-full p-1.5 text-xs transition ${
+                      tState === "done"
+                        ? "text-teal-600 bg-teal-50"
+                        : tState === "error"
+                          ? "text-red-500 bg-red-50"
+                          : "text-zinc-400 hover:bg-teal-50 hover:text-teal-600"
+                    }`}
+                  >
+                    {tState === "loading" ? "⏳" : tState === "done" ? "✓" : tState === "error" ? "✕" : "🌐"}
+                  </button>
+                  <button type="button" onClick={() => startEdit(r)} className="rounded-full p-1.5 text-zinc-400 hover:bg-teal-50 hover:text-teal-600" aria-label={t("rec.editAria")}>✎</button>
+                  <button type="button" onClick={() => onRemoveRecipe(r.id)} className="rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600" aria-label={t("rec.deleteAria")}>✕</button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -246,6 +335,9 @@ export function RecipesView({
           onClose={() => setViewingRecipe(null)}
           onEdit={(r) => startEdit(r)}
           onUpdateRecipe={handleRecipePatch}
+          onTranslate={handleTranslate}
+          translateState={translateState}
+          langLabel={langLabel}
         />
       )}
     </div>

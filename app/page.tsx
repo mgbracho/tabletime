@@ -60,6 +60,45 @@ function SectionPlaceholder({
   const [calendarViewServings, setCalendarViewServings] = useState(4);
   const [visibleMeals, setVisibleMeals] = useState<MealType[]>(() => [...loadVisibleMeals()]);
   const [themeConfigOpen, setThemeConfigOpen] = useState(false);
+  const [calTranslateState, setCalTranslateState] = useState<Record<string, "loading" | "done" | "error">>({});
+
+  const { t, lang } = useLanguage();
+  const LANG_NAMES: Record<string, string> = { ES: "Español", EN: "English", DE: "Deutsch" };
+  const langLabel = LANG_NAMES[lang.toUpperCase()] ?? lang.toUpperCase();
+
+  const handleCalendarTranslate = async (recipe: Recipe) => {
+    const id = recipe.id;
+    setCalTranslateState((prev) => ({ ...prev, [id]: "loading" }));
+    try {
+      const res = await fetch("/api/translate-recipe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: recipe.title,
+          ingredients: recipe.ingredients ?? "",
+          instructions: recipe.instructions,
+          targetLang: lang.toUpperCase(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "error");
+      onUpdateRecipe(id, {
+        title: data.title ?? recipe.title,
+        ingredients: data.ingredients ?? recipe.ingredients,
+        instructions: data.instructions ?? recipe.instructions,
+      });
+      setCalendarViewingRecipe((prev) =>
+        prev && prev.id === id
+          ? { ...prev, title: data.title ?? prev.title, ingredients: data.ingredients ?? prev.ingredients, instructions: data.instructions ?? prev.instructions }
+          : prev
+      );
+      setCalTranslateState((prev) => ({ ...prev, [id]: "done" }));
+      setTimeout(() => setCalTranslateState((prev) => { const next = { ...prev }; delete next[id]; return next; }), 2000);
+    } catch {
+      setCalTranslateState((prev) => ({ ...prev, [id]: "error" }));
+      setTimeout(() => setCalTranslateState((prev) => { const next = { ...prev }; delete next[id]; return next; }), 3000);
+    }
+  };
 
   const setVisibleMealsAndPersist = (
     next: MealType[] | ((prev: MealType[]) => MealType[])
@@ -78,8 +117,6 @@ function SectionPlaceholder({
       return [...prev, meal].sort((a, b) => MEAL_LABELS.indexOf(a) - MEAL_LABELS.indexOf(b));
     });
   };
-
-  const { t } = useLanguage();
 
   if (activeTab === "calendar") {
     return (
@@ -122,6 +159,9 @@ function SectionPlaceholder({
               onUpdateRecipe(id, patch);
               setCalendarViewingRecipe((prev) => (prev && prev.id === id ? { ...prev, ...patch } : null));
             }}
+            onTranslate={handleCalendarTranslate}
+            translateState={calTranslateState}
+            langLabel={langLabel}
           />
         )}
         <ThemeConfig

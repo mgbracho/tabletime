@@ -3,55 +3,87 @@ import { NextRequest, NextResponse } from "next/server";
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY;
 const DEEPL_ENDPOINT = "https://api-free.deepl.com/v2/translate";
 
-async function translateToSpanish(texts: string[]): Promise<{ translated: string[]; sourceLang: string } | null> {
+// Map our language codes to DeepL target_lang codes
+const DEEPL_TARGET: Record<string, string> = {
+  ES: "ES",
+  EN: "EN-US",
+  DE: "DE",
+};
+
+// Fallback title by target language
+const IMPORTED_TITLE: Record<string, string> = {
+  ES: "Receta importada",
+  EN: "Imported recipe",
+  DE: "Importiertes Rezept",
+};
+
+/** Translates an array of texts to the given target language via DeepL.
+ *  Returns null on failure (graceful degradation). */
+async function translateTexts(
+  texts: string[],
+  targetLang: string
+): Promise<{ translated: string[]; sourceLang: string } | null> {
   if (!DEEPL_API_KEY || texts.length === 0) return null;
+  const deeplTarget = DEEPL_TARGET[targetLang.toUpperCase()] ?? targetLang.toUpperCase();
   try {
-    // Batch in chunks of 50 (DeepL limit)
     const chunks: string[][] = [];
     for (let i = 0; i < texts.length; i += 50) chunks.push(texts.slice(i, i + 50));
     const allTranslated: string[] = [];
-    let sourceLang = "ES";
+    let sourceLang = targetLang;
     for (const chunk of chunks) {
       const res = await fetch(DEEPL_ENDPOINT, {
         method: "POST",
-        headers: { "Authorization": `DeepL-Auth-Key ${DEEPL_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ text: chunk, target_lang: "ES" }),
+        headers: {
+          "Authorization": `DeepL-Auth-Key ${DEEPL_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: chunk, target_lang: deeplTarget }),
         signal: AbortSignal.timeout(8000),
       });
       if (!res.ok) return null;
-      const data = await res.json() as { translations: Array<{ text: string; detected_source_language: string }> };
-      if (allTranslated.length === 0) sourceLang = data.translations[0]?.detected_source_language ?? "ES";
+      const data = await res.json() as {
+        translations: Array<{ text: string; detected_source_language: string }>;
+      };
+      if (allTranslated.length === 0) {
+        sourceLang = data.translations[0]?.detected_source_language ?? targetLang;
+      }
       allTranslated.push(...data.translations.map((t) => t.text));
     }
     return { translated: allTranslated, sourceLang };
   } catch {
-    return null; // graceful degradation — import sin traducción
+    return null;
   }
 }
 
-async function maybeTranslate(recipe: { title: string; ingredients: string; instructions?: string; image_url?: string }) {
+/** Translates recipe fields to targetLang. Skips if already in that language. */
+export async function translateRecipeFields(
+  recipe: { title: string; ingredients: string; instructions?: string; image_url?: string },
+  targetLang: string,
+  force = false
+): Promise<typeof recipe> {
   if (!DEEPL_API_KEY) return recipe;
 
   const ingredientLines = recipe.ingredients.split("\n").filter(Boolean);
   const instructionSteps = (recipe.instructions ?? "").split("\n\n").filter(Boolean);
-
-  // Batch: [title, ...ingredients, ...steps]
   const texts = [recipe.title, ...ingredientLines, ...instructionSteps];
-  const result = await translateToSpanish(texts);
-  if (!result || result.sourceLang === "ES") return recipe; // ya en español
+
+  const result = await translateTexts(texts, targetLang);
+  if (!result) return recipe;
+
+  // Skip if already in target language (unless forced)
+  const detectedBase = result.sourceLang.toUpperCase().split("-")[0];
+  const targetBase = targetLang.toUpperCase().split("-")[0];
+  if (!force && detectedBase === targetBase) return recipe;
 
   const { translated } = result;
-  const translatedTitle = translated[0] ?? recipe.title;
-  const translatedIngredients = translated.slice(1, 1 + ingredientLines.length).join("\n");
-  const translatedInstructions = instructionSteps.length > 0
-    ? translated.slice(1 + ingredientLines.length).join("\n\n")
-    : recipe.instructions;
-
   return {
     ...recipe,
-    title: translatedTitle,
-    ingredients: translatedIngredients,
-    instructions: translatedInstructions || recipe.instructions,
+    title: translated[0] ?? recipe.title,
+    ingredients: translated.slice(1, 1 + ingredientLines.length).join("\n"),
+    instructions:
+      instructionSteps.length > 0
+        ? translated.slice(1 + ingredientLines.length).join("\n\n")
+        : recipe.instructions,
   };
 }
 
@@ -104,19 +136,15 @@ function isRecipe(item: unknown): item is RecipeSchema {
 function collectItems(obj: unknown): unknown[] {
   if (!obj || typeof obj !== "object") return [];
   const o = obj as Record<string, unknown>;
-  if (Array.isArray(o["@graph"])) {
-    return (o["@graph"] as unknown[]).flatMap(collectItems);
-  }
+  if (Array.isArray(o["@graph"])) return (o["@graph"] as unknown[]).flatMap(collectItems);
   if (Array.isArray(obj)) return obj.flatMap(collectItems);
   return [obj];
 }
 
-function extractRecipeFromJsonLd(html: string): {
-  title: string;
-  ingredients: string;
-  instructions?: string;
-  image_url?: string;
-} | null {
+function extractRecipeFromJsonLd(
+  html: string,
+  targetLang: string
+): { title: string; ingredients: string; instructions?: string; image_url?: string } | null {
   const scriptMatches = html.matchAll(
     /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
   );
@@ -140,7 +168,10 @@ function extractRecipeFromJsonLd(html: string): {
               .join("\n\n");
           }
           return {
-            title: recipe.name?.trim() ?? "Receta importada",
+            title:
+              recipe.name?.trim() ??
+              IMPORTED_TITLE[targetLang.toUpperCase()] ??
+              "Receta importada",
             ingredients,
             instructions: instructions || undefined,
             image_url: extractImageUrl(recipe.image),
@@ -154,15 +185,18 @@ function extractRecipeFromJsonLd(html: string): {
   return null;
 }
 
-function extractRecipeFromMeta(html: string): { title: string; image_url?: string } | null {
-  const titleMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i)
-    ?? html.match(/<title[^>]*>([^<]+)<\/title>/i);
+function extractRecipeFromMeta(
+  html: string
+): { title: string; image_url?: string } | null {
+  const titleMatch =
+    html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i) ??
+    html.match(/<title[^>]*>([^<]+)<\/title>/i);
   if (titleMatch) {
-    const title = titleMatch[1]
-      .replace(/\s*[-|]\s*.*$/, "")
-      .trim();
+    const title = titleMatch[1].replace(/\s*[-|]\s*.*$/, "").trim();
     if (title.length > 2) {
-      const imageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
+      const imageMatch = html.match(
+        /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i
+      );
       return { title, image_url: imageMatch?.[1] };
     }
   }
@@ -174,18 +208,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const url = typeof body?.url === "string" ? body.url.trim() : "";
     if (!url) {
-      return NextResponse.json(
-        { error: "URL requerida" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "URL requerida" }, { status: 400 });
     }
     const parsed = new URL(url);
     if (!["http:", "https:"].includes(parsed.protocol)) {
-      return NextResponse.json(
-        { error: "URL no válida" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "URL no válida" }, { status: 400 });
     }
+
+    // targetLang sent by client (defaults to ES for backwards compat)
+    const targetLang =
+      typeof body?.targetLang === "string" && body.targetLang.length > 0
+        ? body.targetLang.toUpperCase()
+        : "ES";
 
     const res = await fetch(url, {
       headers: {
@@ -203,19 +237,19 @@ export async function POST(request: NextRequest) {
     }
 
     const html = await res.text();
-    const recipe = extractRecipeFromJsonLd(html);
+    const recipe = extractRecipeFromJsonLd(html, targetLang);
     if (recipe) {
-      return NextResponse.json(await maybeTranslate(recipe));
+      return NextResponse.json(await translateRecipeFields(recipe, targetLang));
     }
 
     const meta = extractRecipeFromMeta(html);
     if (meta) {
-      return NextResponse.json(await maybeTranslate({
-        title: meta.title,
-        ingredients: "",
-        instructions: undefined,
-        image_url: meta.image_url,
-      }));
+      return NextResponse.json(
+        await translateRecipeFields(
+          { title: meta.title, ingredients: "", instructions: undefined, image_url: meta.image_url },
+          targetLang
+        )
+      );
     }
 
     return NextResponse.json(
@@ -225,7 +259,12 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error desconocido";
     return NextResponse.json(
-      { error: message.includes("fetch") || message.includes("timeout") ? "No se pudo conectar. Verifica la URL." : message },
+      {
+        error:
+          message.includes("fetch") || message.includes("timeout")
+            ? "No se pudo conectar. Verifica la URL."
+            : message,
+      },
       { status: 500 }
     );
   }

@@ -121,6 +121,11 @@ const es: TranslationRecord = {
   "rec.ingredientsPlaceholder": "Uno por línea: 200g lentejas, 1 chorizo...",
   "rec.stepsPlaceholder": "1. Sofreír la cebolla...",
   "rec.cannotConnect": "No se pudo conectar. Verifica la URL.",
+  "rec.translate": "Traducir al {lang}",
+  "rec.translating": "Traduciendo…",
+  "rec.translateDone": "¡Traducida!",
+  "rec.translateError": "Error al traducir",
+  "rec.noDeepL": "Configura DEEPL_API_KEY para traducir recetas.",
 
   // Grocery list view
   "gro.desc": "Generada a partir de tu plan de esta semana. Añade lo que falte y marca al comprar.",
@@ -318,6 +323,11 @@ const en: TranslationRecord = {
   "rec.ingredientsPlaceholder": "One per line: 200g lentils, 1 sausage...",
   "rec.stepsPlaceholder": "1. Sauté the onion...",
   "rec.cannotConnect": "Could not connect. Check the URL.",
+  "rec.translate": "Translate to {lang}",
+  "rec.translating": "Translating…",
+  "rec.translateDone": "Translated!",
+  "rec.translateError": "Translation error",
+  "rec.noDeepL": "Set DEEPL_API_KEY to enable recipe translation.",
 
   "gro.desc": "Generated from your plan for this week. Add what's missing and check off as you shop.",
   "gro.copy": "Copy list",
@@ -509,6 +519,11 @@ const de: TranslationRecord = {
   "rec.ingredientsPlaceholder": "Eins pro Zeile: 200g Linsen, 1 Wurst...",
   "rec.stepsPlaceholder": "1. Zwiebel anbraten...",
   "rec.cannotConnect": "Verbindung fehlgeschlagen. URL prüfen.",
+  "rec.translate": "Auf {lang} übersetzen",
+  "rec.translating": "Übersetze…",
+  "rec.translateDone": "Übersetzt!",
+  "rec.translateError": "Übersetzungsfehler",
+  "rec.noDeepL": "DEEPL_API_KEY setzen, um Rezepte zu übersetzen.",
 
   "gro.desc": "Aus deinem Plan für diese Woche erstellt. Fehlende hinzufügen und beim Einkaufen abhaken.",
   "gro.copy": "Liste kopieren",

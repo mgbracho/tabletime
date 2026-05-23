@@ -11,6 +11,9 @@ export function RecipeDetailModal({
   onClose,
   onEdit,
   onUpdateRecipe,
+  onTranslate,
+  translateState,
+  langLabel,
 }: {
   recipe: Recipe;
   viewServings: number;
@@ -18,8 +21,12 @@ export function RecipeDetailModal({
   onClose: () => void;
   onEdit?: (recipe: Recipe) => void;
   onUpdateRecipe?: (id: string, patch: Partial<Recipe>) => void;
+  onTranslate?: (recipe: Recipe) => void;
+  translateState?: Record<string, "loading" | "done" | "error">;
+  langLabel?: string;
 }) {
   const { t } = useLanguage();
+  const tState = translateState?.[recipe.id];
 
   return (
     <div
@@ -156,23 +163,54 @@ export function RecipeDetailModal({
             <p className="text-sm text-zinc-500">{t("modal.noContent")}</p>
           )}
         </div>
-        <div className="flex justify-end gap-2 border-t border-teal-100 px-4 py-3">
-          {onEdit && (
+        <div className="flex items-center justify-between gap-2 border-t border-teal-100 px-4 py-3">
+          {/* Translate button — shown when onTranslate is provided */}
+          {onTranslate ? (
             <button
               type="button"
-              onClick={() => { onClose(); onEdit(recipe); }}
-              className="rounded-lg border border-teal-200 px-4 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50"
+              onClick={() => onTranslate(recipe)}
+              disabled={tState === "loading"}
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                tState === "done"
+                  ? "border-teal-200 bg-teal-50 text-teal-700"
+                  : tState === "error"
+                    ? "border-red-200 bg-red-50 text-red-700"
+                    : "border-teal-200 text-teal-700 hover:bg-teal-50"
+              }`}
+              title={t("rec.translate", { lang: langLabel ?? "" })}
             >
-              {t("modal.edit")}
+              <span>{tState === "loading" ? "⏳" : tState === "done" ? "✓" : tState === "error" ? "✕" : "🌐"}</span>
+              <span>
+                {tState === "loading"
+                  ? t("rec.translating")
+                  : tState === "done"
+                    ? t("rec.translateDone")
+                    : tState === "error"
+                      ? t("rec.translateError")
+                      : t("rec.translate", { lang: langLabel ?? "" })}
+              </span>
             </button>
+          ) : (
+            <div />
           )}
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
-          >
-            {t("modal.close")}
-          </button>
+          <div className="flex gap-2">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => { onClose(); onEdit(recipe); }}
+                className="rounded-lg border border-teal-200 px-4 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50"
+              >
+                {t("modal.edit")}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+            >
+              {t("modal.close")}
+            </button>
+          </div>
         </div>
       </div>
     </div>

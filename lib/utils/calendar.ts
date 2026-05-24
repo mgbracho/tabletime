@@ -247,7 +247,14 @@ export function generateSuggestedPlanForWeek(
       return daysSinceScore * 0.4 + varietyScore * 0.35 + Math.random() * 0.25;
     };
 
-    const sorted = [...available].sort((a, b) => score(b) - score(a));
+    // Respect meal_types: only assign a recipe to a slot it's marked for.
+    // Recipes with no meal_types restriction are eligible for any slot.
+    const mealRestricted = available.filter(
+      (r) => !r.meal_types || r.meal_types.length === 0 || r.meal_types.includes(meal)
+    );
+    if (mealRestricted.length === 0) continue;
+
+    const sorted = [...mealRestricted].sort((a, b) => score(b) - score(a));
     const top = sorted.slice(0, Math.max(1, Math.min(3, Math.ceil(sorted.length / 2))));
     const picked = top[Math.floor(Math.random() * top.length)];
     plan[key] = picked.id;

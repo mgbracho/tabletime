@@ -25,6 +25,8 @@ export type Recipe = {
   lang?: string | null;
   /** Original URL the recipe was imported from. */
   source_url?: string | null;
+  /** Meal slots this recipe is suitable for. Empty/null = suitable for all meals. */
+  meal_types?: MealType[] | null;
 };
 
 export type PlanState = Record<string, string>;
@@ -143,6 +145,7 @@ export function useTableTimeData() {
         image_url: r.image_url ?? null,
         lang: r.lang ?? null,
         source_url: r.source_url ?? null,
+        meal_types: Array.isArray(r.meal_types) && r.meal_types.length > 0 ? [...r.meal_types].sort() : [],
       }))
       .sort((a, b) => a.id.localeCompare(b.id));
 
@@ -178,7 +181,7 @@ export function useTableTimeData() {
   } | null> => {
     const supabase = createClient();
     const [recipesRes, slotsRes, manualRes, checkedRes, themesRes] = await Promise.all([
-      supabase.from("recipes").select("id, title, ingredients, instructions, tags, default_servings, is_favorite, rating, family_approved, image_url, lang, source_url").eq("household_id", hid),
+      supabase.from("recipes").select("id, title, ingredients, instructions, tags, default_servings, is_favorite, rating, family_approved, image_url, lang, source_url, meal_types").eq("household_id", hid),
       supabase.from("plan_slots").select("slot_key, recipe_id, slot_status").eq("household_id", hid),
       supabase.from("grocery_items").select("id, label").eq("household_id", hid).eq("source", "manual"),
       supabase.from("grocery_checked").select("item_key").eq("household_id", hid),
@@ -200,6 +203,7 @@ export function useTableTimeData() {
       image_url: typeof r.image_url === "string" && r.image_url ? r.image_url : undefined,
       lang: typeof r.lang === "string" && r.lang ? r.lang : undefined,
       source_url: typeof r.source_url === "string" && r.source_url ? r.source_url : undefined,
+      meal_types: Array.isArray(r.meal_types) && r.meal_types.length > 0 ? r.meal_types as MealType[] : undefined,
     }));
 
     const exampleIdsToDelete = recipes.filter((r) => EXAMPLE_IDS.has(r.id)).map((r) => r.id);
@@ -381,6 +385,7 @@ export function useTableTimeData() {
             image_url: r.image_url ?? null,
             lang: r.lang ?? null,
             source_url: r.source_url ?? null,
+            meal_types: Array.isArray(r.meal_types) && r.meal_types.length > 0 ? r.meal_types : null,
           })),
           { onConflict: "id" }
         );
@@ -566,7 +571,7 @@ export function useTableTimeData() {
       }
     };
 
-    type RecipeRow = { id: string; title: string; ingredients: string | null; instructions: string | null; tags: string[]; default_servings?: number; is_favorite?: boolean; rating?: number | null; family_approved?: boolean; image_url?: string | null; lang?: string | null; source_url?: string | null };
+    type RecipeRow = { id: string; title: string; ingredients: string | null; instructions: string | null; tags: string[]; default_servings?: number; is_favorite?: boolean; rating?: number | null; family_approved?: boolean; image_url?: string | null; lang?: string | null; source_url?: string | null; meal_types?: string[] | null };
     const mapRecipeRow = (r: RecipeRow): Recipe => ({
       id: r.id,
       title: r.title,
@@ -580,6 +585,7 @@ export function useTableTimeData() {
       image_url: typeof r.image_url === "string" && r.image_url ? r.image_url : undefined,
       lang: typeof r.lang === "string" && r.lang ? r.lang : undefined,
       source_url: typeof r.source_url === "string" && r.source_url ? r.source_url : undefined,
+      meal_types: Array.isArray(r.meal_types) && r.meal_types.length > 0 ? r.meal_types as MealType[] : undefined,
     });
 
     const handleRecipesInsert = (payload: { new: RecipeRow }) => {
@@ -745,9 +751,9 @@ export function useTableTimeData() {
     };
   }, [hid]);
 
-  const addRecipe = useCallback((title: string, ingredients?: string, instructions?: string, tags?: string[], default_servings?: number, image_url?: string, lang?: string, source_url?: string) => {
+  const addRecipe = useCallback((title: string, ingredients?: string, instructions?: string, tags?: string[], default_servings?: number, image_url?: string, lang?: string, source_url?: string, meal_types?: MealType[]) => {
     const id = (effectiveHouseholdId.current ?? householdId) ? crypto.randomUUID() : `u-${Date.now()}`;
-    setRecipes((prev) => [...prev, { id, title, ingredients, instructions, tags, default_servings: default_servings ?? 4, image_url, lang, source_url }]);
+    setRecipes((prev) => [...prev, { id, title, ingredients, instructions, tags, default_servings: default_servings ?? 4, image_url, lang, source_url, meal_types: meal_types && meal_types.length > 0 ? meal_types : undefined }]);
   }, [householdId]);
 
   const addManualGroceryItem = useCallback((label: string) => {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Recipe } from "@/lib/sync/use-tabletime-data";
 import { useLanguage } from "@/lib/i18n";
-import { SUGGESTED_TAGS } from "@/lib/constants";
+import { SUGGESTED_TAGS, MEAL_LABELS, type MealType } from "@/lib/constants";
 import { filterRecipes } from "@/lib/utils/recipes";
 import { RecipeDetailModal } from "@/components/RecipeDetailModal";
 
@@ -21,7 +21,7 @@ export function RecipesView({
   onUpdateRecipe,
 }: {
   recipes: Recipe[];
-  onAddRecipe: (title: string, ingredients?: string, instructions?: string, tags?: string[], default_servings?: number, image_url?: string, lang?: string, source_url?: string) => void;
+  onAddRecipe: (title: string, ingredients?: string, instructions?: string, tags?: string[], default_servings?: number, image_url?: string, lang?: string, source_url?: string, meal_types?: MealType[]) => void;
   onRemoveRecipe: (id: string) => void;
   onUpdateRecipe: (id: string, updates: Partial<Recipe>) => void;
 }) {
@@ -44,6 +44,7 @@ export function RecipesView({
   const [newImageUrl, setNewImageUrl] = useState("");
   const [newLang, setNewLang] = useState("");       // language detected during URL import
   const [newSourceUrl, setNewSourceUrl] = useState(""); // original URL from import
+  const [newMealTypes, setNewMealTypes] = useState<MealType[]>([]); // meal slots this recipe is for
   const [showImport, setShowImport] = useState(false);
   const [importUrl, setImportUrl] = useState("");
   const [importLoading, setImportLoading] = useState(false);
@@ -65,6 +66,7 @@ export function RecipesView({
         tags: newTags.length > 0 ? newTags : undefined,
         default_servings: newServings,
         image_url: imageUrl,
+        meal_types: newMealTypes.length > 0 ? newMealTypes : null,
       });
       setEditingId(null);
     } else {
@@ -77,10 +79,11 @@ export function RecipesView({
         imageUrl,
         newLang || undefined,
         newSourceUrl || undefined,
+        newMealTypes.length > 0 ? newMealTypes : undefined,
       );
     }
     setNewTitle(""); setNewIngredients(""); setNewInstructions(""); setNewTags([]);
-    setNewServings(4); setNewImageUrl(""); setNewLang(""); setNewSourceUrl(""); setShowForm(false);
+    setNewServings(4); setNewImageUrl(""); setNewLang(""); setNewSourceUrl(""); setNewMealTypes([]); setShowForm(false);
   };
 
   const startEdit = (r: Recipe) => {
@@ -93,6 +96,7 @@ export function RecipesView({
     setNewImageUrl(r.image_url ?? "");
     setNewLang("");
     setNewSourceUrl("");
+    setNewMealTypes(r.meal_types ? [...r.meal_types] : []);
     setShowForm(true);
   };
 
@@ -248,9 +252,31 @@ export function RecipesView({
             </div>
           )}
           <input type="url" value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)} placeholder="https://ejemplo.com/foto.jpg" className="mb-3 w-full rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400" />
+          <label className="mb-2 block text-xs font-medium text-teal-800">{t("rec.mealTypes")}</label>
+          <div className="mb-3 flex flex-wrap items-center gap-1.5">
+            {MEAL_LABELS.map((meal) => (
+              <button
+                key={meal}
+                type="button"
+                onClick={() => setNewMealTypes((prev) =>
+                  prev.includes(meal) ? prev.filter((m) => m !== meal) : [...prev, meal]
+                )}
+                className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+                  newMealTypes.includes(meal)
+                    ? "bg-teal-600 text-white"
+                    : "bg-teal-100 text-teal-800 hover:bg-teal-200"
+                }`}
+              >
+                {t(`meal.${meal}`)}
+              </button>
+            ))}
+            {newMealTypes.length === 0 && (
+              <span className="text-xs text-zinc-400">{t("rec.allMeals")}</span>
+            )}
+          </div>
           <div className="flex gap-2">
             <button type="submit" className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">{t("rec.save")}</button>
-            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setNewTitle(""); setNewIngredients(""); setNewInstructions(""); setNewTags([]); setNewServings(4); setNewImageUrl(""); setNewLang(""); setNewSourceUrl(""); }} className="rounded-lg border border-teal-200 px-4 py-2 text-sm text-teal-700 hover:bg-teal-50">{t("rec.cancel")}</button>
+            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setNewTitle(""); setNewIngredients(""); setNewInstructions(""); setNewTags([]); setNewServings(4); setNewImageUrl(""); setNewLang(""); setNewSourceUrl(""); setNewMealTypes([]); }} className="rounded-lg border border-teal-200 px-4 py-2 text-sm text-teal-700 hover:bg-teal-50">{t("rec.cancel")}</button>
           </div>
         </form>
       )}
@@ -308,6 +334,15 @@ export function RecipesView({
                   {r.tags && r.tags.length > 0 && (
                     <div className="mt-1.5 flex flex-wrap gap-1">
                       {r.tags.map((tg) => <span key={tg} className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-medium text-teal-700">{tg}</span>)}
+                    </div>
+                  )}
+                  {r.meal_types && r.meal_types.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {r.meal_types.map((m) => (
+                        <span key={m} className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                          {t(`meal.${m}`)}
+                        </span>
+                      ))}
                     </div>
                   )}
                   {r.ingredients && <p className="mt-1 text-xs text-zinc-500 line-clamp-2">{r.ingredients}</p>}

@@ -95,10 +95,10 @@ export async function translateRecipeFields(
 
 type ImageObject = { url?: string };
 type RecipeSchema = {
-  "@type"?: string;
+  "@type"?: string | string[];
   name?: string;
-  recipeIngredient?: string[];
-  recipeInstructions?: Array<{ text?: string } | string>;
+  recipeIngredient?: Array<string | Record<string, unknown>>;
+  recipeInstructions?: unknown; // handled by flattenInstructions
   image?: string | string[] | ImageObject | ImageObject[];
 };
 
@@ -147,6 +147,32 @@ function collectItems(obj: unknown): unknown[] {
   return [obj];
 }
 
+// ─── Instruction flattening ────────────────────────────────────────────────
+// Handles: plain strings, HowToStep { text }, HowToSection { itemListElement }
+
+type AnyStep = string | { "@type"?: string; text?: string; name?: string; itemListElement?: AnyStep[] };
+
+function flattenInstructions(raw: unknown): string {
+  const list: AnyStep[] = Array.isArray(raw) ? raw as AnyStep[] : (raw ? [raw as AnyStep] : []);
+  const out: string[] = [];
+  for (const item of list) {
+    if (typeof item === "string") {
+      const t = stripHtml(item); if (t) out.push(t);
+    } else if (item && typeof item === "object") {
+      if (Array.isArray(item.itemListElement) && item.itemListElement.length > 0) {
+        // HowToSection — recurse into its nested steps
+        const nested = flattenInstructions(item.itemListElement);
+        if (nested) out.push(...nested.split("\n\n").filter(Boolean));
+      } else {
+        const t = stripHtml(item.text ?? item.name ?? ""); if (t) out.push(t);
+      }
+    }
+  }
+  return out.join("\n\n");
+}
+
+// ─── JSON-LD extraction ────────────────────────────────────────────────────
+
 function extractRecipeFromJsonLd(
   html: string,
   targetLang: string
@@ -159,30 +185,32 @@ function extractRecipeFromJsonLd(
       const json = JSON.parse(match[1].trim()) as unknown;
       const items = collectItems(json);
       for (const item of items) {
-        if (isRecipe(item)) {
-          const recipe = item;
-          const ingredients = Array.isArray(recipe.recipeIngredient)
-            ? recipe.recipeIngredient.map(stripHtml).join("\n")
-            : "";
-          let instructions = "";
-          if (Array.isArray(recipe.recipeInstructions)) {
-            instructions = recipe.recipeInstructions
-              .map((step) =>
-                stripHtml(typeof step === "string" ? step : ((step as { text?: string }).text ?? ""))
-              )
+        if (!isRecipe(item)) continue;
+        const recipe = item;
+
+        // Ingredients: handle both string[] and object[]
+        const ingredients = Array.isArray(recipe.recipeIngredient)
+          ? recipe.recipeIngredient
+              .map((ing) => {
+                if (typeof ing === "string") return stripHtml(ing);
+                if (ing && typeof ing === "object") return stripHtml((ing.name as string) ?? "");
+                return "";
+              })
               .filter(Boolean)
-              .join("\n\n");
-          }
-          return {
-            title:
-              recipe.name?.trim() ??
-              IMPORTED_TITLE[targetLang.toUpperCase()] ??
-              "Receta importada",
-            ingredients,
-            instructions: instructions || undefined,
-            image_url: extractImageUrl(recipe.image),
-          };
-        }
+              .join("\n")
+          : "";
+
+        // Instructions: flatten any combination of HowToStep / HowToSection / strings
+        const instructions = recipe.recipeInstructions != null
+          ? flattenInstructions(recipe.recipeInstructions)
+          : "";
+
+        return {
+          title: recipe.name?.trim() ?? IMPORTED_TITLE[targetLang.toUpperCase()] ?? "Receta importada",
+          ingredients,
+          instructions: instructions || undefined,
+          image_url: extractImageUrl(recipe.image),
+        };
       }
     } catch {
       // skip invalid JSON
@@ -190,6 +218,92 @@ function extractRecipeFromJsonLd(
   }
   return null;
 }
+
+// ─── HTML microdata / plugin fallback ─────────────────────────────────────
+
+/**
+ * Extract inner text of elements with itemprop="<prop>".
+ * Tries common inline/block element names until results are found.
+ */
+function extractByItemprop(html: string, prop: string): string[] {
+  for (const tag of ["li", "span", "td", "p", "div"]) {
+    const re = new RegExp(
+      `<${tag}[^>]+itemprop=["'][^"']*\\b${prop}\\b[^"']*["'][^>]*>([\\s\\S]*?)<\\/${tag}>`,
+      "gi"
+    );
+    const results: string[] = [];
+    for (const m of html.matchAll(re)) {
+      const text = stripHtml(m[1]).trim();
+      if (text.length > 1) results.push(text);
+    }
+    if (results.length > 0) return results;
+  }
+  return [];
+}
+
+/**
+ * Extract inner text of elements whose class attribute contains <className>.
+ */
+function extractByClass(html: string, className: string): string[] {
+  const escaped = className.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+  for (const tag of ["p", "span", "li", "div", "td"]) {
+    const re = new RegExp(
+      `<${tag}[^>]+class=["'][^"']*\\b${escaped}\\b[^"']*["'][^>]*>([\\s\\S]*?)<\\/${tag}>`,
+      "gi"
+    );
+    const results: string[] = [];
+    for (const m of html.matchAll(re)) {
+      const text = stripHtml(m[1]).trim();
+      if (text.length > 1) results.push(text);
+    }
+    if (results.length > 0) return results;
+  }
+  return [];
+}
+
+/**
+ * HTML-level fallback: try microdata (itemprop) and common recipe-plugin CSS classes.
+ * Returns null if neither ingredients nor instructions can be found.
+ */
+function extractRecipeFromHtml(
+  html: string,
+  targetLang: string
+): { title: string; ingredients: string; instructions?: string; image_url?: string } | null {
+  // ── ingredients ──────────────────────────────────────────────────────────
+  let ingredientLines =
+    extractByItemprop(html, "recipeIngredient") ||
+    extractByClass(html, "wprm-recipe-ingredient-name") ||
+    extractByClass(html, "wprm-recipe-ingredient") ||
+    extractByClass(html, "tasty-recipes-ingredient") ||
+    extractByClass(html, "recipe-ingredient") ||
+    extractByClass(html, "ingredient");
+
+  // Some sites put quantity+unit+name in separate spans; collapse to lines
+  if (ingredientLines.length === 0) {
+    // Generic: <li class="...ingredient...">
+    ingredientLines = extractByClass(html, "ingredient");
+  }
+
+  // ── instructions ─────────────────────────────────────────────────────────
+  const instructionLines =
+    extractByItemprop(html, "recipeInstructions") ||
+    extractByClass(html, "wprm-recipe-instruction-text") ||
+    extractByClass(html, "tasty-recipes-instruction-text") ||
+    extractByClass(html, "recipe-instruction") ||
+    extractByClass(html, "instruction");
+
+  if (ingredientLines.length === 0 && instructionLines.length === 0) return null;
+
+  const meta = extractRecipeFromMeta(html);
+  return {
+    title: meta?.title ?? IMPORTED_TITLE[targetLang.toUpperCase()] ?? "Receta importada",
+    ingredients: ingredientLines.join("\n"),
+    instructions: instructionLines.length > 0 ? instructionLines.join("\n\n") : undefined,
+    image_url: meta?.image_url,
+  };
+}
+
+// ─── Meta / OG fallback ───────────────────────────────────────────────────
 
 function extractRecipeFromMeta(
   html: string
@@ -229,10 +343,13 @@ export async function POST(request: NextRequest) {
 
     const res = await fetch(url, {
       headers: {
+        // Mimic a real browser so sites don't block the fetch
         "User-Agent":
-          "Mozilla/5.0 (compatible; TableTime/1.0; +https://github.com/mgbracho/tabletime)",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
       },
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(12000),
     });
 
     if (!res.ok) {
@@ -243,12 +360,28 @@ export async function POST(request: NextRequest) {
     }
 
     const html = await res.text();
-    const recipe = extractRecipeFromJsonLd(html, targetLang);
-    if (recipe) {
-      const translated = await translateRecipeFields(recipe, targetLang);
+
+    // 1. Try JSON-LD (most reliable when present)
+    const jsonLdRecipe = extractRecipeFromJsonLd(html, targetLang);
+    if (jsonLdRecipe && (jsonLdRecipe.ingredients || jsonLdRecipe.instructions)) {
+      const translated = await translateRecipeFields(jsonLdRecipe, targetLang);
       return NextResponse.json({ ...translated, source_url: url });
     }
 
+    // 2. Try HTML microdata / plugin CSS classes
+    const htmlRecipe = extractRecipeFromHtml(html, targetLang);
+    if (htmlRecipe && (htmlRecipe.ingredients || htmlRecipe.instructions)) {
+      const translated = await translateRecipeFields(htmlRecipe, targetLang);
+      return NextResponse.json({ ...translated, source_url: url });
+    }
+
+    // 3. JSON-LD had a title+image but no ingredients — return partial result
+    if (jsonLdRecipe) {
+      const translated = await translateRecipeFields(jsonLdRecipe, targetLang);
+      return NextResponse.json({ ...translated, source_url: url });
+    }
+
+    // 4. Last resort: og:title + og:image only
     const meta = extractRecipeFromMeta(html);
     if (meta) {
       const translated = await translateRecipeFields(

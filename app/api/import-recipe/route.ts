@@ -261,31 +261,6 @@ function extractByClass(html: string, className: string): string[] {
   return [];
 }
 
-/**
- * Extract <li> items from the first list (<ul> or <ol>) that follows a heading
- * whose text contains one of the given keywords.
- * Works for plain-HTML recipe blogs that use <h2>Ingredients</h2><ul>…</ul>.
- */
-function extractBySectionHeading(html: string, keywords: string[]): string[] {
-  const headingRe = /<h[2-5][^>]*>([\s\S]*?)<\/h[2-5]>/gi;
-  for (const m of html.matchAll(headingRe)) {
-    const headingText = stripHtml(m[1]).toLowerCase();
-    if (keywords.some((kw) => headingText.includes(kw)) && m.index != null) {
-      // Search the next ~8 000 chars for the first <ul> or <ol>
-      const chunk = html.slice(m.index + m[0].length, m.index + m[0].length + 8000);
-      const listMatch = chunk.match(/<(ul|ol)[^>]*>([\s\S]*?)<\/\1>/i);
-      if (!listMatch) continue;
-      const items: string[] = [];
-      for (const li of listMatch[2].matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)) {
-        const text = stripHtml(li[1]).trim();
-        if (text.length > 1) items.push(text);
-      }
-      if (items.length > 0) return items;
-    }
-  }
-  return [];
-}
-
 const INGREDIENT_HEADINGS = [
   "ingredient", "ingrediente", "ingrédient", "zutaten",
   "you'll need", "you will need", "what you need",
@@ -297,34 +272,89 @@ const INSTRUCTION_HEADINGS = [
 ];
 
 /**
+ * Find the character position immediately after the first heading whose text
+ * matches one of the given keywords. Returns -1 if not found.
+ */
+function findHeadingEnd(html: string, keywords: string[]): number {
+  const headingRe = /<h[2-5][^>]*>([\s\S]*?)<\/h[2-5]>/gi;
+  for (const m of html.matchAll(headingRe)) {
+    if (m.index == null) continue;
+    const text = stripHtml(m[1]).toLowerCase();
+    if (keywords.some((kw) => text.includes(kw))) return m.index + m[0].length;
+  }
+  return -1;
+}
+
+/**
+ * Collect all <li> items from every <tag> list found between [start, end) in html.
+ */
+function extractListItems(html: string, start: number, end: number, tag: "ul" | "ol"): string[] {
+  const section = html.slice(start, end);
+  const items: string[] = [];
+  const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "gi");
+  for (const listMatch of section.matchAll(re)) {
+    for (const li of listMatch[1].matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)) {
+      const text = stripHtml(li[1]).trim();
+      if (text.length > 1) items.push(text);
+    }
+  }
+  return items;
+}
+
+/**
  * HTML-level fallback: try microdata (itemprop), common recipe-plugin CSS classes,
- * and heading-based list extraction for plain-HTML recipe blogs.
- * Returns null if neither ingredients nor instructions can be found.
+ * and heading-based section extraction for plain-HTML recipe blogs.
+ *
+ * Ingredient extraction only accepts <ul> lists to avoid mixing up with
+ * the numbered <ol> method steps. Instruction extraction prefers <ol>.
  */
 function extractRecipeFromHtml(
   html: string,
   targetLang: string
 ): { title: string; ingredients: string; instructions?: string; image_url?: string } | null {
+  const first = <T>(arr: T[]): T[] => arr; // identity — just for readability
+
   // ── ingredients ──────────────────────────────────────────────────────────
-  let ingredientLines: string[] =
-    extractByItemprop(html, "recipeIngredient").length > 0 ? extractByItemprop(html, "recipeIngredient") :
-    extractByClass(html, "wprm-recipe-ingredient-name").length > 0 ? extractByClass(html, "wprm-recipe-ingredient-name") :
-    extractByClass(html, "wprm-recipe-ingredient").length > 0 ? extractByClass(html, "wprm-recipe-ingredient") :
-    extractByClass(html, "tasty-recipes-ingredient").length > 0 ? extractByClass(html, "tasty-recipes-ingredient") :
-    extractByClass(html, "recipe-ingredient").length > 0 ? extractByClass(html, "recipe-ingredient") :
-    extractByClass(html, "ingredient").length > 0 ? extractByClass(html, "ingredient") :
-    extractBySectionHeading(html, INGREDIENT_HEADINGS);
+  let ingredientLines: string[] = [];
+
+  ingredientLines = first(extractByItemprop(html, "recipeIngredient"));
+  if (!ingredientLines.length) ingredientLines = extractByClass(html, "wprm-recipe-ingredient-name");
+  if (!ingredientLines.length) ingredientLines = extractByClass(html, "wprm-recipe-ingredient");
+  if (!ingredientLines.length) ingredientLines = extractByClass(html, "tasty-recipes-ingredient");
+  if (!ingredientLines.length) ingredientLines = extractByClass(html, "recipe-ingredient");
+  if (!ingredientLines.length) ingredientLines = extractByClass(html, "ingredient");
+
+  // Heading-based: only grab <ul> lists (not <ol>) to avoid capturing numbered method steps
+  if (!ingredientLines.length) {
+    const ingStart = findHeadingEnd(html, INGREDIENT_HEADINGS);
+    if (ingStart > -1) {
+      const instStart = findHeadingEnd(html, INSTRUCTION_HEADINGS);
+      // Bound to the instruction section (or 10 000 chars if no instruction heading found)
+      const ingEnd = instStart > ingStart ? instStart : ingStart + 10000;
+      ingredientLines = extractListItems(html, ingStart, ingEnd, "ul");
+    }
+  }
 
   // ── instructions ─────────────────────────────────────────────────────────
-  let instructionLines: string[] =
-    extractByItemprop(html, "recipeInstructions").length > 0 ? extractByItemprop(html, "recipeInstructions") :
-    extractByClass(html, "wprm-recipe-instruction-text").length > 0 ? extractByClass(html, "wprm-recipe-instruction-text") :
-    extractByClass(html, "tasty-recipes-instruction-text").length > 0 ? extractByClass(html, "tasty-recipes-instruction-text") :
-    extractByClass(html, "recipe-instruction").length > 0 ? extractByClass(html, "recipe-instruction") :
-    extractByClass(html, "instruction").length > 0 ? extractByClass(html, "instruction") :
-    extractBySectionHeading(html, INSTRUCTION_HEADINGS);
+  let instructionLines: string[] = [];
 
-  if (ingredientLines.length === 0 && instructionLines.length === 0) return null;
+  instructionLines = first(extractByItemprop(html, "recipeInstructions"));
+  if (!instructionLines.length) instructionLines = extractByClass(html, "wprm-recipe-instruction-text");
+  if (!instructionLines.length) instructionLines = extractByClass(html, "tasty-recipes-instruction-text");
+  if (!instructionLines.length) instructionLines = extractByClass(html, "recipe-instruction");
+  if (!instructionLines.length) instructionLines = extractByClass(html, "instruction");
+
+  // Heading-based: prefer <ol> (numbered steps), fall back to <ul>
+  if (!instructionLines.length) {
+    const instStart = findHeadingEnd(html, INSTRUCTION_HEADINGS);
+    if (instStart > -1) {
+      instructionLines = extractListItems(html, instStart, instStart + 10000, "ol");
+      if (!instructionLines.length)
+        instructionLines = extractListItems(html, instStart, instStart + 10000, "ul");
+    }
+  }
+
+  if (!ingredientLines.length && !instructionLines.length) return null;
 
   const meta = extractRecipeFromMeta(html);
   return {

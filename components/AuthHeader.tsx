@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useLanguage } from "@/lib/i18n";
@@ -16,11 +16,11 @@ export function AuthHeader() {
       <LanguageSwitcher />
       {user ? (
         <>
-          <span className="text-zinc-600">{user.email}</span>
+          <span className="text-stone-600">{user.email}</span>
           <button
             type="button"
             onClick={() => signOut()}
-            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-zinc-600 hover:bg-zinc-50"
+            className="rounded-lg border border-stone-200 px-3 py-1.5 text-stone-600 hover:bg-stone-50"
           >
             {t("auth.signOut")}
           </button>
@@ -28,7 +28,7 @@ export function AuthHeader() {
       ) : (
         <Link
           href="/login"
-          className="rounded-lg bg-teal-600 px-3 py-1.5 text-white hover:bg-teal-700"
+          className="rounded-lg bg-emerald-700 px-3 py-1.5 text-white hover:bg-emerald-800"
         >
           {t("auth.signIn")}
         </Link>

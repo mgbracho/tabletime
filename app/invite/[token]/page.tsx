@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useRouter, useParams } from "next/navigation";
@@ -53,8 +53,8 @@ export default function InvitePage() {
 
   if (status === "loading" || status === "joining") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-teal-50/60 px-4">
-        <p className="text-teal-800">
+      <div className="flex min-h-screen items-center justify-center bg-emerald-50/60 px-4">
+        <p className="text-emerald-800">
           {status === "joining" ? "Uniendo al hogar…" : "Cargando…"}
         </p>
       </div>
@@ -62,19 +62,19 @@ export default function InvitePage() {
   }
   if (status === "ok") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-teal-50/60 px-4">
-        <p className="text-teal-800">{message}</p>
+      <div className="flex min-h-screen items-center justify-center bg-emerald-50/60 px-4">
+        <p className="text-emerald-800">{message}</p>
       </div>
     );
   }
   return (
-    <div className="flex min-h-screen items-center justify-center bg-teal-50/60 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-emerald-50/60 px-4">
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
         <p className="font-medium">{message}</p>
         <button
           type="button"
           onClick={() => router.push("/")}
-          className="mt-4 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+          className="mt-4 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
         >
           Ir al inicio
         </button>

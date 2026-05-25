@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import type { Recipe, PlanState, ThemeDays } from "@/lib/sync/use-tabletime-data";
@@ -59,13 +59,13 @@ export function CalendarWeekView({
   // Visual styling per meal type
   const MEAL_HEADER_CLASSES: Record<string, string> = {
     Desayuno: "bg-amber-50 text-amber-800",
-    Comida:   "bg-teal-50 text-teal-800",
+    Comida:   "bg-emerald-50 text-emerald-800",
     Cena:     "bg-indigo-50 text-indigo-800",
     Snacks:   "bg-purple-50 text-purple-800",
   };
   const MEAL_PILL_CLASSES: Record<string, string> = {
     Desayuno: "bg-amber-50/90 ring-amber-200/70 text-amber-900",
-    Comida:   "bg-teal-50/90 ring-teal-200/70 text-teal-900",
+    Comida:   "bg-emerald-50/90 ring-emerald-200/70 text-stone-900",
     Cena:     "bg-indigo-50/90 ring-indigo-200/70 text-indigo-900",
     Snacks:   "bg-purple-50/90 ring-purple-200/70 text-purple-900",
   };
@@ -172,10 +172,10 @@ export function CalendarWeekView({
     <div className="overflow-x-auto">
       {/* View mode selector */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-zinc-500">{t("cal.view")}</span>
-        <div className="inline-flex rounded-full bg-teal-50 p-0.5">
+        <span className="text-xs font-medium text-stone-500">{t("cal.view")}</span>
+        <div className="inline-flex rounded-full bg-emerald-50 p-0.5">
           {(["week", "day", "month"] as const).map((mode) => (
-            <button key={mode} type="button" onClick={() => setViewMode(mode)} className={`rounded-full px-3 py-1 text-xs font-medium transition ${viewMode === mode ? "bg-white text-teal-900 shadow-sm" : "text-teal-700 hover:bg-teal-100"}`}>
+            <button key={mode} type="button" onClick={() => setViewMode(mode)} className={`rounded-full px-3 py-1 text-xs font-medium transition ${viewMode === mode ? "bg-white text-stone-900 shadow-sm" : "text-emerald-800 hover:bg-emerald-100"}`}>
               {mode === "week" ? t("cal.week") : mode === "day" ? t("cal.day") : t("cal.month")}
             </button>
           ))}
@@ -187,43 +187,43 @@ export function CalendarWeekView({
         <div className="flex items-center gap-2">
           {viewMode === "week" && (
             <>
-              <button type="button" onClick={goToPrevWeek} className="rounded-lg border border-teal-200 px-2 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50">{t("cal.prevWeek")}</button>
-              <span className="text-sm font-medium text-teal-800">{t("cal.weekTitle", { week: weekTitle })}</span>
-              <button type="button" onClick={goToNextWeek} className="rounded-lg border border-teal-200 px-2 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50">{t("cal.nextWeek")}</button>
+              <button type="button" onClick={goToPrevWeek} className="rounded-lg border border-emerald-200 px-2 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-50">{t("cal.prevWeek")}</button>
+              <span className="text-sm font-medium text-emerald-800">{t("cal.weekTitle", { week: weekTitle })}</span>
+              <button type="button" onClick={goToNextWeek} className="rounded-lg border border-emerald-200 px-2 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-50">{t("cal.nextWeek")}</button>
             </>
           )}
           {viewMode === "day" && (
             <>
-              <button type="button" onClick={() => { const d = new Date(focusedDate); d.setDate(d.getDate() - 1); setFocusedDate(d); }} className="rounded-lg border border-teal-200 px-2 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50">{t("cal.prevDay")}</button>
-              <span className="text-sm font-medium text-teal-800">{focusedDate.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span>
-              <button type="button" onClick={() => { const d = new Date(focusedDate); d.setDate(d.getDate() + 1); setFocusedDate(d); }} className="rounded-lg border border-teal-200 px-2 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50">{t("cal.nextDay")}</button>
+              <button type="button" onClick={() => { const d = new Date(focusedDate); d.setDate(d.getDate() - 1); setFocusedDate(d); }} className="rounded-lg border border-emerald-200 px-2 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-50">{t("cal.prevDay")}</button>
+              <span className="text-sm font-medium text-emerald-800">{focusedDate.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span>
+              <button type="button" onClick={() => { const d = new Date(focusedDate); d.setDate(d.getDate() + 1); setFocusedDate(d); }} className="rounded-lg border border-emerald-200 px-2 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-50">{t("cal.nextDay")}</button>
             </>
           )}
           {viewMode === "month" && (
             <>
-              <button type="button" onClick={() => { const d = new Date(monthStart); d.setMonth(d.getMonth() - 1); setMonthStart(d); }} className="rounded-lg border border-teal-200 px-2 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50">{t("cal.prevMonth")}</button>
-              <span className="text-sm font-medium text-teal-800">{monthStart.toLocaleDateString(locale, { month: "long", year: "numeric" })}</span>
-              <button type="button" onClick={() => { const d = new Date(monthStart); d.setMonth(d.getMonth() + 1); setMonthStart(d); }} className="rounded-lg border border-teal-200 px-2 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50">{t("cal.nextMonth")}</button>
+              <button type="button" onClick={() => { const d = new Date(monthStart); d.setMonth(d.getMonth() - 1); setMonthStart(d); }} className="rounded-lg border border-emerald-200 px-2 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-50">{t("cal.prevMonth")}</button>
+              <span className="text-sm font-medium text-emerald-800">{monthStart.toLocaleDateString(locale, { month: "long", year: "numeric" })}</span>
+              <button type="button" onClick={() => { const d = new Date(monthStart); d.setMonth(d.getMonth() + 1); setMonthStart(d); }} className="rounded-lg border border-emerald-200 px-2 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-50">{t("cal.nextMonth")}</button>
             </>
           )}
         </div>
         {viewMode === "week" && (
           <div className="relative">
-            <button type="button" onClick={() => setMoreMenuOpen((o) => !o)} className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50">{t("cal.more")}</button>
+            <button type="button" onClick={() => setMoreMenuOpen((o) => !o)} className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-50">{t("cal.more")}</button>
             {moreMenuOpen && (
               <>
                 <div className="fixed inset-0 z-10" aria-hidden onClick={() => setMoreMenuOpen(false)} />
-                <div className="absolute right-0 top-full z-20 mt-1 min-w-[220px] rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
+                <div className="absolute right-0 top-full z-20 mt-1 min-w-[220px] rounded-lg border border-stone-200 bg-white py-1 shadow-lg">
                   {onEditThemes && (
                     <>
                       <button type="button" className="block w-full px-3 py-2 text-left text-sm text-amber-800 hover:bg-amber-50" onClick={() => { onEditThemes(); setMoreMenuOpen(false); }}>{t("cal.editThemes")}</button>
-                      <div className="my-1 border-t border-zinc-100" />
+                      <div className="my-1 border-t border-stone-100" />
                     </>
                   )}
-                  <button type="button" className="block w-full px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-100" onClick={() => { copyFromPreviousWeek(); setMoreMenuOpen(false); }}>{t("cal.copyPrevWeek")}</button>
+                  <button type="button" className="block w-full px-3 py-2 text-left text-sm text-stone-800 hover:bg-stone-100" onClick={() => { copyFromPreviousWeek(); setMoreMenuOpen(false); }}>{t("cal.copyPrevWeek")}</button>
                   <button type="button" className="block w-full px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50" onClick={() => { setClearConfirm("week"); setMoreMenuOpen(false); }}>{t("cal.clearWeek")}</button>
-                  <div className="my-1 border-t border-zinc-100" />
-                  <button type="button" className="block w-full px-3 py-2 text-left text-sm text-teal-700 hover:bg-teal-50" onClick={() => {
+                  <div className="my-1 border-t border-stone-100" />
+                  <button type="button" className="block w-full px-3 py-2 text-left text-sm text-emerald-800 hover:bg-emerald-50" onClick={() => {
                     printPlanToPdf(plan, recipes, themeDays, visibleMeals, {
                       locale,
                       title: t("pdf.title"),
@@ -243,9 +243,9 @@ export function CalendarWeekView({
 
       {/* Day view */}
       {viewMode === "day" && (
-        <div className="w-full max-w-md rounded-xl border border-teal-200 bg-white shadow-sm ring-1 ring-teal-100">
-          <div className="border-b border-teal-200 bg-gradient-to-r from-teal-50 to-teal-100/80 px-4 py-2">
-            <span className="text-sm font-semibold text-teal-800">{focusedDate.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}</span>
+        <div className="w-full max-w-md rounded-xl border border-emerald-200 bg-white shadow-sm ring-1 ring-emerald-100">
+          <div className="border-b border-emerald-200 bg-gradient-to-r from-emerald-50 to-emerald-100/80 px-4 py-2">
+            <span className="text-sm font-semibold text-emerald-800">{focusedDate.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}</span>
           </div>
           {visibleMeals.map((meal) => {
             const key = slotKey(focusedDate, meal);
@@ -254,19 +254,19 @@ export function CalendarWeekView({
             const dayIndex = (focusedDate.getDay() + 6) % 7;
             const slotTheme = themeDays[dayIndex]?.[meal as MealType];
             return (
-              <div key={meal} className="flex items-center gap-3 border-b border-teal-50 px-4 py-3 last:border-b-0">
-                <span className="w-24 shrink-0 text-sm font-medium text-teal-800">{t(`meal.${meal}`)}</span>
-                <div className="min-h-[44px] flex-1 flex items-center gap-2 rounded-lg border border-teal-50 px-3 py-2 hover:bg-teal-50/50">
+              <div key={meal} className="flex items-center gap-3 border-b border-emerald-50 px-4 py-3 last:border-b-0">
+                <span className="w-24 shrink-0 text-sm font-medium text-emerald-800">{t(`meal.${meal}`)}</span>
+                <div className="min-h-[44px] flex-1 flex items-center gap-2 rounded-lg border border-emerald-50 px-3 py-2 hover:bg-emerald-50/50">
                   {recipeId ? (
                     <>
-                      <button type="button" onClick={() => { const recipe = recipes.find((r) => r.id === recipeId); if (recipe && onViewRecipe) onViewRecipe(recipe); }} className="flex-1 text-left text-sm font-medium text-teal-900 hover:underline focus:outline-none focus:ring-1 focus:ring-teal-400 rounded">
+                      <button type="button" onClick={() => { const recipe = recipes.find((r) => r.id === recipeId); if (recipe && onViewRecipe) onViewRecipe(recipe); }} className="flex-1 text-left text-sm font-medium text-stone-900 hover:underline focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded">
                         {getRecipeTitle(recipeId)}
                       </button>
-                      <button type="button" onClick={() => setOpenSlotMenu({ date: new Date(focusedDate), meal, key })} className="shrink-0 rounded p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700" aria-label={t("cal.slotOptions")}>⋯</button>
+                      <button type="button" onClick={() => setOpenSlotMenu({ date: new Date(focusedDate), meal, key })} className="shrink-0 rounded p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700" aria-label={t("cal.slotOptions")}>⋯</button>
                     </>
                   ) : (
                     <button type="button" onClick={() => setOpenSlotMenu({ date: new Date(focusedDate), meal, key })} className="flex-1 text-left">
-                      <span className={`block text-sm ${isSlotStatus(slotValue) ? "font-medium text-zinc-600" : slotTheme ? "text-amber-700" : "text-zinc-300"}`}>
+                      <span className={`block text-sm ${isSlotStatus(slotValue) ? "font-medium text-stone-600" : slotTheme ? "text-amber-700" : "text-stone-300"}`}>
                         {isSlotStatus(slotValue) ? getSlotStatusLabel(slotValue) : slotTheme ? slotTheme : "+"}
                       </span>
                     </button>
@@ -281,21 +281,21 @@ export function CalendarWeekView({
 
       {/* Month view */}
       {viewMode === "month" && (
-        <div className="rounded-xl border border-teal-200 bg-white p-2 shadow-sm ring-1 ring-teal-100">
-          <div className="grid grid-cols-7 gap-px text-center text-xs font-semibold text-teal-800">
+        <div className="rounded-xl border border-emerald-200 bg-white p-2 shadow-sm ring-1 ring-emerald-100">
+          <div className="grid grid-cols-7 gap-px text-center text-xs font-semibold text-emerald-800">
             {Array.from({ length: 7 }, (_, i) => (
-              <div key={i} className="rounded bg-teal-100/80 py-1">{t(`day.${i}`)}</div>
+              <div key={i} className="rounded bg-emerald-100/80 py-1">{t(`day.${i}`)}</div>
             ))}
           </div>
           <div className="grid grid-cols-7 gap-px">
             {getMonthGrid(monthStart).map((cell) => (
-              <button key={cell.date.toISOString()} type="button" onClick={() => { setWeekStart(getWeekDates(cell.date)[0]?.date ?? cell.date); setViewMode("week"); }} className={`min-h-[52px] rounded p-1.5 text-left text-sm ${cell.isCurrentMonth ? "bg-white text-zinc-800 hover:bg-teal-50" : "bg-zinc-50 text-zinc-400"}`}>
+              <button key={cell.date.toISOString()} type="button" onClick={() => { setWeekStart(getWeekDates(cell.date)[0]?.date ?? cell.date); setViewMode("week"); }} className={`min-h-[52px] rounded p-1.5 text-left text-sm ${cell.isCurrentMonth ? "bg-white text-stone-800 hover:bg-emerald-50" : "bg-stone-50 text-stone-400"}`}>
                 <span className="font-medium">{cell.dateLabel}</span>
                 <div className="mt-0.5 flex flex-wrap gap-0.5">
                   {visibleMeals.map((meal) => {
                     const v = plan[slotKey(cell.date, meal)];
                     if (!v) return null;
-                    return <span key={meal} className={`inline-block h-1.5 w-1.5 rounded-full ${isSlotStatus(v) ? "bg-zinc-400" : "bg-teal-500"}`} title={isSlotStatus(v) ? getSlotStatusLabel(v) : getRecipeTitle(v)} />;
+                    return <span key={meal} className={`inline-block h-1.5 w-1.5 rounded-full ${isSlotStatus(v) ? "bg-stone-400" : "bg-emerald-600"}`} title={isSlotStatus(v) ? getSlotStatusLabel(v) : getRecipeTitle(v)} />;
                   })}
                 </div>
               </button>
@@ -307,16 +307,16 @@ export function CalendarWeekView({
       {/* Week view */}
       {viewMode === "week" && (
         <div className="w-full overflow-x-auto">
-          <div className="min-w-[600px] md:min-w-[700px] rounded-2xl border border-teal-100 bg-white/95 shadow-sm ring-1 ring-teal-50">
+          <div className="min-w-[600px] md:min-w-[700px] rounded-2xl border border-emerald-100 bg-white/95 shadow-sm ring-1 ring-emerald-50">
             {/* Day header row */}
-            <div className="grid grid-cols-8 border-b border-teal-100 bg-gradient-to-r from-teal-50/80 via-teal-50 to-teal-50/80">
-              <div className="p-2 text-[11px] font-semibold uppercase tracking-wide text-teal-700" />
+            <div className="grid grid-cols-8 border-b border-emerald-100 bg-gradient-to-r from-emerald-50/80 via-emerald-50 to-emerald-50/80">
+              <div className="p-2 text-[11px] font-semibold uppercase tracking-wide text-emerald-800" />
               {weekDaysT.map((d) => {
                 const isToday = d.date.toDateString() === today.toDateString();
                 return (
-                  <div key={d.date.toISOString()} className={`border-l border-teal-100 px-2 py-2 text-center ${isToday ? "bg-white shadow-sm" : ""}`}>
-                    <span className="block text-[11px] font-medium text-teal-800">{d.dayLabel}</span>
-                    <span className={`text-xs ${isToday ? "font-bold text-teal-700" : "text-teal-600/70"}`}>{d.dateLabel}</span>
+                  <div key={d.date.toISOString()} className={`border-l border-emerald-100 px-2 py-2 text-center ${isToday ? "bg-white shadow-sm" : ""}`}>
+                    <span className="block text-[11px] font-medium text-emerald-800">{d.dayLabel}</span>
+                    <span className={`text-xs ${isToday ? "font-bold text-emerald-800" : "text-emerald-700/70"}`}>{d.dateLabel}</span>
                   </div>
                 );
               })}
@@ -324,9 +324,9 @@ export function CalendarWeekView({
 
             {/* Meal rows */}
             {visibleMeals.map((meal) => (
-              <div key={meal} className="grid grid-cols-8 border-b border-teal-50 last:border-b-0">
+              <div key={meal} className="grid grid-cols-8 border-b border-emerald-50 last:border-b-0">
                 {/* Meal label */}
-                <div className={`flex items-center justify-center border-r border-teal-100 px-1 py-2 text-[11px] font-semibold tracking-wide ${MEAL_HEADER_CLASSES[meal] ?? "bg-teal-50 text-teal-800"}`}>
+                <div className={`flex items-center justify-center border-r border-emerald-100 px-1 py-2 text-[11px] font-semibold tracking-wide ${MEAL_HEADER_CLASSES[meal] ?? "bg-emerald-50 text-emerald-800"}`}>
                   <span className="[writing-mode:vertical-lr] rotate-180 sm:[writing-mode:horizontal-tb] sm:rotate-0 text-center leading-tight">
                     {t(`meal.${meal}`)}
                   </span>
@@ -340,19 +340,19 @@ export function CalendarWeekView({
                   const recipe = recipeId ? recipes.find((r) => r.id === recipeId) ?? null : null;
                   const isDragOver = dragOverKey === key;
                   const isTodayColumn = d.date.toDateString() === today.toDateString();
-                  const pillClass = MEAL_PILL_CLASSES[meal] ?? "bg-teal-50/90 ring-teal-200/70 text-teal-900";
+                  const pillClass = MEAL_PILL_CLASSES[meal] ?? "bg-emerald-50/90 ring-emerald-200/70 text-stone-900";
                   const slotTheme = themeDays[dayIndex]?.[meal];
                   const conflicts = recipe ? getRecipeConflicts(recipe, members) : [];
 
                   return (
                     <div
                       key={key}
-                      className={`flex min-h-[72px] items-stretch border-l border-teal-50 p-1 transition-colors ${
+                      className={`flex min-h-[72px] items-stretch border-l border-emerald-50 p-1 transition-colors ${
                         isDragOver
-                          ? "bg-teal-100 ring-inset ring-1 ring-teal-400"
+                          ? "bg-emerald-100 ring-inset ring-1 ring-emerald-500"
                           : isTodayColumn
-                          ? "bg-teal-50/40"
-                          : "hover:bg-zinc-50/60"
+                          ? "bg-emerald-50/40"
+                          : "hover:bg-stone-50/60"
                       }`}
                       onDragOver={(e) => handleDragOver(e, key)}
                       onDragLeave={handleDragLeave}
@@ -408,7 +408,7 @@ export function CalendarWeekView({
                         <button
                           type="button"
                           onClick={() => setOpenSlotMenu({ date: d.date, meal, key })}
-                          className="flex w-full items-center justify-center rounded-lg bg-zinc-50 ring-1 ring-zinc-200 px-1.5 py-2 text-[11px] font-medium text-zinc-400 hover:bg-zinc-100 transition-colors"
+                          className="flex w-full items-center justify-center rounded-lg bg-stone-50 ring-1 ring-stone-200 px-1.5 py-2 text-[11px] font-medium text-stone-400 hover:bg-stone-100 transition-colors"
                         >
                           {getSlotStatusLabel(slotValue)}
                         </button>
@@ -417,14 +417,14 @@ export function CalendarWeekView({
                         <button
                           type="button"
                           onClick={() => setOpenSlotMenu({ date: d.date, meal, key })}
-                          className="group flex w-full items-center justify-center rounded-lg border border-dashed border-teal-100 hover:border-teal-300 hover:bg-teal-50/50 transition-colors"
+                          className="group flex w-full items-center justify-center rounded-lg border border-dashed border-emerald-100 hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors"
                         >
                           {slotTheme ? (
                             <span className="px-1 text-center text-[11px] leading-tight text-amber-500">
                               {slotTheme}
                             </span>
                           ) : (
-                            <span className="text-lg font-extralight text-teal-200 group-hover:text-teal-400 transition-colors">+</span>
+                            <span className="text-lg font-extralight text-emerald-200 group-hover:text-emerald-500 transition-colors">+</span>
                           )}
                         </button>
                       )}
@@ -441,18 +441,18 @@ export function CalendarWeekView({
       {clearConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal aria-labelledby="clear-confirm-title">
           <div className="w-full max-w-sm rounded-xl bg-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h3 id="clear-confirm-title" className="text-sm font-semibold text-zinc-900">
+            <h3 id="clear-confirm-title" className="text-sm font-semibold text-stone-900">
               {clearConfirm === "week"
                 ? t("cal.clearWeekConfirm")
                 : clearDayIndex !== null
                   ? t("cal.clearDayConfirm", { day: weekDaysT[clearDayIndex].dayLabel, date: weekDaysT[clearDayIndex].dateLabel })
                   : t("cal.confirm")}
             </h3>
-            <p className="mt-2 text-sm text-zinc-600">
+            <p className="mt-2 text-sm text-stone-600">
               {clearConfirm === "week" ? t("cal.clearWeekMsg") : t("cal.clearDayMsg")}
             </p>
             <div className="mt-4 flex justify-end gap-2">
-              <button type="button" onClick={() => { setClearConfirm(null); setClearDayIndex(null); }} className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">{t("cal.cancel")}</button>
+              <button type="button" onClick={() => { setClearConfirm(null); setClearDayIndex(null); }} className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50">{t("cal.cancel")}</button>
               <button type="button" onClick={runClearConfirm} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">{t("cal.delete")}</button>
             </div>
           </div>
@@ -469,15 +469,15 @@ export function CalendarWeekView({
         return (
           <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/30 md:items-center" role="presentation" onClick={() => setOpenSlotMenu(null)}>
             <div className="mx-4 w-full max-w-xs rounded-2xl bg-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={t("cal.slotActions")}>
-              <p className="text-xs font-medium text-teal-800">{date.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "short" })} · {t(`meal.${meal}`)}</p>
+              <p className="text-xs font-medium text-emerald-800">{date.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "short" })} · {t(`meal.${meal}`)}</p>
               {slotTheme && <p className="mt-0.5 text-[11px] text-amber-600">{t("cal.theme")}: {slotTheme}</p>}
               <div className="mt-3 space-y-2">
-                <button type="button" className="w-full rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700" onClick={() => { setOpenSlot({ date, meal }); setOpenSlotMenu(null); }}>
+                <button type="button" className="w-full rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-800" onClick={() => { setOpenSlot({ date, meal }); setOpenSlotMenu(null); }}>
                   {recipeId ? t("cal.changeRecipe") : t("cal.addRecipe")}
                 </button>
                 <div className="flex flex-wrap gap-1">
                   {(["leftovers", "skip"] as const).map((status) => (
-                    <button key={status} type="button" className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100" onClick={() => { setPlan((prev) => ({ ...prev, [key]: status })); setOpenSlotMenu(null); }}>
+                    <button key={status} type="button" className="flex-1 rounded-lg border border-stone-200 bg-stone-50 px-2 py-1 text-[11px] text-stone-700 hover:bg-stone-100" onClick={() => { setPlan((prev) => ({ ...prev, [key]: status })); setOpenSlotMenu(null); }}>
                       {t(`status.${status}`)}
                     </button>
                   ))}
@@ -488,7 +488,7 @@ export function CalendarWeekView({
                   </button>
                 )}
               </div>
-              <button type="button" className="mt-3 w-full text-center text-xs text-zinc-500 hover:underline" onClick={() => setOpenSlotMenu(null)}>{t("cal.close")}</button>
+              <button type="button" className="mt-3 w-full text-center text-xs text-stone-500 hover:underline" onClick={() => setOpenSlotMenu(null)}>{t("cal.close")}</button>
             </div>
           </div>
         );
@@ -510,20 +510,20 @@ export function CalendarWeekView({
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSwapSlot(null)} role="presentation">
             <div className="mx-4 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={t("cal.changeRecipe")}>
-              <div className="border-b border-teal-100 px-4 py-3">
-                <h3 className="text-sm font-semibold text-teal-900">{t("cal.changeRecipe")}</h3>
-                <p className="text-xs text-zinc-500">{swapSlot.date.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })} · {t(`meal.${swapSlot.meal}`)}</p>
+              <div className="border-b border-emerald-100 px-4 py-3">
+                <h3 className="text-sm font-semibold text-stone-900">{t("cal.changeRecipe")}</h3>
+                <p className="text-xs text-stone-500">{swapSlot.date.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })} · {t(`meal.${swapSlot.meal}`)}</p>
                 {slotTheme && <p className="mt-1 text-xs font-medium text-amber-600">{t("cal.theme")}: {slotTheme}</p>}
               </div>
               <ul className="max-h-[50vh] overflow-y-auto">
                 {alternatives.length === 0 ? (
-                  <li className="px-4 py-6 text-center text-sm text-zinc-500">{t("cal.noOthers")}</li>
+                  <li className="px-4 py-6 text-center text-sm text-stone-500">{t("cal.noOthers")}</li>
                 ) : alternatives.map((r) => {
                   const conflicts = getRecipeConflicts(r, members);
                   const matches = themeWords.length > 0 && matchesTheme(r);
                   return (
                     <li key={r.id}>
-                      <button type="button" onClick={() => { setPlan((prev) => ({ ...prev, [key]: r.id })); setSwapSlot(null); }} className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm text-zinc-800 transition hover:bg-teal-50">
+                      <button type="button" onClick={() => { setPlan((prev) => ({ ...prev, [key]: r.id })); setSwapSlot(null); }} className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm text-stone-800 transition hover:bg-emerald-50">
                         <span>{r.title}</span>
                         <span className="flex shrink-0 items-center gap-1">
                           {matches && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">{t("cal.theme").toLowerCase()}</span>}
@@ -534,8 +534,8 @@ export function CalendarWeekView({
                   );
                 })}
               </ul>
-              <div className="border-t border-teal-100 px-4 py-2">
-                <button type="button" onClick={() => setSwapSlot(null)} className="text-sm text-zinc-500 hover:text-zinc-700">{t("cal.cancel")}</button>
+              <div className="border-t border-emerald-100 px-4 py-2">
+                <button type="button" onClick={() => setSwapSlot(null)} className="text-sm text-stone-500 hover:text-stone-700">{t("cal.cancel")}</button>
               </div>
             </div>
           </div>
@@ -555,48 +555,48 @@ export function CalendarWeekView({
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setOpenSlot(null); setPickerSearch(""); setPickerTag(null); }} role="presentation">
             <div className="mx-4 max-h-[70vh] w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={t("cal.chooseRecipe", { meal: t(`meal.${openSlot.meal}`) })}>
-              <div className="border-b border-teal-100 px-4 py-3">
-                <h3 className="text-sm font-semibold text-teal-900">{t("cal.chooseRecipe", { meal: t(`meal.${openSlot.meal}`) })}</h3>
-                <p className="text-xs text-zinc-500">{openSlot.date.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}</p>
+              <div className="border-b border-emerald-100 px-4 py-3">
+                <h3 className="text-sm font-semibold text-stone-900">{t("cal.chooseRecipe", { meal: t(`meal.${openSlot.meal}`) })}</h3>
+                <p className="text-xs text-stone-500">{openSlot.date.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}</p>
                 {slotTheme && <p className="mt-1 text-xs font-medium text-amber-600">{t("cal.dayTheme", { theme: slotTheme })}</p>}
               </div>
-              <div className="border-b border-teal-100 px-4 py-2">
-                <input type="search" value={pickerSearch} onChange={(e) => setPickerSearch(e.target.value)} placeholder={t("cal.search")} className="w-full rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400" />
+              <div className="border-b border-emerald-100 px-4 py-2">
+                <input type="search" value={pickerSearch} onChange={(e) => setPickerSearch(e.target.value)} placeholder={t("cal.search")} className="w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
                 {pickerTags.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <button type="button" onClick={() => setPickerTag(null)} className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${!pickerTag ? "bg-teal-600 text-white" : "bg-teal-100 text-teal-700"}`}>{t("cal.allTags")}</button>
+                    <button type="button" onClick={() => setPickerTag(null)} className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${!pickerTag ? "bg-emerald-700 text-white" : "bg-emerald-100 text-emerald-800"}`}>{t("cal.allTags")}</button>
                     {pickerTags.map((tg) => (
-                      <button key={tg} type="button" onClick={() => setPickerTag(pickerTag === tg ? null : tg)} className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${pickerTag === tg ? "bg-teal-600 text-white" : "bg-teal-100 text-teal-700"}`}>{tg}</button>
+                      <button key={tg} type="button" onClick={() => setPickerTag(pickerTag === tg ? null : tg)} className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${pickerTag === tg ? "bg-emerald-700 text-white" : "bg-emerald-100 text-emerald-800"}`}>{tg}</button>
                     ))}
                   </div>
                 )}
               </div>
               <ul className="max-h-[40vh] overflow-y-auto">
                 {filtered.length === 0 ? (
-                  <li className="px-4 py-6 text-center text-sm text-zinc-500">{t("cal.noMatch")}</li>
+                  <li className="px-4 py-6 text-center text-sm text-stone-500">{t("cal.noMatch")}</li>
                 ) : (
                   <>
                     {slotTheme && suggestedRecipes.length > 0 && (
                       <>
                         <li className="sticky top-0 z-10 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-amber-800">{t("cal.suggestedFor", { theme: slotTheme })}</li>
                         {suggestedRecipes.map((r) => (
-                          <li key={r.id}><button type="button" onClick={() => assignRecipe(r.id)} className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm text-zinc-800 transition hover:bg-teal-50"><span>{r.title}</span><span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">✓ {t("cal.theme").toLowerCase()}</span></button></li>
+                          <li key={r.id}><button type="button" onClick={() => assignRecipe(r.id)} className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm text-stone-800 transition hover:bg-emerald-50"><span>{r.title}</span><span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">✓ {t("cal.theme").toLowerCase()}</span></button></li>
                         ))}
                       </>
                     )}
                     {otherRecipes.length > 0 && (
                       <>
-                        {slotTheme && <li className="sticky top-0 z-10 border-b border-teal-100 bg-teal-50/50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-teal-800">{t("cal.otherRecipes")}</li>}
+                        {slotTheme && <li className="sticky top-0 z-10 border-b border-emerald-100 bg-emerald-50/50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-800">{t("cal.otherRecipes")}</li>}
                         {otherRecipes.map((r) => (
-                          <li key={r.id}><button type="button" onClick={() => assignRecipe(r.id)} className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm text-zinc-600 transition hover:bg-teal-50"><span>{r.title}</span></button></li>
+                          <li key={r.id}><button type="button" onClick={() => assignRecipe(r.id)} className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm text-stone-600 transition hover:bg-emerald-50"><span>{r.title}</span></button></li>
                         ))}
                       </>
                     )}
                   </>
                 )}
               </ul>
-              <div className="border-t border-teal-100 px-4 py-2">
-                <button type="button" onClick={() => { setOpenSlot(null); setPickerSearch(""); setPickerTag(null); }} className="text-sm text-zinc-500 hover:text-zinc-700">{t("cal.cancel")}</button>
+              <div className="border-t border-emerald-100 px-4 py-2">
+                <button type="button" onClick={() => { setOpenSlot(null); setPickerSearch(""); setPickerTag(null); }} className="text-sm text-stone-500 hover:text-stone-700">{t("cal.cancel")}</button>
               </div>
             </div>
           </div>

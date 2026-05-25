@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useAuth } from "@/lib/hooks/use-auth";
@@ -24,7 +24,7 @@ export function HouseholdView() {
   const [addNoAppLoading, setAddNoAppLoading] = useState(false);
   const [addNoAppError, setAddNoAppError] = useState<string | null>(null);
 
-  if (loading) return <p className="text-sm text-zinc-500">{t("hh.loading")}</p>;
+  if (loading) return <p className="text-sm text-stone-500">{t("hh.loading")}</p>;
 
   if (!householdId) {
     return (
@@ -36,8 +36,8 @@ export function HouseholdView() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-teal-200 bg-teal-50/50 px-4 py-3">
-        <label className="mb-1 block text-xs font-medium text-teal-800">{t("hh.householdName")}</label>
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-3">
+        <label className="mb-1 block text-xs font-medium text-emerald-800">{t("hh.householdName")}</label>
         <input
           type="text"
           value={householdName}
@@ -46,14 +46,14 @@ export function HouseholdView() {
             const v = e.target.value.trim();
             if (v && v !== householdName) setHouseholdName(v);
           }}
-          className="w-full max-w-xs rounded-lg border border-teal-200 px-3 py-2 text-sm text-teal-900 focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
+          className="w-full max-w-xs rounded-lg border border-emerald-200 px-3 py-2 text-sm text-stone-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           placeholder={t("hh.householdPlaceholder")}
         />
       </div>
 
-      <div className="rounded-xl border-l-4 border-l-teal-600 border border-teal-200 bg-teal-50/60 p-4">
-        <h3 className="mb-2 text-sm font-semibold text-teal-800">{t("hh.addMembers")}</h3>
-        <p className="mb-3 text-xs text-zinc-600">{t("hh.inviteDesc")}</p>
+      <div className="rounded-xl border-l-4 border-l-emerald-700 border border-emerald-200 bg-emerald-50/60 p-4">
+        <h3 className="mb-2 text-sm font-semibold text-emerald-800">{t("hh.addMembers")}</h3>
+        <p className="mb-3 text-xs text-stone-600">{t("hh.inviteDesc")}</p>
         {!inviteLink ? (
           <button
             type="button"
@@ -69,7 +69,7 @@ export function HouseholdView() {
               }
               setInviteLoading(false);
             }}
-            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-70"
+            className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-70"
           >
             {inviteLoading ? t("hh.generating") : t("hh.generateInvite")}
           </button>
@@ -79,7 +79,7 @@ export function HouseholdView() {
               type="text"
               readOnly
               value={inviteLink}
-              className="min-w-0 flex-1 rounded border border-teal-200 bg-white px-3 py-2 text-xs text-zinc-700"
+              className="min-w-0 flex-1 rounded border border-emerald-200 bg-white px-3 py-2 text-xs text-stone-700"
             />
             <button
               type="button"
@@ -88,14 +88,14 @@ export function HouseholdView() {
                 setCopyFeedback(true);
                 setTimeout(() => setCopyFeedback(false), 2000);
               }}
-              className="rounded-lg border border-teal-200 px-3 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50"
+              className="rounded-lg border border-emerald-200 px-3 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-50"
             >
               {copyFeedback ? t("hh.copied") : t("hh.copy")}
             </button>
             <button
               type="button"
               onClick={() => setInviteLink(null)}
-              className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50"
+              className="rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-600 hover:bg-stone-50"
             >
               {t("hh.close")}
             </button>
@@ -103,9 +103,9 @@ export function HouseholdView() {
         )}
       </div>
 
-      <div className="rounded-xl border-l-4 border-l-teal-400 border border-teal-200 bg-teal-300/10 p-4">
-        <h3 className="mb-2 text-sm font-semibold text-teal-800">{t("hh.shareTitle")}</h3>
-        <p className="mb-3 text-xs text-zinc-600">{t("hh.shareDesc")}</p>
+      <div className="rounded-xl border-l-4 border-l-emerald-500 border border-emerald-200 bg-emerald-300/10 p-4">
+        <h3 className="mb-2 text-sm font-semibold text-emerald-800">{t("hh.shareTitle")}</h3>
+        <p className="mb-3 text-xs text-stone-600">{t("hh.shareDesc")}</p>
         {!shareLink ? (
           <button
             type="button"
@@ -121,7 +121,7 @@ export function HouseholdView() {
               }
               setShareLoading(false);
             }}
-            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-70"
+            className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-70"
           >
             {shareLoading ? t("hh.generating") : t("hh.generateShare")}
           </button>
@@ -131,7 +131,7 @@ export function HouseholdView() {
               type="text"
               readOnly
               value={shareLink}
-              className="min-w-0 flex-1 rounded border border-teal-200 bg-white px-3 py-2 text-xs text-zinc-700"
+              className="min-w-0 flex-1 rounded border border-emerald-200 bg-white px-3 py-2 text-xs text-stone-700"
             />
             <button
               type="button"
@@ -140,14 +140,14 @@ export function HouseholdView() {
                 setShareCopyFeedback(true);
                 setTimeout(() => setShareCopyFeedback(false), 2000);
               }}
-              className="rounded-lg border border-teal-200 px-3 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50"
+              className="rounded-lg border border-emerald-200 px-3 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-50"
             >
               {shareCopyFeedback ? t("hh.copied") : t("hh.copy")}
             </button>
             <button
               type="button"
               onClick={() => setShareLink(null)}
-              className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50"
+              className="rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-600 hover:bg-stone-50"
             >
               {t("hh.close")}
             </button>
@@ -155,41 +155,41 @@ export function HouseholdView() {
         )}
       </div>
 
-      <div className="rounded-xl border-l-4 border-l-amber-600 border border-teal-200 bg-amber-50/60 p-4">
-        <h3 className="mb-3 text-sm font-semibold text-teal-800">{t("hh.membersTitle")}</h3>
-        <p className="mb-2 text-xs text-zinc-500">{t("hh.membersInfo")}</p>
-        <p className="mb-2 text-xs text-zinc-500">{t("hh.membersNoApp")}</p>
+      <div className="rounded-xl border-l-4 border-l-amber-600 border border-emerald-200 bg-amber-50/60 p-4">
+        <h3 className="mb-3 text-sm font-semibold text-emerald-800">{t("hh.membersTitle")}</h3>
+        <p className="mb-2 text-xs text-stone-500">{t("hh.membersInfo")}</p>
+        <p className="mb-2 text-xs text-stone-500">{t("hh.membersNoApp")}</p>
         {!showAddNoApp ? (
           <button
             type="button"
             onClick={() => { setShowAddNoApp(true); setAddNoAppError(null); setAddNoAppName(""); setAddNoAppServings(1); }}
-            className="mb-4 rounded-lg border border-teal-300 bg-teal-50 px-3 py-2 text-sm font-medium text-teal-700 hover:bg-teal-100"
+            className="mb-4 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-100"
           >
             {t("hh.addNoApp")}
           </button>
         ) : (
-          <div className="mb-4 rounded-xl border border-teal-200 bg-teal-50/50 p-4">
-            <p className="mb-3 text-xs font-medium text-teal-800">{t("hh.addNoAppTitle")}</p>
+          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+            <p className="mb-3 text-xs font-medium text-emerald-800">{t("hh.addNoAppTitle")}</p>
             <div className="flex flex-wrap items-end gap-3">
               <div>
-                <label className="mb-1 block text-xs text-zinc-500">{t("hh.name")}</label>
+                <label className="mb-1 block text-xs text-stone-500">{t("hh.name")}</label>
                 <input
                   type="text"
                   value={addNoAppName}
                   onChange={(e) => setAddNoAppName(e.target.value)}
                   placeholder={t("hh.namePlaceholder")}
-                  className="w-40 rounded border border-teal-200 px-2 py-1.5 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
+                  className="w-40 rounded border border-emerald-200 px-2 py-1.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-zinc-500">{t("hh.servings")}</label>
+                <label className="mb-1 block text-xs text-stone-500">{t("hh.servings")}</label>
                 <input
                   type="number"
                   min={1}
                   max={20}
                   value={addNoAppServings}
                   onChange={(e) => { const n = parseInt(e.target.value, 10); if (!isNaN(n)) setAddNoAppServings(n); }}
-                  className="w-14 rounded border border-teal-200 px-2 py-1.5 text-center text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
+                  className="w-14 rounded border border-emerald-200 px-2 py-1.5 text-center text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
               <div className="flex gap-2">
@@ -210,14 +210,14 @@ export function HouseholdView() {
                       setAddNoAppLoading(false);
                     }
                   }}
-                  className="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-70"
+                  className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-70"
                 >
                   {addNoAppLoading ? t("hh.adding") : t("hh.add")}
                 </button>
                 <button
                   type="button"
                   onClick={() => { setShowAddNoApp(false); setAddNoAppError(null); }}
-                  className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm text-teal-700 hover:bg-teal-100"
+                  className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm text-emerald-800 hover:bg-emerald-100"
                 >
                   {t("hh.cancel")}
                 </button>
@@ -226,15 +226,15 @@ export function HouseholdView() {
             {addNoAppError && <p className="mt-2 text-xs text-red-600">{addNoAppError}</p>}
           </div>
         )}
-        <p className="mb-4 text-xs text-zinc-500">{t("hh.membersDesc")}</p>
+        <p className="mb-4 text-xs text-stone-500">{t("hh.membersDesc")}</p>
         <ul className="space-y-3">
           {members.map((member) => (
             <li
               key={member.id}
-              className="flex flex-wrap gap-4 rounded-xl border-l-4 border-l-teal-400 border border-teal-200 bg-teal-50/40 p-4 shadow-sm"
+              className="flex flex-wrap gap-4 rounded-xl border-l-4 border-l-emerald-500 border border-emerald-200 bg-emerald-50/40 p-4 shadow-sm"
             >
               <div className="min-w-0 flex-1">
-                <span className="block text-xs font-medium text-zinc-500">
+                <span className="block text-xs font-medium text-stone-500">
                   {member.is_current_user ? t("hh.you") : t("hh.member")}
                 </span>
                 <input
@@ -247,22 +247,22 @@ export function HouseholdView() {
                     setDraftNames((prev) => { const next = { ...prev }; delete next[member.id]; return next; });
                   }}
                   placeholder={t("hh.nameInHome")}
-                  className="mt-1 w-full max-w-[200px] rounded border border-teal-200 px-2 py-1.5 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
+                  className="mt-1 w-full max-w-[200px] rounded border border-emerald-200 px-2 py-1.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-zinc-500">{t("hh.servings")}</label>
+                <label className="text-xs font-medium text-stone-500">{t("hh.servings")}</label>
                 <input
                   type="number"
                   min={1}
                   max={20}
                   value={member.default_servings}
                   onChange={(e) => { const n = parseInt(e.target.value, 10); if (!isNaN(n)) updateMember(member.id, { default_servings: n }); }}
-                  className="w-14 rounded border border-teal-200 px-2 py-1.5 text-center text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
+                  className="w-14 rounded border border-emerald-200 px-2 py-1.5 text-center text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
-              <div className="w-full border-t border-teal-100 pt-3 sm:w-auto sm:border-t-0 sm:pt-0">
-                <span className="block text-xs font-medium text-zinc-500 mb-1.5">{t("hh.dietary")}</span>
+              <div className="w-full border-t border-emerald-100 pt-3 sm:w-auto sm:border-t-0 sm:pt-0">
+                <span className="block text-xs font-medium text-stone-500 mb-1.5">{t("hh.dietary")}</span>
                 <div className="flex flex-wrap gap-1.5">
                   {DIETARY_RESTRICTION_OPTIONS.map((tag) => {
                     const active = member.dietary_restrictions.includes(tag);
@@ -277,7 +277,7 @@ export function HouseholdView() {
                           updateMember(member.id, { dietary_restrictions: next });
                         }}
                         className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
-                          active ? "bg-teal-600 text-white" : "bg-teal-100 text-teal-700 hover:bg-teal-200"
+                          active ? "bg-emerald-700 text-white" : "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
                         }`}
                       >
                         {tag}

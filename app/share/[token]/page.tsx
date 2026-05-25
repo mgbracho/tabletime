@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
@@ -140,17 +140,17 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-teal-50/60">
-        <p className="text-teal-800">Cargando…</p>
+      <div className="flex min-h-screen items-center justify-center bg-emerald-50/60">
+        <p className="text-emerald-800">Cargando…</p>
       </div>
     );
   }
   if (error || !data) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-teal-50/60 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-emerald-50/60 px-4">
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
           <p className="font-medium">{error ?? "Enlace inválido o expirado"}</p>
-          <a href="/" className="mt-4 inline-block rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">
+          <a href="/" className="mt-4 inline-block rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800">
             Ir al inicio
           </a>
         </div>
@@ -194,32 +194,32 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
     isSlotStatus(value) ? SLOT_STATUS_LABELS[value] ?? value : getRecipeTitle(value);
 
   return (
-    <div className="min-h-screen bg-teal-50/60 px-4 py-8">
+    <div className="min-h-screen bg-emerald-50/60 px-4 py-8">
       <div className="mx-auto max-w-4xl space-y-8">
         <header className="text-center">
-          <h1 className="text-2xl font-semibold text-teal-900">TableTime · Compartido</h1>
-          <p className="mt-1 text-sm text-zinc-600">{data.householdName} — solo lectura</p>
+          <h1 className="text-2xl font-semibold text-stone-900">TableTime · Compartido</h1>
+          <p className="mt-1 text-sm text-stone-600">{data.householdName} — solo lectura</p>
         </header>
 
         {data.share_plan && (
-          <section className="rounded-xl border border-teal-100 bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-sm font-semibold text-teal-800">
+          <section className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
+            <h2 className="mb-3 text-sm font-semibold text-emerald-800">
               Plan de la semana ({weekDays[0].date.getDate()} – {weekDays[6].date.getDate()} {weekDays[0].date.toLocaleDateString("es", { month: "long" })})
             </h2>
             <div className="overflow-x-auto">
               <div className="min-w-[500px]">
-                <div className="grid grid-cols-8 border-b border-teal-100 text-center text-xs">
+                <div className="grid grid-cols-8 border-b border-emerald-100 text-center text-xs">
                   <div className="p-2" />
                   {weekDays.map((d) => (
-                    <div key={d.dayLabel} className="border-l border-teal-50 p-2">
-                      <span className="font-medium text-teal-800">{d.dayLabel}</span>
-                      <span className="block text-zinc-500">{d.dateLabel}</span>
+                    <div key={d.dayLabel} className="border-l border-emerald-50 p-2">
+                      <span className="font-medium text-emerald-800">{d.dayLabel}</span>
+                      <span className="block text-stone-500">{d.dateLabel}</span>
                     </div>
                   ))}
                 </div>
                 {MEAL_LABELS.map((meal) => (
-                  <div key={meal} className="grid grid-cols-8 border-b border-teal-50 text-xs last:border-b-0">
-                    <div className="border-r border-teal-50 bg-teal-50/50 py-2 pl-2 font-medium text-teal-800">
+                  <div key={meal} className="grid grid-cols-8 border-b border-emerald-50 text-xs last:border-b-0">
+                    <div className="border-r border-emerald-50 bg-emerald-50/50 py-2 pl-2 font-medium text-emerald-800">
                       {meal}
                     </div>
                     {weekDays.map((d) => {
@@ -228,7 +228,7 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
                       return (
                         <div
                           key={key}
-                          className="border-l border-teal-50 p-2 text-center text-zinc-700"
+                          className="border-l border-emerald-50 p-2 text-center text-stone-700"
                         >
                           {recipeId ? getSlotLabel(recipeId) : "—"}
                         </div>
@@ -242,15 +242,15 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
         )}
 
         {data.share_list && groceryItems.length > 0 && (
-          <section className="rounded-xl border border-teal-100 bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-sm font-semibold text-teal-800">Lista de la compra</h2>
+          <section className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
+            <h2 className="mb-3 text-sm font-semibold text-emerald-800">Lista de la compra</h2>
             <div className="space-y-4">
               {categoryOrder.map((key) => {
                 const items = byCategory[key];
                 if (!items?.length) return null;
                 return (
                   <div key={key}>
-                    <h3 className="mb-1.5 text-xs font-semibold uppercase text-teal-700">
+                    <h3 className="mb-1.5 text-xs font-semibold uppercase text-emerald-800">
                       {categoryLabels[key] ?? key}
                     </h3>
                     <ul className="space-y-1">
@@ -258,10 +258,10 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
                         <li
                           key={item.id}
                           className={`flex items-center gap-2 text-sm ${
-                            item.checked ? "text-zinc-400 line-through" : "text-zinc-700"
+                            item.checked ? "text-stone-400 line-through" : "text-stone-700"
                           }`}
                         >
-                          <span className="text-teal-500">{item.checked ? "☑" : "☐"}</span>
+                          <span className="text-emerald-600">{item.checked ? "☑" : "☐"}</span>
                           {item.label}
                         </li>
                       ))}
@@ -274,10 +274,10 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
         )}
 
         {data.share_list && groceryItems.length === 0 && (
-          <p className="text-center text-sm text-zinc-500">No hay items en la lista.</p>
+          <p className="text-center text-sm text-stone-500">No hay items en la lista.</p>
         )}
 
-        <p className="text-center text-xs text-zinc-500">
+        <p className="text-center text-xs text-stone-500">
           Vista de solo lectura. Para editar, pide acceso al hogar en TableTime.
         </p>
       </div>

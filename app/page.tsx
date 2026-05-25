@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useTableTimeData } from "@/lib/sync/use-tabletime-data";
@@ -122,7 +122,7 @@ function SectionPlaceholder({
   if (activeTab === "calendar") {
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-teal-100 bg-white px-3 py-2 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-emerald-100 bg-white px-3 py-2 shadow-sm">
           <div className="flex w-full gap-2 overflow-x-auto pb-1">
             {MEAL_LABELS.map((meal) => (
               <button
@@ -131,8 +131,8 @@ function SectionPlaceholder({
                 onClick={() => toggleMeal(meal)}
                 className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition ${
                   visibleMeals.includes(meal)
-                    ? "bg-teal-600 text-white shadow-sm"
-                    : "bg-white/70 text-teal-800 border border-teal-200 hover:bg-teal-50"
+                    ? "bg-emerald-700 text-white shadow-sm"
+                    : "bg-white/70 text-emerald-800 border border-emerald-200 hover:bg-emerald-50"
                 }`}
               >
                 {t(`meal.${meal}`)}
@@ -246,14 +246,14 @@ export default function Home() {
 
   if (!hasHydrated || syncLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-teal-50 via-white to-teal-50/60">
-        <p className="text-zinc-500">{t("app.loading")}</p>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-stone-50 via-white to-stone-50/30">
+        <p className="text-stone-500">{t("app.loading")}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 via-white to-teal-50/60 px-4 py-10 font-sans text-zinc-900">
+    <div className="min-h-screen bg-gradient-to-b from-stone-50 via-white to-stone-50/30 px-4 py-10 font-sans text-stone-900">
       {syncError && (
         <div className="mx-auto max-w-5xl rounded-lg bg-red-50 px-4 py-2 text-sm text-red-800 ring-1 ring-red-200">
           {t("app.syncError", { error: syncError })}
@@ -266,32 +266,32 @@ export default function Home() {
         </div>
       )}
       {isRemote && !syncError && (
-        <div className="mx-auto max-w-5xl text-right text-xs text-teal-700">{t("app.syncedCloud")}</div>
+        <div className="mx-auto max-w-5xl text-right text-xs text-emerald-800">{t("app.syncedCloud")}</div>
       )}
       <main className="mx-auto flex max-w-5xl flex-col gap-10">
         <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <h1 className="font-serif text-3xl font-semibold tracking-tight text-teal-900 sm:text-4xl">TableTime</h1>
+            <h1 className="font-serif text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl">TableTime</h1>
           </div>
           <div className="flex gap-3">
             <button
               type="button"
               onClick={handleCreatePlan}
               disabled={creatingPlan}
-              className="rounded-full bg-teal-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-700 disabled:opacity-70"
+              className="rounded-full bg-emerald-700 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-70"
             >
               {creatingPlan ? t("plan.creating") : t("plan.create")}
             </button>
           </div>
         </header>
 
-        <nav className="flex gap-1 rounded-full bg-teal-300/20 p-1 sm:max-w-md">
+        <nav className="flex gap-1 rounded-full bg-stone-200/40 p-1 sm:max-w-md">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 rounded-full px-2 py-2 text-xs font-medium text-teal-800 transition sm:px-4 sm:text-sm ${
-                tab.id === activeTab ? "bg-white text-teal-700 shadow-sm" : "bg-transparent hover:bg-teal-100"
+              className={`flex-1 rounded-full px-2 py-2 text-xs font-medium text-emerald-800 transition sm:px-4 sm:text-sm ${
+                tab.id === activeTab ? "bg-white text-emerald-800 shadow-sm" : "bg-transparent hover:bg-emerald-100"
               }`}
               type="button"
             >
@@ -300,7 +300,7 @@ export default function Home() {
           ))}
         </nav>
 
-        <section className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-teal-50 sm:p-6">
+        <section className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-emerald-50 sm:p-6">
           <SectionPlaceholder
             activeTab={activeTab}
             recipes={recipes}
@@ -322,7 +322,7 @@ export default function Home() {
       </main>
 
       {toastMessage && (
-        <div role="status" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-teal-800 px-4 py-2 text-sm font-medium text-white shadow-lg">
+        <div role="status" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-emerald-800 px-4 py-2 text-sm font-medium text-white shadow-lg">
           {toastMessage}
         </div>
       )}

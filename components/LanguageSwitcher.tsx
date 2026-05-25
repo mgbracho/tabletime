@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useLanguage } from "@/lib/i18n";
 import type { Language } from "@/lib/i18n/translations";
@@ -12,7 +12,7 @@ const LANGUAGES: { code: Language; label: string }[] = [
 export function LanguageSwitcher() {
   const { lang, setLang } = useLanguage();
   return (
-    <div className="flex items-center gap-0.5 rounded-full bg-teal-50 p-0.5 ring-1 ring-teal-100">
+    <div className="flex items-center gap-0.5 rounded-full bg-emerald-50 p-0.5 ring-1 ring-emerald-100">
       {LANGUAGES.map(({ code, label }) => (
         <button
           key={code}
@@ -20,8 +20,8 @@ export function LanguageSwitcher() {
           onClick={() => setLang(code)}
           className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
             lang === code
-              ? "bg-white text-teal-900 shadow-sm"
-              : "text-teal-600 hover:bg-teal-100"
+              ? "bg-white text-stone-900 shadow-sm"
+              : "text-emerald-700 hover:bg-emerald-100"
           }`}
           aria-pressed={lang === code}
           aria-label={label}

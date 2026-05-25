@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import type { Recipe, PlanState } from "@/lib/sync/use-tabletime-data";
@@ -15,10 +15,10 @@ import {
 
 const CATEGORY_ORDER = ["vegetables", "dairy", "meat", "pantry", "other"] as const;
 const CATEGORY_STYLES: Record<string, string> = {
-  vegetables: "border-l-teal-600 bg-teal-50/50",
-  dairy: "border-l-teal-400 bg-teal-300/10",
+  vegetables: "border-l-emerald-700 bg-emerald-50/50",
+  dairy: "border-l-emerald-500 bg-emerald-300/10",
   meat: "border-l-amber-600 bg-amber-50/50",
-  pantry: "border-l-teal-700 bg-teal-100/50",
+  pantry: "border-l-emerald-800 bg-emerald-100/50",
   other: "border-l-amber-500 bg-amber-50/40",
 };
 
@@ -168,47 +168,47 @@ export function GroceryListView({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-teal-200 bg-amber-50/70 px-4 py-3">
-        <p className="text-sm font-medium text-teal-800">{t("gro.desc")}</p>
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-amber-50/70 px-4 py-3">
+        <p className="text-sm font-medium text-emerald-800">{t("gro.desc")}</p>
         {allItems.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={copyToClipboard} className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50">
+            <button type="button" onClick={copyToClipboard} className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-50">
               {copyFeedback ? t("gro.copied") : t("gro.copy")}
             </button>
-            <button type="button" onClick={downloadTxt} className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50">{t("gro.download")}</button>
+            <button type="button" onClick={downloadTxt} className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-50">{t("gro.download")}</button>
             {"share" in (typeof navigator !== "undefined" ? navigator : {}) && (
-              <button type="button" onClick={shareList} className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50">{t("gro.share")}</button>
+              <button type="button" onClick={shareList} className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-50">{t("gro.share")}</button>
             )}
-            <button type="button" onClick={handlePrint} className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50">{t("gro.print")}</button>
+            <button type="button" onClick={handlePrint} className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-50">{t("gro.print")}</button>
           </div>
         )}
       </div>
 
       <form onSubmit={addManual} className="flex gap-2">
-        <input type="text" value={newItem} onChange={(e) => setNewItem(e.target.value)} placeholder={t("gro.addProduct")} className="flex-1 rounded-lg border border-teal-200 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400" />
-        <button type="submit" className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">{t("gro.add")}</button>
+        <input type="text" value={newItem} onChange={(e) => setNewItem(e.target.value)} placeholder={t("gro.addProduct")} className="flex-1 rounded-lg border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+        <button type="submit" className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800">{t("gro.add")}</button>
       </form>
 
       {allItems.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-teal-200 bg-teal-50/30 py-8 text-center text-sm text-zinc-600">
+        <p className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/30 py-8 text-center text-sm text-stone-600">
           {t("gro.empty")}
         </p>
       ) : (
         <div className="space-y-4">
           {grouped.map((group) => (
-            <div key={group.key} className={`rounded-xl border-l-4 ${CATEGORY_STYLES[group.key]} border border-teal-200 p-3`}>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-teal-800">{group.label}</h3>
+            <div key={group.key} className={`rounded-xl border-l-4 ${CATEGORY_STYLES[group.key]} border border-emerald-200 p-3`}>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-800">{group.label}</h3>
               <ul className="space-y-1">
                 {group.items.map((item) => {
                   const checked = checkedIds.has(item.id);
                   return (
-                    <li key={item.id} className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${checked ? "border-teal-100 bg-teal-50/50 text-zinc-500 line-through" : "border-teal-100 bg-white"}`}>
-                      <button type="button" onClick={() => toggle(item.id)} className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-teal-300 text-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-400" aria-label={checked ? t("gro.markNotBought") : t("gro.markBought")}>
+                    <li key={item.id} className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${checked ? "border-emerald-100 bg-emerald-50/50 text-stone-500 line-through" : "border-emerald-100 bg-white"}`}>
+                      <button type="button" onClick={() => toggle(item.id)} className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-emerald-300 text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" aria-label={checked ? t("gro.markNotBought") : t("gro.markBought")}>
                         {checked ? "✓" : ""}
                       </button>
                       <span className="min-w-0 flex-1 text-sm">{item.label}</span>
                       {!item.fromPlan && (
-                        <button type="button" onClick={() => removeManual(item.id)} className="shrink-0 rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600" aria-label={t("gro.remove")}>✕</button>
+                        <button type="button" onClick={() => removeManual(item.id)} className="shrink-0 rounded p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600" aria-label={t("gro.remove")}>✕</button>
                       )}
                     </li>
                   );

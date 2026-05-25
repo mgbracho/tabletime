@@ -58,10 +58,10 @@ export function CalendarWeekView({
 
   // Visual styling per meal type
   const MEAL_HEADER_CLASSES: Record<string, string> = {
-    Desayuno: "bg-white text-amber-600",
-    Comida:   "bg-white text-emerald-600",
-    Cena:     "bg-white text-indigo-600",
-    Snacks:   "bg-white text-purple-600",
+    Desayuno: "bg-white text-emerald-700 font-semibold",
+    Comida:   "bg-white text-emerald-700 font-semibold",
+    Cena:     "bg-white text-emerald-700 font-semibold",
+    Snacks:   "bg-white text-emerald-700 font-semibold",
   };
   const MEAL_PILL_CLASSES: Record<string, string> = {
     Desayuno: "bg-stone-50 ring-stone-200 text-stone-800",

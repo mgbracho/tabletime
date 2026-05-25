@@ -268,7 +268,7 @@ export default function Home() {
       {isRemote && !syncError && (
         <div className="mx-auto max-w-5xl text-right text-xs text-emerald-800">{t("app.syncedCloud")}</div>
       )}
-      <main className="mx-auto flex max-w-5xl flex-col gap-10">
+      <main className="mx-auto flex max-w-5xl flex-col gap-6">
         <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <h1 className="font-serif text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl">TableTime</h1>

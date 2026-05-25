@@ -58,10 +58,10 @@ export function CalendarWeekView({
 
   // Visual styling per meal type
   const MEAL_HEADER_CLASSES: Record<string, string> = {
-    Desayuno: "bg-amber-50 text-amber-800",
-    Comida:   "bg-emerald-50 text-emerald-800",
-    Cena:     "bg-indigo-50 text-indigo-800",
-    Snacks:   "bg-purple-50 text-purple-800",
+    Desayuno: "bg-white text-amber-600",
+    Comida:   "bg-white text-emerald-600",
+    Cena:     "bg-white text-indigo-600",
+    Snacks:   "bg-white text-purple-600",
   };
   const MEAL_PILL_CLASSES: Record<string, string> = {
     Desayuno: "bg-amber-50/90 ring-amber-200/70 text-amber-900",
@@ -170,19 +170,7 @@ export function CalendarWeekView({
 
   return (
     <div className="overflow-x-auto">
-      {/* View mode selector */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-stone-500">{t("cal.view")}</span>
-        <div className="inline-flex rounded-full bg-emerald-50 p-0.5">
-          {(["week", "day", "month"] as const).map((mode) => (
-            <button key={mode} type="button" onClick={() => setViewMode(mode)} className={`rounded-full px-3 py-1 text-xs font-medium transition ${viewMode === mode ? "bg-white text-stone-900 shadow-sm" : "text-emerald-800 hover:bg-emerald-100"}`}>
-              {mode === "week" ? t("cal.week") : mode === "day" ? t("cal.day") : t("cal.month")}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Navigation */}
+      {/* Navigation + View mode (single row) */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           {viewMode === "week" && (
@@ -207,7 +195,16 @@ export function CalendarWeekView({
             </>
           )}
         </div>
-        {viewMode === "week" && (
+        <div className="flex items-center gap-2">
+          {/* View mode switcher */}
+          <div className="inline-flex rounded-full bg-stone-100 p-0.5">
+            {(["week", "day", "month"] as const).map((mode) => (
+              <button key={mode} type="button" onClick={() => setViewMode(mode)} className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${viewMode === mode ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:bg-stone-200"}`}>
+                {mode === "week" ? t("cal.week") : mode === "day" ? t("cal.day") : t("cal.month")}
+              </button>
+            ))}
+          </div>
+          {/* More menu */}
           <div className="relative">
             <button type="button" onClick={() => setMoreMenuOpen((o) => !o)} className="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-50">{t("cal.more")}</button>
             {moreMenuOpen && (
@@ -220,9 +217,13 @@ export function CalendarWeekView({
                       <div className="my-1 border-t border-stone-100" />
                     </>
                   )}
-                  <button type="button" className="block w-full px-3 py-2 text-left text-sm text-stone-800 hover:bg-stone-100" onClick={() => { copyFromPreviousWeek(); setMoreMenuOpen(false); }}>{t("cal.copyPrevWeek")}</button>
-                  <button type="button" className="block w-full px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50" onClick={() => { setClearConfirm("week"); setMoreMenuOpen(false); }}>{t("cal.clearWeek")}</button>
-                  <div className="my-1 border-t border-stone-100" />
+                  {viewMode === "week" && (
+                    <>
+                      <button type="button" className="block w-full px-3 py-2 text-left text-sm text-stone-800 hover:bg-stone-100" onClick={() => { copyFromPreviousWeek(); setMoreMenuOpen(false); }}>{t("cal.copyPrevWeek")}</button>
+                      <button type="button" className="block w-full px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50" onClick={() => { setClearConfirm("week"); setMoreMenuOpen(false); }}>{t("cal.clearWeek")}</button>
+                      <div className="my-1 border-t border-stone-100" />
+                    </>
+                  )}
                   <button type="button" className="block w-full px-3 py-2 text-left text-sm text-emerald-800 hover:bg-emerald-50" onClick={() => {
                     printPlanToPdf(plan, recipes, themeDays, visibleMeals, {
                       locale,
@@ -238,7 +239,7 @@ export function CalendarWeekView({
               </>
             )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Day view */}
@@ -314,9 +315,9 @@ export function CalendarWeekView({
               {weekDaysT.map((d) => {
                 const isToday = d.date.toDateString() === today.toDateString();
                 return (
-                  <div key={d.date.toISOString()} className={`border-l border-emerald-100 px-2 py-2 text-center ${isToday ? "bg-white shadow-sm" : ""}`}>
-                    <span className="block text-[11px] font-medium text-emerald-800">{d.dayLabel}</span>
-                    <span className={`text-xs ${isToday ? "font-bold text-emerald-800" : "text-emerald-700/70"}`}>{d.dateLabel}</span>
+                  <div key={d.date.toISOString()} className={`border-l border-emerald-100 px-2 py-2 text-center ${isToday ? "bg-emerald-50/60" : ""}`}>
+                    <span className={`block text-[11px] font-medium ${isToday ? "text-emerald-800" : "text-stone-400"}`}>{d.dayLabel}</span>
+                    <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${isToday ? "bg-emerald-700 text-white" : "text-stone-600"}`}>{d.dateLabel}</span>
                   </div>
                 );
               })}
@@ -361,7 +362,7 @@ export function CalendarWeekView({
                       {recipe ? (
                         /* ── Filled slot: recipe card ── */
                         <div
-                          className={`group flex w-full flex-col overflow-hidden rounded-lg ring-1 cursor-grab active:cursor-grabbing ${pillClass}`}
+                          className={`group flex w-full flex-col overflow-hidden rounded-lg ring-1 cursor-grab active:cursor-grabbing transition-shadow hover:shadow-md ${pillClass}`}
                           draggable
                           onDragStart={(e) => handleDragStart(e, key, recipeId!)}
                           onDragEnd={handleDragEnd}

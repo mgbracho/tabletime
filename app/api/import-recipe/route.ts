@@ -148,23 +148,27 @@ function collectItems(obj: unknown): unknown[] {
 }
 
 // ─── Instruction flattening ────────────────────────────────────────────────
-// Handles: plain strings, HowToStep { text }, HowToSection { itemListElement }
-
-type AnyStep = string | { "@type"?: string; text?: string; name?: string; itemListElement?: AnyStep[] };
+// Handles: plain strings, HowToStep { text }, HowToSection { itemListElement },
+// and nested arrays (e.g. pickuplimes.com wraps all steps in one inner array).
 
 function flattenInstructions(raw: unknown): string {
-  const list: AnyStep[] = Array.isArray(raw) ? raw as AnyStep[] : (raw ? [raw as AnyStep] : []);
+  const list: unknown[] = Array.isArray(raw) ? raw : (raw ? [raw] : []);
   const out: string[] = [];
   for (const item of list) {
-    if (typeof item === "string") {
+    if (Array.isArray(item)) {
+      // Nested array of steps — recurse (e.g. [[step1, step2, ...]])
+      const nested = flattenInstructions(item);
+      if (nested) out.push(...nested.split("\n\n").filter(Boolean));
+    } else if (typeof item === "string") {
       const t = stripHtml(item); if (t) out.push(t);
     } else if (item && typeof item === "object") {
-      if (Array.isArray(item.itemListElement) && item.itemListElement.length > 0) {
+      const step = item as { text?: string; name?: string; itemListElement?: unknown[] };
+      if (Array.isArray(step.itemListElement) && step.itemListElement.length > 0) {
         // HowToSection — recurse into its nested steps
-        const nested = flattenInstructions(item.itemListElement);
+        const nested = flattenInstructions(step.itemListElement);
         if (nested) out.push(...nested.split("\n\n").filter(Boolean));
       } else {
-        const t = stripHtml(item.text ?? item.name ?? ""); if (t) out.push(t);
+        const t = stripHtml(step.text ?? step.name ?? ""); if (t) out.push(t);
       }
     }
   }

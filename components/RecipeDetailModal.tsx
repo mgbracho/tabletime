@@ -107,7 +107,7 @@ export function RecipeDetailModal({
               ))}
             </div>
           )}
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="text-xs font-medium text-zinc-500">{t("modal.servings")}</span>
             {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
               <button
@@ -163,8 +163,8 @@ export function RecipeDetailModal({
             <p className="text-sm text-zinc-500">{t("modal.noContent")}</p>
           )}
         </div>
-        <div className="flex items-center justify-between gap-2 border-t border-teal-100 px-4 py-3">
-          {/* Left side: source URL + translate button (both can appear together) */}
+        <div className="flex flex-col gap-3 border-t border-teal-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          {/* Source URL + translate button */}
           <div className="flex flex-wrap items-center gap-2">
             {recipe.source_url && (
               <a
@@ -204,12 +204,12 @@ export function RecipeDetailModal({
               </button>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 sm:shrink-0">
             {onEdit && (
               <button
                 type="button"
                 onClick={() => { onClose(); onEdit(recipe); }}
-                className="rounded-lg border border-teal-200 px-4 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50"
+                className="flex-1 rounded-lg border border-teal-200 px-4 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50 sm:flex-none"
               >
                 {t("modal.edit")}
               </button>
@@ -217,7 +217,7 @@ export function RecipeDetailModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+              className="flex-1 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 sm:flex-none"
             >
               {t("modal.close")}
             </button>

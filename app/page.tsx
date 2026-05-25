@@ -285,12 +285,12 @@ export default function Home() {
           </div>
         </header>
 
-        <nav className="flex gap-2 rounded-full bg-teal-300/20 p-1 text-sm font-medium text-teal-800 sm:max-w-md">
+        <nav className="flex gap-1 rounded-full bg-teal-300/20 p-1 sm:max-w-md">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 rounded-full px-4 py-2 transition ${
+              className={`flex-1 rounded-full px-2 py-2 text-xs font-medium text-teal-800 transition sm:px-4 sm:text-sm ${
                 tab.id === activeTab ? "bg-white text-teal-700 shadow-sm" : "bg-transparent hover:bg-teal-100"
               }`}
               type="button"
@@ -300,7 +300,7 @@ export default function Home() {
           ))}
         </nav>
 
-        <section className="rounded-2xl bg-white/80 p-6 shadow-sm ring-1 ring-teal-50">
+        <section className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-teal-50 sm:p-6">
           <SectionPlaceholder
             activeTab={activeTab}
             recipes={recipes}

@@ -302,6 +302,27 @@ function extractListItems(html: string, start: number, end: number, tag: "ul" | 
 }
 
 /**
+ * Extract ingredients from <p> tags that use <br> as a separator between items.
+ * Used for sites like gazoakleychef.com that don't use <ul><li> for ingredients.
+ */
+function extractParagraphItems(html: string, start: number, end: number): string[] {
+  const section = html.slice(start, end);
+  const items: string[] = [];
+  for (const pMatch of section.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)) {
+    // Normalise <br> variants to newline before stripping other tags
+    const withBreaks = pMatch[1]
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<span[^>]*class=["'][^"']*Apple-converted-space[^"']*["'][^>]*>([\s\S]*?)<\/span>/gi, "$1");
+    const lines = stripHtml(withBreaks)
+      .split("\n")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 1);
+    items.push(...lines);
+  }
+  return items;
+}
+
+/**
  * HTML-level fallback: try microdata (itemprop), common recipe-plugin CSS classes,
  * and heading-based section extraction for plain-HTML recipe blogs.
  *
@@ -332,6 +353,9 @@ function extractRecipeFromHtml(
       // Bound to the instruction section (or 10 000 chars if no instruction heading found)
       const ingEnd = instStart > ingStart ? instStart : ingStart + 10000;
       ingredientLines = extractListItems(html, ingStart, ingEnd, "ul");
+      // Fallback for <p>+<br> format (e.g. gazoakleychef.com)
+      if (!ingredientLines.length)
+        ingredientLines = extractParagraphItems(html, ingStart, ingEnd);
     }
   }
 

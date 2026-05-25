@@ -64,10 +64,10 @@ export function CalendarWeekView({
     Snacks:   "bg-white text-purple-600",
   };
   const MEAL_PILL_CLASSES: Record<string, string> = {
-    Desayuno: "bg-amber-50/90 ring-amber-200/70 text-amber-900",
-    Comida:   "bg-emerald-50/90 ring-emerald-200/70 text-stone-900",
-    Cena:     "bg-indigo-50/90 ring-indigo-200/70 text-indigo-900",
-    Snacks:   "bg-purple-50/90 ring-purple-200/70 text-purple-900",
+    Desayuno: "bg-stone-50 ring-stone-200 text-stone-800",
+    Comida:   "bg-stone-50 ring-stone-200 text-stone-800",
+    Cena:     "bg-stone-50 ring-stone-200 text-stone-800",
+    Snacks:   "bg-stone-50 ring-stone-200 text-stone-800",
   };
 
   useEffect(() => {

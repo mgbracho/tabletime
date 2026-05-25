@@ -268,6 +268,7 @@ export function mergeGroceryItems(items: GroceryItem[]): GroceryItem[] {
     qtyRest: string;       // unit + ingredient part after the leading number
     count: number;         // number of recipe-slot occurrences
     fromPlan: boolean;
+    hasManual: boolean;   // true if at least one contributing item was added manually
   };
 
   const byKey = new Map<string, Merged>();
@@ -301,12 +302,13 @@ export function mergeGroceryItems(items: GroceryItem[]): GroceryItem[] {
       }
       if (cleanedLabel.length < existing.label.length) existing.label = cleanedLabel;
       existing.fromPlan = existing.fromPlan || item.fromPlan;
+      existing.hasManual = existing.hasManual || !item.fromPlan;
     } else {
-      byKey.set(key, { label: cleanedLabel, sumQty: parsedQty, qtyRest, count: 1, fromPlan: item.fromPlan });
+      byKey.set(key, { label: cleanedLabel, sumQty: parsedQty, qtyRest, count: 1, fromPlan: item.fromPlan, hasManual: !item.fromPlan });
     }
   }
 
-  return Array.from(byKey.entries()).map(([key, { label, sumQty, qtyRest, count, fromPlan }]) => {
+  return Array.from(byKey.entries()).map(([key, { label, sumQty, qtyRest, count, fromPlan, hasManual }]) => {
     let displayLabel: string;
     if (count > 1 && sumQty !== null) {
       // Quantities could be summed: show "3 unidad Ajo" instead of "1 unidad Ajo (×3)"
@@ -320,7 +322,9 @@ export function mergeGroceryItems(items: GroceryItem[]): GroceryItem[] {
     return {
       id: `merged-${key.replace(/\s+/g, "-")}`,
       label: displayLabel,
-      fromPlan,
+      // Show delete button if any contributing item was manually added,
+      // even when the same ingredient also comes from the plan.
+      fromPlan: fromPlan && !hasManual,
     };
   });
 }

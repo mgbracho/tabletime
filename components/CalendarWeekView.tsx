@@ -60,6 +60,11 @@ export function CalendarWeekView({
     if (typeof window !== "undefined" && window.innerWidth < 768) setViewMode("day");
   }, []);
 
+  // Persist the selected week so the grocery list can read it
+  useEffect(() => {
+    try { localStorage.setItem("tabletime-cal-week", weekStart.toISOString()); } catch {}
+  }, [weekStart]);
+
   const weekDays = getWeekDates(weekStart);
   // Apply translated day labels (Mon=0…Sun=6)
   const weekDaysT = weekDays.map((d, i) => ({ ...d, dayLabel: t(`day.${i}`) }));

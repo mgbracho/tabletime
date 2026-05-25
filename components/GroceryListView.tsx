@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { Recipe, PlanState } from "@/lib/sync/use-tabletime-data";
 import { useLanguage } from "@/lib/i18n";
 import { loadVisibleMeals } from "@/lib/constants";
@@ -43,7 +43,14 @@ export function GroceryListView({
   const [newItem, setNewItem] = useState("");
   const [copyFeedback, setCopyFeedback] = useState(false);
 
-  const weekStart = getWeekStart();
+  // Use the week currently shown in the calendar (saved to localStorage on navigation)
+  const weekStart = useMemo(() => {
+    try {
+      const s = typeof window !== "undefined" ? localStorage.getItem("tabletime-cal-week") : null;
+      if (s) { const d = new Date(s); if (!isNaN(d.getTime())) return d; }
+    } catch {}
+    return getWeekStart();
+  }, []);
   const visibleMeals = loadVisibleMeals();
   const fromPlan = getGroceryItemsFromPlan(plan, recipes, weekStart, visibleMeals);
   const manualAsItems: GroceryItem[] = manualItems.map((m) => ({ ...m, fromPlan: false }));

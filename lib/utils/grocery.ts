@@ -340,13 +340,15 @@ export function getGroceryItemsFromPlan(
   plan: PlanState,
   recipes: Recipe[],
   weekStart: Date,
-  visibleMeals: readonly string[] = MEAL_LABELS
+  visibleMeals: readonly string[] = MEAL_LABELS,
+  disabledDays: number[] = []
 ): GroceryItem[] {
   const weekDays = getWeekDates(weekStart);
   const items: GroceryItem[] = [];
   for (const meal of visibleMeals) {
-    for (const d of weekDays) {
-      const key = slotKey(d.date, meal);
+    for (let di = 0; di < weekDays.length; di++) {
+      if (disabledDays.includes(di)) continue; // skip disabled days
+      const key = slotKey(weekDays[di].date, meal);
       const recipeId = plan[key];
       if (!recipeId || isSlotStatus(recipeId)) continue;
       const recipe = recipes.find((r) => r.id === recipeId);

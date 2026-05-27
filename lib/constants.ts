@@ -13,6 +13,7 @@ export type MealType = (typeof MEAL_LABELS)[number];
 export const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 export const CALENDAR_VISIBLE_MEALS_KEY = "tabletime-calendar-visible-meals";
+export const CALENDAR_DISABLED_DAYS_KEY  = "tabletime-calendar-disabled-days";
 
 export function loadVisibleMeals(): readonly MealType[] {
   if (typeof window === "undefined") return [...MEAL_LABELS];
@@ -27,6 +28,19 @@ export function loadVisibleMeals(): readonly MealType[] {
     return valid.length > 0 ? valid : [...MEAL_LABELS];
   } catch {
     return [...MEAL_LABELS];
+  }
+}
+
+export function loadDisabledDays(): number[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(CALENDAR_DISABLED_DAYS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((d): d is number => typeof d === "number" && d >= 0 && d <= 6);
+  } catch {
+    return [];
   }
 }
 

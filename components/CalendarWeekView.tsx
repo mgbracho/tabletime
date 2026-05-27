@@ -30,6 +30,7 @@ export function CalendarWeekView({
   onEditThemes,
   members = [],
   visibleMeals = [...MEAL_LABELS],
+  disabledDays = [],
 }: {
   recipes: Recipe[];
   plan: PlanState;
@@ -39,6 +40,7 @@ export function CalendarWeekView({
   onEditThemes?: () => void;
   members?: HouseholdMember[];
   visibleMeals?: readonly MealType[];
+  disabledDays?: number[];
 }) {
   const { t, locale } = useLanguage();
 
@@ -312,12 +314,13 @@ export function CalendarWeekView({
             {/* Day header row */}
             <div className="grid grid-cols-8 border-b border-emerald-100 bg-gradient-to-r from-emerald-50/80 via-emerald-50 to-emerald-50/80">
               <div className="p-2 text-[11px] font-semibold uppercase tracking-wide text-emerald-800" />
-              {weekDaysT.map((d) => {
-                const isToday = d.date.toDateString() === today.toDateString();
+              {weekDaysT.map((d, colIdx) => {
+                const isToday    = d.date.toDateString() === today.toDateString();
+                const isDisabled = disabledDays.includes(colIdx);
                 return (
-                  <div key={d.date.toISOString()} className={`border-l border-emerald-100 px-2 py-2 text-center ${isToday ? "bg-emerald-50/60" : ""}`}>
-                    <span className={`block text-[11px] font-medium ${isToday ? "text-emerald-800" : "text-stone-400"}`}>{d.dayLabel}</span>
-                    <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${isToday ? "bg-emerald-700 text-white" : "text-stone-600"}`}>{d.dateLabel}</span>
+                  <div key={d.date.toISOString()} className={`border-l border-emerald-100 px-2 py-2 text-center ${isDisabled ? "bg-stone-50" : isToday ? "bg-emerald-50/60" : ""}`}>
+                    <span className={`block text-[11px] font-medium ${isDisabled ? "text-stone-300" : isToday ? "text-emerald-800" : "text-stone-400"}`}>{d.dayLabel}</span>
+                    <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${isDisabled ? "text-stone-300" : isToday ? "bg-emerald-700 text-white" : "text-stone-600"}`}>{d.dateLabel}</span>
                   </div>
                 );
               })}
@@ -341,7 +344,8 @@ export function CalendarWeekView({
                   const recipe = recipeId ? recipes.find((r) => r.id === recipeId) ?? null : null;
                   const isDragOver = dragOverKey === key;
                   const isTodayColumn = d.date.toDateString() === today.toDateString();
-                  const pillClass = MEAL_PILL_CLASSES[meal] ?? "bg-emerald-50/90 ring-emerald-200/70 text-stone-900";
+                  const isDisabled = disabledDays.includes(dayIndex);
+                  const pillClass = MEAL_PILL_CLASSES[meal] ?? "bg-stone-50 ring-stone-200 text-stone-800";
                   const slotTheme = themeDays[dayIndex]?.[meal];
                   const conflicts = recipe ? getRecipeConflicts(recipe, members) : [];
 
@@ -349,17 +353,24 @@ export function CalendarWeekView({
                     <div
                       key={key}
                       className={`flex min-h-[72px] items-stretch border-l border-emerald-50 p-1 transition-colors ${
-                        isDragOver
+                        isDisabled
+                          ? "bg-stone-50/80"
+                          : isDragOver
                           ? "bg-emerald-100 ring-inset ring-1 ring-emerald-500"
                           : isTodayColumn
                           ? "bg-emerald-50/40"
                           : "hover:bg-stone-50/60"
                       }`}
-                      onDragOver={(e) => handleDragOver(e, key)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, key)}
+                      onDragOver={isDisabled ? undefined : (e) => handleDragOver(e, key)}
+                      onDragLeave={isDisabled ? undefined : handleDragLeave}
+                      onDrop={isDisabled ? undefined : (e) => handleDrop(e, key)}
                     >
-                      {recipe ? (
+                      {isDisabled ? (
+                        /* ── Disabled day: blocked cell ── */
+                        <div className="flex w-full items-center justify-center rounded-lg">
+                          <span className="text-xl font-thin text-stone-200">—</span>
+                        </div>
+                      ) : recipe ? (
                         /* ── Filled slot: recipe card ── */
                         <div
                           className={`group flex w-full flex-col overflow-hidden rounded-lg ring-1 cursor-grab active:cursor-grabbing transition-shadow hover:shadow-md ${pillClass}`}

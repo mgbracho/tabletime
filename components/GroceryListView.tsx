@@ -30,6 +30,7 @@ export function GroceryListView({
   checkedIds,
   setCheckedIds,
   addManualItem,
+  disabledDays = [],
 }: {
   plan: PlanState;
   recipes: Recipe[];
@@ -38,6 +39,7 @@ export function GroceryListView({
   checkedIds: Set<string>;
   setCheckedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   addManualItem?: (label: string) => void;
+  disabledDays?: number[];
 }) {
   const { t, locale } = useLanguage();
   const [newItem, setNewItem] = useState("");
@@ -52,7 +54,7 @@ export function GroceryListView({
     return getWeekStart();
   }, []);
   const visibleMeals = loadVisibleMeals();
-  const fromPlan = getGroceryItemsFromPlan(plan, recipes, weekStart, visibleMeals);
+  const fromPlan = getGroceryItemsFromPlan(plan, recipes, weekStart, visibleMeals, disabledDays);
   const manualAsItems: GroceryItem[] = manualItems.map((m) => ({ ...m, fromPlan: false }));
   const allItems: GroceryItem[] = mergeGroceryItems([...fromPlan, ...manualAsItems]);
 

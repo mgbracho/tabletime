@@ -13,7 +13,9 @@ import {
   MEAL_LABELS,
   type MealType,
   CALENDAR_VISIBLE_MEALS_KEY,
+  CALENDAR_DISABLED_DAYS_KEY,
   loadVisibleMeals,
+  loadDisabledDays,
 } from "@/lib/constants";
 import { getWeekStart, generateSuggestedPlanForWeek } from "@/lib/utils/calendar";
 import { CalendarWeekView } from "@/components/CalendarWeekView";
@@ -59,6 +61,7 @@ function SectionPlaceholder({
   const [calendarViewingRecipe, setCalendarViewingRecipe] = useState<Recipe | null>(null);
   const [calendarViewServings, setCalendarViewServings] = useState(4);
   const [visibleMeals, setVisibleMeals] = useState<MealType[]>(() => [...loadVisibleMeals()]);
+  const [disabledDays, setDisabledDays] = useState<number[]>(() => loadDisabledDays());
   const [themeConfigOpen, setThemeConfigOpen] = useState(false);
   const [calTranslateState, setCalTranslateState] = useState<Record<string, "loading" | "done" | "error">>({});
 
@@ -119,10 +122,21 @@ function SectionPlaceholder({
     });
   };
 
+  const toggleDay = (dayIndex: number) => {
+    setDisabledDays((prev) => {
+      const next = prev.includes(dayIndex)
+        ? prev.filter((d) => d !== dayIndex)
+        : [...prev, dayIndex];
+      try { localStorage.setItem(CALENDAR_DISABLED_DAYS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
   if (activeTab === "calendar") {
     return (
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-emerald-100 bg-white px-3 py-2 shadow-sm">
+          {/* Meal type toggles */}
           <div className="flex w-full gap-2 overflow-x-auto pb-1">
             {MEAL_LABELS.map((meal) => (
               <button
@@ -139,6 +153,29 @@ function SectionPlaceholder({
               </button>
             ))}
           </div>
+          {/* Day toggles */}
+          <div className="flex w-full items-center gap-2 overflow-x-auto border-t border-stone-100 pt-2">
+            <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-stone-400">{t("cal.days")}</span>
+            {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => {
+              const isDisabled = disabledDays.includes(dayIndex);
+              return (
+                <button
+                  key={dayIndex}
+                  type="button"
+                  onClick={() => toggleDay(dayIndex)}
+                  className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition ${
+                    isDisabled
+                      ? "bg-stone-100 text-stone-400 line-through"
+                      : "bg-white/70 text-emerald-800 border border-emerald-200 hover:bg-emerald-50"
+                  }`}
+                  aria-pressed={isDisabled}
+                  title={isDisabled ? t("cal.dayEnable") : t("cal.dayDisable")}
+                >
+                  {t(`day.${dayIndex}`)}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <CalendarWeekView
           recipes={recipes}
@@ -149,6 +186,7 @@ function SectionPlaceholder({
           onEditThemes={() => setThemeConfigOpen(true)}
           members={householdMembers}
           visibleMeals={visibleMeals}
+          disabledDays={disabledDays}
         />
         {calendarViewingRecipe && (
           <RecipeDetailModal
@@ -204,6 +242,7 @@ function SectionPlaceholder({
       checkedIds={groceryCheckedIds}
       setCheckedIds={setGroceryCheckedIds}
       addManualItem={addManualGroceryItem}
+      disabledDays={disabledDays}
     />
   );
 }
@@ -231,11 +270,12 @@ export default function Home() {
     setActiveTab("calendar");
     setCreatingPlan(true);
     const visibleMeals = loadVisibleMeals();
+    const disabledDays  = loadDisabledDays();
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         setPlan((prev) => ({
           ...prev,
-          ...generateSuggestedPlanForWeek(recipes, themeDays, prev, getWeekStart(), visibleMeals),
+          ...generateSuggestedPlanForWeek(recipes, themeDays, prev, getWeekStart(), visibleMeals, disabledDays),
         }));
         setCreatingPlan(false);
         setToastMessage(t("plan.created"));

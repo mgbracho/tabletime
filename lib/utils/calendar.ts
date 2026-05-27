@@ -169,7 +169,8 @@ export function generateSuggestedPlanForWeek(
   themeDays: ThemeDays,
   currentPlan: PlanState,
   weekStart: Date,
-  visibleMeals: readonly MealType[] = MEAL_LABELS
+  visibleMeals: readonly MealType[] = MEAL_LABELS,
+  disabledDays: number[] = []
 ): PlanState {
   if (recipes.length === 0) return {};
   const weekDays = getWeekDates(weekStart);
@@ -289,8 +290,9 @@ export function generateSuggestedPlanForWeek(
   }
 
   // Fix 1: Shuffle the empty slots before filling so no day gets systematic priority.
+  // Skip disabled days entirely — their slots are left empty in the output.
   // The output keys are date-based strings so the order of writing to `plan` doesn't matter.
-  const emptySlots = allSlots.filter((s) => !currentPlan[s.key]);
+  const emptySlots = allSlots.filter((s) => !currentPlan[s.key] && !disabledDays.includes(s.dayIndex));
   const shuffledSlots = [...emptySlots].sort(() => Math.random() - 0.5);
 
   for (const { dayIndex, meal, key } of shuffledSlots) {

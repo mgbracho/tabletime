@@ -176,6 +176,21 @@ export function generateSuggestedPlanForWeek(
   const tokensByRecipe = new Map(recipes.map((r) => [r.id, getIngredientTokens(r.ingredients)]));
   const proteinsByRecipe = new Map(recipes.map((r) => [r.id, getProteinsForRecipe(r)]));
 
+  // --- Cross-week recency: scan plan history for recipes used in the last 28 days ---
+  const weekStartMs = weekStart.getTime();
+  const cutoffMs = weekStartMs - 28 * 24 * 60 * 60 * 1000;
+  const recentDaysAgo: Record<string, number> = {}; // recipeId → days since last use
+  for (const [key, value] of Object.entries(currentPlan)) {
+    if (!value || isSlotStatus(value)) continue;
+    const slotMs = new Date(key.slice(0, 10)).getTime();
+    if (slotMs >= cutoffMs && slotMs < weekStartMs) {
+      const daysAgo = Math.floor((weekStartMs - slotMs) / (24 * 60 * 60 * 1000));
+      if (recentDaysAgo[value] === undefined || recentDaysAgo[value] > daysAgo) {
+        recentDaysAgo[value] = daysAgo;
+      }
+    }
+  }
+
   const slots: { dayIndex: number; meal: MealType; key: string }[] = [];
   for (let i = 0; i < weekDays.length; i++) {
     for (const meal of visibleMeals) {
@@ -185,17 +200,63 @@ export function generateSuggestedPlanForWeek(
 
   const plan: PlanState = {};
   const chosenThisWeek: Recipe[] = [];
+  const usedThisWeek = new Set<string>(); // hard dedup: same recipe cannot appear twice in a week
   const usedProteinsThisWeek: Record<string, number> = {};
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const scoreRecipe = (r: Recipe): number => {
+    // Recency score: prefer recipes not used recently.
+    // Use plan history (accurate) with last_used_at as fallback.
+    let daysSince: number;
+    if (recentDaysAgo[r.id] !== undefined) {
+      daysSince = recentDaysAgo[r.id];
+    } else if (r.last_used_at) {
+      const d = new Date(r.last_used_at);
+      d.setHours(0, 0, 0, 0);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      daysSince = Math.floor((today.getTime() - d.getTime()) / (24 * 60 * 60 * 1000));
+    } else {
+      daysSince = 60; // never used → top priority
+    }
+    // 0 if used ≤7 days ago, ramps to 1 at 21+ days
+    const recencyScore = daysSince <= 7 ? 0 : daysSince >= 21 ? 1 : (daysSince - 7) / 14;
+
+    // Ingredient variety vs recipes already assigned this week
+    let varietyScore = 1;
+    if (chosenThisWeek.length > 0) {
+      const myTokens = tokensByRecipe.get(r.id) ?? new Set();
+      let totalOverlap = 0;
+      for (const other of chosenThisWeek) {
+        const otherTokens = tokensByRecipe.get(other.id) ?? new Set();
+        const inter = [...myTokens].filter((t) => otherTokens.has(t)).length;
+        const un = new Set([...myTokens, ...otherTokens]).size;
+        if (un > 0) totalOverlap += inter / un;
+      }
+      varietyScore = 1 - totalOverlap / chosenThisWeek.length;
+    }
+
+    // Protein balance: penalise if same protein group used 2+ times already
+    const myProteins = proteinsByRecipe.get(r.id) ?? new Set();
+    for (const p of myProteins) {
+      if ((usedProteinsThisWeek[p] ?? 0) >= 2) varietyScore -= 0.25;
+    }
+    varietyScore = Math.max(0, varietyScore);
+
+    // Preference bonuses (minor)
+    const ratingBonus = r.rating != null ? (r.rating / 5) * 0.08 : 0;
+    const favoriteBonus = r.is_favorite ? 0.05 : 0;
+
+    // Small random factor so each "Create plan" run feels different
+    return recencyScore * 0.45 + varietyScore * 0.35 + ratingBonus + favoriteBonus + Math.random() * 0.15;
+  };
 
   for (const { dayIndex, meal, key } of slots) {
+    // Keep slots already set in the current plan
     if (currentPlan[key]) {
       plan[key] = currentPlan[key];
       const r = recipes.find((x) => x.id === currentPlan[key]);
       if (r) {
         chosenThisWeek.push(r);
+        usedThisWeek.add(r.id);
         for (const p of getProteinsForRecipe(r)) {
           usedProteinsThisWeek[p] = (usedProteinsThisWeek[p] ?? 0) + 1;
         }
@@ -203,62 +264,37 @@ export function generateSuggestedPlanForWeek(
       continue;
     }
 
+    // Build candidate pool filtered by theme
     const theme = themeDays[dayIndex]?.[meal]?.trim().toLowerCase();
     const themeWords = theme ? theme.split(/\s+/).filter(Boolean) : [];
-    const candidates =
+    let candidates =
       themeWords.length > 0
         ? recipes.filter((r) => {
             const tagStr = (r.tags ?? []).join(" ").toLowerCase();
             return themeWords.some((w) => tagStr.includes(w) || r.title.toLowerCase().includes(w));
           })
         : [...recipes];
-
     if (themeWords.length > 0 && candidates.length === 0) continue;
-    const available = candidates.length > 0 ? candidates : recipes;
+    if (candidates.length === 0) candidates = [...recipes];
 
-    const score = (r: Recipe): number => {
-      let daysSince = 30;
-      if (r.last_used_at) {
-        const d = new Date(r.last_used_at);
-        d.setHours(0, 0, 0, 0);
-        daysSince = Math.floor((today.getTime() - d.getTime()) / (24 * 60 * 60 * 1000));
-      }
-      const daysSinceScore = daysSince <= 7 ? 0 : daysSince >= 30 ? 1 : (daysSince - 7) / 23;
-
-      let varietyScore = 1;
-      if (chosenThisWeek.length > 0) {
-        const myTokens = tokensByRecipe.get(r.id) ?? new Set();
-        let overlap = 0;
-        for (const other of chosenThisWeek) {
-          const otherTokens = tokensByRecipe.get(other.id) ?? new Set();
-          const inter = [...myTokens].filter((t) => otherTokens.has(t)).length;
-          const un = new Set([...myTokens, ...otherTokens]).size;
-          if (un > 0) overlap += inter / un;
-        }
-        overlap /= chosenThisWeek.length;
-        varietyScore = 1 - overlap;
-        const myProteins = proteinsByRecipe.get(r.id) ?? new Set();
-        for (const p of myProteins) {
-          if ((usedProteinsThisWeek[p] ?? 0) >= 2) varietyScore -= 0.25;
-        }
-        varietyScore = Math.max(0, varietyScore);
-      }
-
-      return daysSinceScore * 0.4 + varietyScore * 0.35 + Math.random() * 0.25;
-    };
-
-    // Respect meal_types: only assign a recipe to a slot it's marked for.
-    // Recipes with no meal_types restriction are eligible for any slot.
-    const mealRestricted = available.filter(
+    // Filter by meal type
+    const mealCompatible = candidates.filter(
       (r) => !r.meal_types || r.meal_types.length === 0 || r.meal_types.includes(meal)
     );
-    if (mealRestricted.length === 0) continue;
+    if (mealCompatible.length === 0) continue;
 
-    const sorted = [...mealRestricted].sort((a, b) => score(b) - score(a));
-    const top = sorted.slice(0, Math.max(1, Math.min(3, Math.ceil(sorted.length / 2))));
-    const picked = top[Math.floor(Math.random() * top.length)];
+    // Prefer recipes not yet used this week; only allow repeats if no fresh options exist
+    const fresh = mealCompatible.filter((r) => !usedThisWeek.has(r.id));
+    const pool = fresh.length > 0 ? fresh : mealCompatible;
+
+    // Score each candidate once (avoids non-deterministic sort with Math.random inside)
+    const scored = pool.map((r) => ({ r, s: scoreRecipe(r) }));
+    scored.sort((a, b) => b.s - a.s);
+    const picked = scored[0].r;
+
     plan[key] = picked.id;
     chosenThisWeek.push(picked);
+    usedThisWeek.add(picked.id);
     for (const p of getProteinsForRecipe(picked)) {
       usedProteinsThisWeek[p] = (usedProteinsThisWeek[p] ?? 0) + 1;
     }
